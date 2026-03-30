@@ -458,7 +458,7 @@
           <!-- Prompt调教 -->
           <div class="setting-section active" id="setting-prompt">
             <h3>🎯 Prompt调教中心</h3>
-            <p class="setting-desc">编辑各工具的AI提示词，保存后<strong>自动同步到云端</strong>，所有用户下次打开自动更新。</p>
+            <p class="setting-desc">编辑各工具的AI提示词，保存后<strong>自动同步到云端</strong>，所有学员下次打开自动更新。</p>
 
             <div class="prompt-list">
               <div class="prompt-card" data-prompt="ctrip">
@@ -510,16 +510,19 @@
               </div>
             </div>
 
-            <div style="display:flex; gap:12px; margin-bottom:16px;">
-              <button class="btn btn-primary" onclick="syncAllPrompts()">☁️ 同步到云端</button>
-              <button class="btn" onclick="showTokenSetup()">🔑 同步设置</button>
+            <!-- 云端同步状态 -->
+            <div id="tokenStatusBadge" style="display:none; padding:12px 16px; border-radius:8px; font-size:13px; line-height:1.6; margin-bottom:16px;"></div>
+
+            <div style="display:flex; gap:12px; margin-bottom:16px; flex-wrap:wrap;">
+              <button class="btn" onclick="showTokenSetup()">🔑 同步设置（Token）</button>
               <button class="btn" onclick="exportConfig()">📦 导出备份</button>
               <button class="btn" onclick="exitAdmin()">🚪 退出管理员</button>
             </div>
 
             <div class="setting-tip">
               <span>💡 使用说明</span>
-              <p>首次使用需要点「同步设置」输入 GitHub Token（只需一次）。之后编辑 Prompt → 保存 → 点「同步到云端」，所有学员下次打开自动更新。</p>
+              <p>首次使用：点「同步设置」→ 创建Token → 粘贴保存（只需一次）。<br>
+              日常使用：直接编辑Prompt → 点「保存并同步」，全员即时生效。</p>
             </div>
           </div>
 
@@ -655,23 +658,49 @@
 
   <!-- GitHub Token 设置弹窗 -->
   <div class="modal-overlay" id="tokenModal" style="display:none;">
-    <div class="modal" style="max-width:480px;">
+    <div class="modal" style="max-width:520px;">
       <div class="modal-header">
         <h3>🔑 云端同步设置</h3>
         <button class="modal-close" onclick="closeTokenModal()">✕</button>
       </div>
       <div class="modal-body">
-        <p style="font-size:13px; color:var(--text-secondary); margin-bottom:12px;">输入你的 GitHub Personal Access Token，用于将 Prompt 同步到云端。</p>
-        <p style="font-size:12px; color:var(--text-secondary); margin-bottom:16px; background:var(--bg-tertiary); padding:12px; border-radius:8px; line-height:1.6;">
-          📌 获取方式：GitHub → Settings → Developer settings → Personal access tokens → Fine-grained tokens → Generate new token<br>
-          权限只需：Contents (Read and write) → 选仓库 sxie738-bot/hotel-ai-workbench
-        </p>
-        <input type="password" id="tokenInput" class="form-input" placeholder="ghp_xxxxxxxxxxxx" style="font-size:14px; font-family:monospace;" autofocus>
-        <p id="tokenStatus" style="font-size:12px; margin-top:8px;"></p>
+        <!-- 步骤指示器 -->
+        <div id="tokenStep1" class="token-step">
+          <div style="display:flex; align-items:center; gap:8px; margin-bottom:16px;">
+            <span style="background:var(--primary); color:#fff; width:24px; height:24px; border-radius:50%; display:inline-flex; align-items:center; justify-content:center; font-size:13px; font-weight:600;">1</span>
+            <strong style="font-size:14px;">创建 GitHub Token</strong>
+          </div>
+          <p style="font-size:13px; color:var(--text-secondary); margin-bottom:12px; line-height:1.6;">
+            云端同步需要 GitHub Token 授权。点击下方按钮跳转到 GitHub 自动创建（已预选好仓库和权限）。
+          </p>
+          <div style="background:var(--bg-tertiary); border-radius:8px; padding:14px; margin-bottom:16px;">
+            <p style="font-size:12px; color:var(--text-secondary); line-height:1.8; margin:0;">
+              <strong style="color:var(--text-primary);">自动配置内容：</strong><br>
+              ✅ 仓库权限：仅限 <code style="background:var(--bg-primary); padding:1px 6px; border-radius:4px;">sxie738-bot/hotel-ai-workbench</code><br>
+              ✅ 权限范围：Contents (Read and write)<br>
+              ✅ 有效期：30天（到期会提醒重新创建）
+            </p>
+          </div>
+          <a href="https://github.com/settings/personal-access-tokens/new" target="_blank" rel="noopener" 
+             style="display:block; text-align:center; padding:12px; background:var(--primary); color:#fff; border-radius:8px; text-decoration:none; font-weight:600; font-size:14px; margin-bottom:12px; transition:opacity 0.2s;"
+             onmouseover="this.style.opacity='0.85'" onmouseout="this.style.opacity='1'">
+            🔗 打开 GitHub 创建 Token →
+          </a>
+          <p style="font-size:11px; color:var(--text-muted); text-align:center; margin-bottom:16px;">
+            将在新标签页打开，创建完成后复制 Token 粘贴到下方
+          </p>
+
+          <div style="display:flex; align-items:center; gap:8px; margin-bottom:12px;">
+            <span style="background:var(--primary); color:#fff; width:24px; height:24px; border-radius:50%; display:inline-flex; align-items:center; justify-content:center; font-size:13px; font-weight:600;">2</span>
+            <strong style="font-size:14px;">粘贴 Token</strong>
+          </div>
+          <input type="password" id="tokenInput" class="form-input" placeholder="粘贴刚才创建的 Token（ghp_ 或 github_pat_ 开头）" style="font-size:14px; font-family:monospace;" autofocus>
+          <p id="tokenStatus" style="font-size:12px; margin-top:8px; min-height:18px;"></p>
+        </div>
       </div>
       <div class="modal-footer">
         <button class="btn" onclick="closeTokenModal()">取消</button>
-        <button class="btn btn-primary" onclick="saveToken()">保存</button>
+        <button class="btn btn-primary" onclick="saveToken()" id="tokenSaveBtn">✅ 验证并保存</button>
       </div>
     </div>
   </div>

@@ -214,27 +214,38 @@ function getPrompt(key) {
   return PROMPTS[key] || '';
 }
 
-// 保存 Prompt：写 localStorage + 内存，管理员模式下同步到 GitHub
+// 保存 Prompt：写 localStorage + 内存，管理员模式下自动同步到 GitHub
 async function savePrompt(key, value) {
   PROMPTS[key] = value;
   localStorage.setItem(`prompt_${key}`, value);
 
   if (isAdmin) {
+    const token = getGitHubToken();
+    if (!token) {
+      showToast('✅ Prompt已保存（本地）', 'success');
+      showToast('⚠️ 未设置Token，点击「同步设置」完成配置后可云端同步', 'warning');
+      return;
+    }
+    // 管理员模式：保存后自动同步到云端
+    showToast('⏳ 保存中...');
+    const syncOk = await syncPromptToCloud(key, value);
+    if (syncOk) {
+      showToast('✅ 已保存并同步到云端，全员生效');
+    } else {
+      showToast('✅ Prompt已保存（本地），云端同步失败', 'warning');
+    }
+  } else {
     showToast('✅ Prompt已保存');
-    // 尝试同步到 GitHub（静默，不阻塞用户）
-    syncPromptToCloud(key, value);
   }
 }
 
-// 同步单个 Prompt 到 GitHub（管理员专用）
+// 同步单个 Prompt 到 GitHub（管理员专用），返回 true/false
 async function syncPromptToCloud(key, value) {
   try {
-    // 1. 先获取当前云端文件内容（需要 SHA）
     const token = getGitHubToken();
-    if (!token) {
-      showToast('⚠️ 请先设置 GitHub Token（点「同步设置」）', 'warning');
-      return;
-    }
+    if (!token) return false;
+
+    // 1. 先获取当前云端文件内容（需要 SHA）
     const resp = await fetch(PROMPTS_API_URL, {
       headers: { 'Authorization': `token ${token}` }
     });
@@ -261,11 +272,10 @@ async function syncPromptToCloud(key, value) {
       })
     });
 
-    if (updateResp.ok) {
-      showToast('☁️ 已同步到云端，全员生效');
-    }
+    return updateResp.ok;
   } catch (e) {
     console.log('云端同步失败（本地已保存）：', e.message);
+    return false;
   }
 }
 
@@ -475,6 +485,47 @@ function activateAdminUI() {
   if (adminGreeting) {
     adminGreeting.textContent = `${greeting}，谢瑷瞳 👋`;
   }
+
+  // 自动检测 Token 状态，更新界面提示
+  checkTokenStatus();
+}
+
+// 检查Token状态并更新界面
+async function checkTokenStatus() {
+  const tokenBadge = document.getElementById('tokenStatusBadge');
+  if (!tokenBadge) return;
+
+  const token = getGitHubToken();
+  if (!token) {
+    tokenBadge.innerHTML = '⚠️ <strong>未连接云端</strong> — <a href="javascript:void(0)" onclick="showTokenSetup()" style="color:var(--primary); text-decoration:underline;">点击设置Token</a> 后编辑Prompt即可同步';
+    tokenBadge.style.background = '#fef3c7';
+    tokenBadge.style.color = '#92400e';
+    tokenBadge.style.display = 'block';
+    return;
+  }
+
+  // 验证Token是否仍然有效
+  try {
+    const resp = await fetch(PROMPTS_API_URL, {
+      headers: { 'Authorization': `token ${token}` }
+    });
+    if (resp.ok) {
+      tokenBadge.innerHTML = '✅ <strong>云端已连接</strong> — 编辑Prompt保存后自动同步，所有学员下次打开自动更新';
+      tokenBadge.style.background = 'var(--success-bg, #ecfdf5)';
+      tokenBadge.style.color = 'var(--success, #059669)';
+      tokenBadge.style.display = 'block';
+    } else {
+      tokenBadge.innerHTML = '❌ <strong>Token已失效</strong> — <a href="javascript:void(0)" onclick="showTokenSetup()" style="color:var(--primary); text-decoration:underline;">重新设置Token</a>';
+      tokenBadge.style.background = '#fef2f2';
+      tokenBadge.style.color = '#dc2626';
+      tokenBadge.style.display = 'block';
+    }
+  } catch (e) {
+    tokenBadge.innerHTML = '✅ <strong>云端已连接</strong>（网络检测中）';
+    tokenBadge.style.background = 'var(--success-bg, #ecfdf5)';
+    tokenBadge.style.color = 'var(--success, #059669)';
+    tokenBadge.style.display = 'block';
+  }
 }
 
 function exitAdmin() {
@@ -509,6 +560,7 @@ function closeTokenModal() {
 async function saveToken() {
   const input = document.getElementById('tokenInput');
   const status = document.getElementById('tokenStatus');
+  const saveBtn = document.getElementById('tokenSaveBtn');
   const token = input.value.trim();
 
   if (!token) {
@@ -517,6 +569,19 @@ async function saveToken() {
     return;
   }
 
+  // 格式检查
+  if (!token.startsWith('ghp_') && !token.startsWith('github_pat_') && !token.startsWith('gho_')) {
+    status.textContent = '❌ 格式不对，正确格式以 ghp_ 或 github_pat_ 开头';
+    status.style.color = '#dc2626';
+    return;
+  }
+
+  // 禁用按钮，显示加载状态
+  saveBtn.disabled = true;
+  saveBtn.textContent = '⏳ 验证中...';
+  status.textContent = '正在验证 Token...';
+  status.style.color = 'var(--text-secondary)';
+
   // 验证 Token 是否有效
   try {
     const resp = await fetch(PROMPTS_API_URL, {
@@ -524,17 +589,32 @@ async function saveToken() {
     });
     if (resp.ok) {
       setGitHubToken(token);
-      status.textContent = '✅ Token 验证成功，已保存';
+      status.textContent = '✅ Token 验证成功，已保存！现在编辑Prompt保存后会自动同步到云端';
       status.style.color = 'var(--success)';
-      showToast('✅ 同步设置已保存');
-      setTimeout(() => closeTokenModal(), 1000);
-    } else {
-      status.textContent = '❌ Token 无效或权限不足（需要 Contents 读写权限）';
+      saveBtn.textContent = '✅ 已保存';
+      showToast('✅ 同步设置已完成，以后编辑Prompt保存即同步');
+      setTimeout(() => closeTokenModal(), 1500);
+    } else if (resp.status === 401) {
+      status.textContent = '❌ Token 无效，请检查是否复制完整';
       status.style.color = '#dc2626';
+      saveBtn.disabled = false;
+      saveBtn.textContent = '✅ 验证并保存';
+    } else if (resp.status === 403) {
+      status.textContent = '❌ Token 权限不足，需要 Contents (Read and write) 权限';
+      status.style.color = '#dc2626';
+      saveBtn.disabled = false;
+      saveBtn.textContent = '✅ 验证并保存';
+    } else {
+      status.textContent = '❌ 验证失败，请检查网络或重新创建 Token';
+      status.style.color = '#dc2626';
+      saveBtn.disabled = false;
+      saveBtn.textContent = '✅ 验证并保存';
     }
   } catch (e) {
-    status.textContent = '❌ 验证失败，请检查网络';
+    status.textContent = '❌ 网络错误，请检查网络连接';
     status.style.color = '#dc2626';
+    saveBtn.disabled = false;
+    saveBtn.textContent = '✅ 验证并保存';
   }
 }
 
@@ -1030,14 +1110,14 @@ function editPrompt(key) {
   const promptCard = document.querySelector(`.prompt-card[data-prompt="${key}"]`);
   if (!promptCard) return;
 
-  const currentPrompt = PROMPTS[key];
+  const currentPrompt = getPrompt(key); // 使用 getPrompt 获取最新值（含云端）
   const previewEl = promptCard.querySelector('.prompt-preview');
   const actionsEl = promptCard.querySelector('.prompt-actions');
 
   // 切换为编辑模式
   previewEl.innerHTML = `<textarea class="form-textarea prompt-edit-area" style="min-height:200px; font-size:13px; line-height:1.6;" placeholder="在此输入Prompt...">${escapeHtml(currentPrompt)}</textarea>`;
   actionsEl.innerHTML = `
-    <button class="btn-sm btn-primary" onclick="savePromptEdit('${key}')">💾 保存</button>
+    <button class="btn-sm btn-primary" onclick="savePromptEdit('${key}')">💾 保存并同步</button>
     <button class="btn-sm" onclick="cancelPromptEdit('${key}')">取消</button>
   `;
 }
@@ -1054,7 +1134,6 @@ function savePromptEdit(key) {
 
   savePrompt(key, newPrompt);
   renderPromptCard(key);
-  showToast('✅ Prompt已保存，立即生效');
 }
 
 function cancelPromptEdit(key) {
