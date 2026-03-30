@@ -205,6 +205,14 @@ async function fetchCloudPrompts() {
         }
         return;
       }
+      if (key === 'hotels') {
+        // 同步酒店配置
+        if (cloudPrompts.hotels && Object.keys(cloudPrompts.hotels).length > 0) {
+          hotelsData = cloudPrompts.hotels;
+          localStorage.setItem('hotels_data', JSON.stringify(hotelsData));
+        }
+        return;
+      }
       localStorage.setItem(`prompt_${key}`, cloudPrompts[key]);
     });
     return true;
@@ -657,9 +665,19 @@ function getKnowledgeText() {
 }
 
 // ==================== 页面导航 ====================
-// 飞书多维表格链接（管理员可在设置中修改）
+// 飞书多维表格链接（优先学员专属 → 通用配置 → 默认占位）
 function getFeishuUrl() {
-  return localStorage.getItem('feishu_url') || 'https://feishu.cn/base/YOUR_TABLE_ID';
+  // 1. 优先使用当前酒店的专属链接
+  const hotelName = getCurrentHotel();
+  if (hotelName) {
+    const config = getHotelConfig(hotelName);
+    if (config && config.feishu_url) return config.feishu_url;
+  }
+  // 2. 其次用通用的飞书链接（品牌定制中配置的）
+  const globalUrl = localStorage.getItem('feishu_url');
+  if (globalUrl) return globalUrl;
+  // 3. 默认占位
+  return 'https://feishu.cn/base/YOUR_TABLE_ID';
 }
 
 function navigateTo(page) {
@@ -1169,6 +1187,258 @@ function copyPrompt(key) {
   });
 }
 
+// ==================== 学员身份系统 ====================
+// 云端酒店配置缓存
+let hotelsData = {};
+
+// 获取当前酒店名（从 localStorage）
+function getCurrentHotel() {
+  return localStorage.getItem('current_hotel') || '';
+}
+
+// 设置当前酒店
+function setCurrentHotel(name) {
+  localStorage.setItem('current_hotel', name.trim());
+}
+
+// 获取当前酒店的配置
+function getHotelConfig(name) {
+  if (!name) return null;
+  // 优先从云端缓存读取
+  if (hotelsData[name]) return hotelsData[name];
+  // 回退到 localStorage
+  const local = localStorage.getItem('hotels_data');
+  if (local) {
+    try {
+      const data = JSON.parse(local);
+      if (data[name]) return data[name];
+    } catch(e) {}
+  }
+  return null;
+}
+
+// 显示酒店名输入弹窗
+function showHotelWelcome() {
+  const modal = document.getElementById('hotelWelcomeModal');
+  const input = document.getElementById('hotelNameInput');
+  const error = document.getElementById('hotelNameError');
+  modal.style.display = 'flex';
+  input.value = getCurrentHotel();
+  error.style.display = 'none';
+  setTimeout(() => input.focus(), 100);
+}
+
+// 提交酒店名
+function submitHotelName() {
+  const input = document.getElementById('hotelNameInput');
+  const error = document.getElementById('hotelNameError');
+  const name = input.value.trim();
+
+  if (!name) {
+    error.textContent = '请输入酒店名称';
+    error.style.display = 'block';
+    return;
+  }
+
+  // 检查酒店名是否在云端配置中（如果已有云端数据）
+  if (Object.keys(hotelsData).length > 0 && !hotelsData[name]) {
+    // 模糊匹配提示
+    const similar = Object.keys(hotelsData).find(h => h.includes(name) || name.includes(h));
+    if (similar) {
+      error.textContent = `未找到完全匹配，你是否要输入「${similar}」？`;
+      error.style.display = 'block';
+      return;
+    }
+    // 没有匹配也允许进入（管理员可能还没添加）
+  }
+
+  setCurrentHotel(name);
+  document.getElementById('hotelWelcomeModal').style.display = 'none';
+  updateHotelUI();
+
+  // 如果有专属配置，提示加载成功
+  const config = getHotelConfig(name);
+  if (config && config.feishu_url) {
+    showToast(`✅ 已进入 ${name}，专属配置已加载`);
+  } else {
+    showToast(`✅ 已进入 ${name}`);
+  }
+}
+
+// 更新侧边栏酒店名显示
+function updateHotelUI() {
+  const hotelName = getCurrentHotel();
+  const nameEl = document.getElementById('currentHotelName');
+  if (nameEl) {
+    nameEl.textContent = hotelName || '酒店AI工作台';
+  }
+}
+
+// ==================== 学员管理（管理员） ====================
+let editingStudentIndex = -1; // -1 = 新增模式
+
+function showAddStudentModal() {
+  editingStudentIndex = -1;
+  document.getElementById('studentModalTitle').textContent = '🏨 添加酒店';
+  document.getElementById('studentHotelName').value = '';
+  document.getElementById('studentHotelName').removeAttribute('readonly');
+  document.getElementById('studentFeishuUrl').value = '';
+  document.getElementById('studentNote').value = '';
+  document.getElementById('studentModal').style.display = 'flex';
+}
+
+function showEditStudentModal(index) {
+  const keys = Object.keys(hotelsData);
+  if (index < 0 || index >= keys.length) return;
+  const name = keys[index];
+  const config = hotelsData[name];
+  editingStudentIndex = index;
+
+  document.getElementById('studentModalTitle').textContent = '✏️ 编辑酒店';
+  document.getElementById('studentHotelName').value = name;
+  document.getElementById('studentHotelName').setAttribute('readonly', true);
+  document.getElementById('studentFeishuUrl').value = config.feishu_url || '';
+  document.getElementById('studentNote').value = config.note || '';
+  document.getElementById('studentModal').style.display = 'flex';
+}
+
+function closeStudentModal() {
+  document.getElementById('studentModal').style.display = 'none';
+}
+
+async function saveStudent() {
+  const name = document.getElementById('studentHotelName').value.trim();
+  const feishuUrl = document.getElementById('studentFeishuUrl').value.trim();
+  const note = document.getElementById('studentNote').value.trim();
+
+  if (!name) {
+    showToast('请输入酒店名称', 'warning');
+    return;
+  }
+
+  // 如果是新增，检查重名
+  if (editingStudentIndex === -1 && hotelsData[name]) {
+    showToast('该酒店已存在，请使用编辑功能', 'warning');
+    return;
+  }
+
+  // 更新本地数据
+  hotelsData[name] = {
+    feishu_url: feishuUrl,
+    note: note,
+    created_at: hotelsData[name]?.created_at || new Date().toISOString()
+  };
+
+  // 同步到 localStorage
+  localStorage.setItem('hotels_data', JSON.stringify(hotelsData));
+
+  // 刷新列表
+  renderStudentList();
+
+  closeStudentModal();
+
+  // 管理员自动同步到云端
+  if (isAdmin) {
+    await syncHotelsToCloud();
+  } else {
+    showToast('✅ 已保存');
+  }
+}
+
+function deleteStudent(name) {
+  if (!confirm(`确定删除「${name}」的配置？`)) return;
+  delete hotelsData[name];
+  localStorage.setItem('hotels_data', JSON.stringify(hotelsData));
+  renderStudentList();
+  showToast('已删除');
+
+  // 自动同步
+  if (isAdmin) syncHotelsToCloud();
+}
+
+function renderStudentList() {
+  const container = document.getElementById('studentList');
+  const countEl = document.getElementById('studentCount');
+  const keys = Object.keys(hotelsData);
+
+  if (!countEl) return;
+  countEl.textContent = keys.length;
+
+  if (keys.length === 0) {
+    container.innerHTML = `
+      <div class="empty-state" style="padding:40px 20px;">
+        <span style="font-size:36px;">📭</span>
+        <p>暂无酒店配置</p>
+        <p class="empty-hint">点击「添加酒店」为学员配置专属飞书表格等参数</p>
+      </div>`;
+    return;
+  }
+
+  container.innerHTML = keys.map((name, i) => {
+    const config = hotelsData[name];
+    return `
+      <div style="background:var(--bg-card); border:1px solid var(--border); border-radius:var(--radius-md); padding:var(--space-4); margin-bottom:var(--space-3); display:flex; justify-content:space-between; align-items:center;">
+        <div style="flex:1; min-width:0;">
+          <div style="display:flex; align-items:center; gap:8px; margin-bottom:4px;">
+            <strong style="font-size:14px;">${escapeHtml(name)}</strong>
+            ${config.feishu_url ? '<span style="font-size:10px; background:var(--success-bg); color:var(--success); padding:1px 6px; border-radius:8px;">已配置飞书</span>' : '<span style="font-size:10px; background:var(--warning-bg); color:var(--warning); padding:1px 6px; border-radius:8px;">未配飞书</span>'}
+          </div>
+          ${config.note ? `<p style="font-size:12px; color:var(--text-muted); overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">${escapeHtml(config.note)}</p>` : ''}
+        </div>
+        <div style="display:flex; gap:8px; flex-shrink:0; margin-left:12px;">
+          <button class="btn-sm" onclick="showEditStudentModal(${i})">✏️ 编辑</button>
+          <button class="btn-sm" onclick="deleteStudent('${escapeHtml(name)}')" style="color:var(--danger);">🗑️</button>
+        </div>
+      </div>`;
+  }).join('');
+}
+
+// 同步酒店配置到 GitHub 云端
+async function syncHotelsToCloud() {
+  const token = getGitHubToken();
+  if (!token) {
+    showToast('⚠️ 未设置Token，配置仅保存本地', 'warning');
+    return;
+  }
+
+  try {
+    showToast('⏳ 正在同步学员配置到云端...');
+    const resp = await fetch(PROMPTS_API_URL, {
+      headers: { 'Authorization': `token ${token}` }
+    });
+    const data = await resp.json();
+    const sha = data.sha;
+
+    // 合并云端数据（保留其他字段，只更新 hotels）
+    const cloudData = await fetch(PROMPTS_CLOUD_URL + '?t=' + Date.now()).then(r => r.json()).catch(() => ({}));
+    cloudData.hotels = hotelsData;
+    cloudData._updated = new Date().toISOString();
+
+    const content = btoa(unescape(encodeURIComponent(JSON.stringify(cloudData, null, 2))));
+    const updateResp = await fetch(PROMPTS_API_URL, {
+      method: 'PUT',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `token ${token}`
+      },
+      body: JSON.stringify({
+        message: '更新学员酒店配置',
+        content: content,
+        sha: sha
+      })
+    });
+
+    if (updateResp.ok) {
+      showToast('☁️ 学员配置已同步到云端，全员自动生效');
+    } else {
+      showToast('⚠️ 云端同步失败，配置仅保存本地', 'warning');
+    }
+  } catch (e) {
+    console.log('学员配置同步失败：', e.message);
+    showToast('⚠️ 同步失败（网络问题），配置仅保存本地', 'warning');
+  }
+}
+
 // ==================== 飞书链接管理 ====================
 function saveFeishuUrl() {
   const input = document.getElementById('feishuUrlInput');
@@ -1303,6 +1573,12 @@ document.addEventListener('DOMContentLoaded', () => {
   // 初始化飞书链接输入框
   initFeishuUrlInput();
 
+  // 加载本地酒店配置（在云端数据拉取之前先有本地缓存）
+  const localHotels = localStorage.getItem('hotels_data');
+  if (localHotels) {
+    try { hotelsData = JSON.parse(localHotels); } catch(e) {}
+  }
+
   // 普通用户模式下隐藏管理员元素
   document.querySelectorAll('.admin-only').forEach(el => el.style.display = 'none');
   document.querySelectorAll('.admin-hide').forEach(el => el.style.display = '');
@@ -1311,5 +1587,27 @@ document.addEventListener('DOMContentLoaded', () => {
   const dateEl = document.getElementById('todayDate');
   if (dateEl) {
     dateEl.textContent = new Date().toLocaleDateString('zh-CN', { year: 'numeric', month: 'long', day: 'numeric', weekday: 'long' });
+  }
+
+  // 检查是否需要显示酒店名输入弹窗
+  const currentHotel = getCurrentHotel();
+  if (!currentHotel && !isAdmin) {
+    // 学员首次进入，显示酒店名输入弹窗
+    setTimeout(() => showHotelWelcome(), 500);
+  } else {
+    updateHotelUI();
+  }
+
+  // 欢迎弹窗回车提交
+  const hotelInput = document.getElementById('hotelNameInput');
+  if (hotelInput) {
+    hotelInput.addEventListener('keypress', (e) => {
+      if (e.key === 'Enter') submitHotelName();
+    });
+  }
+
+  // 管理员进入时渲染学员列表
+  if (isAdmin) {
+    renderStudentList();
   }
 });

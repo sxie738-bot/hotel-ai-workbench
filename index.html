@@ -58,8 +58,8 @@
       <div class="user-info admin-hide">
         <div class="user-avatar" style="background:var(--gray-600);">🏨</div>
         <div class="user-detail">
-          <span class="user-name">酒店AI工作台</span>
-          <span class="user-role">v1.0</span>
+          <span class="user-name" id="currentHotelName">酒店AI工作台</span>
+          <span class="user-role" style="cursor:pointer;" onclick="showHotelWelcome()" title="切换酒店">点击设置酒店名</span>
         </div>
       </div>
     </div>
@@ -459,6 +459,7 @@
           <button class="settings-nav-btn active" data-setting="prompt">🎯 Prompt调教</button>
           <button class="settings-nav-btn" data-setting="api">🔑 API配置</button>
           <button class="settings-nav-btn" data-setting="brand">🎨 品牌定制</button>
+          <button class="settings-nav-btn" data-setting="students">👥 学员管理</button>
         </div>
         <div class="settings-content">
           <!-- Prompt调教 -->
@@ -600,6 +601,37 @@
             </div>
             <button class="btn btn-primary" style="margin-top:16px;" onclick="saveFeishuUrl()">💾 保存设置</button>
           </div>
+
+          <!-- 学员管理 -->
+          <div class="setting-section" id="setting-students">
+            <h3>👥 学员管理</h3>
+            <p class="setting-desc">为每个酒店配置专属参数（飞书链接等），学员输入酒店名后自动加载。保存后自动同步到云端。</p>
+
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:16px;">
+              <div style="display:flex; align-items:center; gap:8px;">
+                <span style="font-size:13px; color:var(--text-secondary);">已添加</span>
+                <strong id="studentCount" style="color:var(--primary);">0</strong>
+                <span style="font-size:13px; color:var(--text-secondary);">个酒店</span>
+              </div>
+              <button class="btn btn-primary" onclick="showAddStudentModal()">+ 添加酒店</button>
+            </div>
+
+            <div id="studentList">
+              <div class="empty-state" style="padding:40px 20px;">
+                <span style="font-size:36px;">📭</span>
+                <p>暂无酒店配置</p>
+                <p class="empty-hint">点击「添加酒店」为学员配置专属飞书表格等参数</p>
+              </div>
+            </div>
+
+            <div class="setting-tip" style="margin-top:16px;">
+              <span>💡 使用说明</span>
+              <p>1. 添加酒店名和专属飞书链接<br>
+              2. 保存后自动同步云端<br>
+              3. 学员首次打开工作台输入酒店名即可自动匹配<br>
+              4. 如需修改，点击酒店卡片上的「编辑」按钮</p>
+            </div>
+          </div>
         </div>
       </div>
     </section>
@@ -712,6 +744,55 @@
       <div class="modal-footer">
         <button class="btn" onclick="closeTokenModal()">取消</button>
         <button class="btn btn-primary" onclick="saveToken()" id="tokenSaveBtn">✅ 验证并保存</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- 添加/编辑酒店弹窗 -->
+  <div class="modal-overlay" id="studentModal" style="display:none;">
+    <div class="modal" style="max-width:460px;">
+      <div class="modal-header">
+        <h3 id="studentModalTitle">🏨 添加酒店</h3>
+        <button class="modal-close" onclick="closeStudentModal()">✕</button>
+      </div>
+      <div class="modal-body">
+        <div class="form-group">
+          <label>酒店名称</label>
+          <input type="text" id="studentHotelName" class="form-input" placeholder="例：如家精选·沈阳北站店">
+          <p style="font-size:11px; color:var(--text-muted); margin-top:4px;">学员将用此名称登录，请确保唯一且准确</p>
+        </div>
+        <div class="form-group">
+          <label>飞书多维表格链接</label>
+          <input type="text" id="studentFeishuUrl" class="form-input" placeholder="粘贴该酒店专属的飞书多维表格链接">
+        </div>
+        <div class="form-group">
+          <label>备注 <span class="optional">（可选）</span></label>
+          <input type="text" id="studentNote" class="form-input" placeholder="例：沈阳贝壳酒店-张店长">
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn" onclick="closeStudentModal()">取消</button>
+        <button class="btn btn-primary" onclick="saveStudent()">💾 保存并同步</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- 学员首次进入：输入酒店名 -->
+  <div class="modal-overlay" id="hotelWelcomeModal" style="display:none;">
+    <div class="modal" style="max-width:420px;">
+      <div class="modal-header">
+        <h3>🏨 欢迎使用酒店AI工作台</h3>
+      </div>
+      <div class="modal-body" style="text-align:center;">
+        <div style="font-size:48px; margin-bottom:16px;">🏨</div>
+        <p style="font-size:15px; color:var(--text-primary); margin-bottom:8px;">请输入你的酒店名称</p>
+        <p style="font-size:13px; color:var(--text-secondary); margin-bottom:20px;">输入后将自动加载你的专属配置（飞书表格等）</p>
+        <input type="text" id="hotelNameInput" class="form-input" placeholder="例：如家精选·沈阳北站店" style="font-size:15px; text-align:center; margin-bottom:12px;">
+        <p id="hotelNameError" style="color:#dc2626; font-size:12px; display:none; margin-bottom:8px;"></p>
+        <p style="font-size:11px; color:var(--text-muted);">酒店名称由管理员分配，请确认后输入</p>
+      </div>
+      <div class="modal-footer" style="justify-content:center;">
+        <button class="btn btn-primary" onclick="submitHotelName()" style="padding:12px 40px; font-size:15px;">进入工作台 →</button>
       </div>
     </div>
   </div>
