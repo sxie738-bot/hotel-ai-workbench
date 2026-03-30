@@ -458,7 +458,7 @@
           <!-- Prompt调教 -->
           <div class="setting-section active" id="setting-prompt">
             <h3>🎯 Prompt调教中心</h3>
-            <p class="setting-desc">编辑各工具的AI提示词，点击保存后<strong>立即生效</strong>。在 ChatGPT/Claude 中调好的 Prompt 直接粘贴过来即可。</p>
+            <p class="setting-desc">编辑各工具的AI提示词，保存后<strong>自动同步到云端</strong>，所有用户下次打开自动更新。</p>
 
             <div class="prompt-list">
               <div class="prompt-card" data-prompt="ctrip">
@@ -511,13 +511,15 @@
             </div>
 
             <div style="display:flex; gap:12px; margin-bottom:16px;">
+              <button class="btn btn-primary" onclick="syncAllPrompts()">☁️ 同步到云端</button>
+              <button class="btn" onclick="showTokenSetup()">🔑 同步设置</button>
               <button class="btn" onclick="exportConfig()">📦 导出备份</button>
               <button class="btn" onclick="exitAdmin()">🚪 退出管理员</button>
             </div>
 
             <div class="setting-tip">
               <span>💡 使用说明</span>
-              <p>点击「编辑」修改 Prompt → 点击「保存」立即生效。每个 Prompt 卡片状态会显示「默认」或「已自定义」，支持「恢复默认」。导出备份仅用于存档。</p>
+              <p>首次使用需要点「同步设置」输入 GitHub Token（只需一次）。之后编辑 Prompt → 保存 → 点「同步到云端」，所有学员下次打开自动更新。</p>
             </div>
           </div>
 
@@ -647,6 +649,29 @@
       <div class="modal-footer">
         <button class="btn" onclick="closeAdminModal()">取消</button>
         <button class="btn btn-primary" onclick="submitAdminPassword()">确认</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- GitHub Token 设置弹窗 -->
+  <div class="modal-overlay" id="tokenModal" style="display:none;">
+    <div class="modal" style="max-width:480px;">
+      <div class="modal-header">
+        <h3>🔑 云端同步设置</h3>
+        <button class="modal-close" onclick="closeTokenModal()">✕</button>
+      </div>
+      <div class="modal-body">
+        <p style="font-size:13px; color:var(--text-secondary); margin-bottom:12px;">输入你的 GitHub Personal Access Token，用于将 Prompt 同步到云端。</p>
+        <p style="font-size:12px; color:var(--text-secondary); margin-bottom:16px; background:var(--bg-tertiary); padding:12px; border-radius:8px; line-height:1.6;">
+          📌 获取方式：GitHub → Settings → Developer settings → Personal access tokens → Fine-grained tokens → Generate new token<br>
+          权限只需：Contents (Read and write) → 选仓库 sxie738-bot/hotel-ai-workbench
+        </p>
+        <input type="password" id="tokenInput" class="form-input" placeholder="ghp_xxxxxxxxxxxx" style="font-size:14px; font-family:monospace;" autofocus>
+        <p id="tokenStatus" style="font-size:12px; margin-top:8px;"></p>
+      </div>
+      <div class="modal-footer">
+        <button class="btn" onclick="closeTokenModal()">取消</button>
+        <button class="btn btn-primary" onclick="saveToken()">保存</button>
       </div>
     </div>
   </div>

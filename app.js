@@ -172,34 +172,164 @@ const PROMPTS = {
 报告类型：{{reportType}}`
 };
 
-// 获取 Prompt：优先 localStorage，没有则用代码内置默认值
+// ==================== Prompt 云端同步 ====================
+// 三层架构：GitHub 云端(raw读取，无需token) → localStorage 缓存 → 代码内置默认值
+// 管理员同步：通过 GitHub API 需要 token，管理员首次使用时输入并存 localStorage
+const PROMPTS_CLOUD_URL = 'https://raw.githubusercontent.com/sxie738-bot/hotel-ai-workbench/main/prompts.json';
+const PROMPTS_API_URL = 'https://api.github.com/repos/sxie738-bot/hotel-ai-workbench/contents/prompts.json';
+let cloudPrompts = null; // 云端 Prompt 缓存
+
+// 获取管理员保存的 GitHub Token（存在 localStorage，不会硬编码）
+function getGitHubToken() {
+  return localStorage.getItem('github_token') || '';
+}
+
+// 设置 GitHub Token（管理员首次同步时调用）
+function setGitHubToken(token) {
+  localStorage.setItem('github_token', token.trim());
+}
+
+// 从 GitHub 拉取云端 Prompt（页面加载时自动执行）
+async function fetchCloudPrompts() {
+  try {
+    const resp = await fetch(PROMPTS_CLOUD_URL + '?t=' + Date.now()); // 加时间戳防缓存
+    if (!resp.ok) throw new Error('fetch failed');
+    cloudPrompts = await resp.json();
+    // 同步到 localStorage
+    Object.keys(cloudPrompts).forEach(key => {
+      if (key.startsWith('_')) return; // 跳过元数据字段
+      localStorage.setItem(`prompt_${key}`, cloudPrompts[key]);
+    });
+    return true;
+  } catch (e) {
+    console.log('云端 Prompt 拉取失败，使用本地缓存：', e.message);
+    return false;
+  }
+}
+
+// 获取 Prompt：优先 localStorage（含云端同步），没有则用代码内置默认值
 function getPrompt(key) {
   const saved = localStorage.getItem(`prompt_${key}`);
   if (saved) return saved;
   return PROMPTS[key] || '';
 }
 
-// 保存 Prompt 到 localStorage + 内存，前端立即生效
-function savePrompt(key, value) {
+// 保存 Prompt：写 localStorage + 内存，管理员模式下同步到 GitHub
+async function savePrompt(key, value) {
   PROMPTS[key] = value;
   localStorage.setItem(`prompt_${key}`, value);
+
   if (isAdmin) {
-    showToast('✅ Prompt已保存，立即生效');
+    showToast('✅ Prompt已保存');
+    // 尝试同步到 GitHub（静默，不阻塞用户）
+    syncPromptToCloud(key, value);
   }
 }
 
-// 重置单个 Prompt 为默认值
+// 同步单个 Prompt 到 GitHub（管理员专用）
+async function syncPromptToCloud(key, value) {
+  try {
+    // 1. 先获取当前云端文件内容（需要 SHA）
+    const token = getGitHubToken();
+    if (!token) {
+      showToast('⚠️ 请先设置 GitHub Token（点「同步设置」）', 'warning');
+      return;
+    }
+    const resp = await fetch(PROMPTS_API_URL, {
+      headers: { 'Authorization': `token ${token}` }
+    });
+    const data = await resp.json();
+    const sha = data.sha;
+
+    // 2. 更新整个 prompts.json（把当前值合并进去）
+    const cloudData = await fetch(PROMPTS_CLOUD_URL + '?t=' + Date.now()).then(r => r.json()).catch(() => ({}));
+    cloudData[key] = value;
+    cloudData._updated = new Date().toISOString();
+
+    const content = btoa(unescape(encodeURIComponent(JSON.stringify(cloudData, null, 2))));
+
+    const updateResp = await fetch(PROMPTS_API_URL, {
+      method: 'PUT',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `token ${token}`
+      },
+      body: JSON.stringify({
+        message: `更新 Prompt: ${key}`,
+        content: content,
+        sha: sha
+      })
+    });
+
+    if (updateResp.ok) {
+      showToast('☁️ 已同步到云端，全员生效');
+    }
+  } catch (e) {
+    console.log('云端同步失败（本地已保存）：', e.message);
+  }
+}
+
+// 一键同步所有 Prompt 到 GitHub
+async function syncAllPrompts() {
+  if (!isAdmin) return;
+
+  try {
+    const token = getGitHubToken();
+    if (!token) {
+      showToast('⚠️ 请先设置 GitHub Token（点「同步设置」）', 'warning');
+      return;
+    }
+    showToast('⏳ 正在同步到云端...');
+
+    // 获取当前云端 SHA
+    const resp = await fetch(PROMPTS_API_URL, {
+      headers: { 'Authorization': `token ${token}` }
+    });
+    const data = await resp.json();
+    const sha = data.sha;
+
+    // 合并所有当前 Prompt
+    const cloudData = {};
+    ['ctrip', 'multi', 'training', 'analysis'].forEach(key => {
+      cloudData[key] = getPrompt(key);
+    });
+    cloudData._updated = new Date().toISOString();
+
+    const content = btoa(unescape(encodeURIComponent(JSON.stringify(cloudData, null, 2))));
+
+    const updateResp = await fetch(PROMPTS_API_URL, {
+      method: 'PUT',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `token ${token}`
+      },
+      body: JSON.stringify({
+        message: '同步所有 Prompt',
+        content: content,
+        sha: sha
+      })
+    });
+
+    if (updateResp.ok) {
+      showToast('☁️ 全部 Prompt 已同步到云端，所有用户下次打开自动更新');
+    } else {
+      showToast('❌ 同步失败，请稍后重试', 'error');
+    }
+  } catch (e) {
+    console.log('云端同步失败：', e.message);
+    showToast('❌ 同步失败（网络问题），本地已保存', 'warning');
+  }
+}
+
+// 重置单个 Prompt 为云端版本
 function resetPrompt(key) {
-  // 先删除 localStorage 中保存的
   localStorage.removeItem(`prompt_${key}`);
-  // 刷新卡片显示
   renderPromptCard(key);
-  showToast(`已恢复默认Prompt`);
+  showToast('已恢复为云端版本');
 }
 
 // 导出配置代码（备份用）
 function exportConfig() {
-  // 收集当前生效的所有 Prompt（含 localStorage 覆盖）
   const allKeys = Object.keys(PROMPTS);
   const currentPrompts = {};
   allKeys.forEach(key => { currentPrompts[key] = getPrompt(key); });
@@ -229,7 +359,6 @@ function renderPromptCard(key) {
   const actionsEl = promptCard.querySelector('.prompt-actions');
   const statusEl = promptCard.querySelector('.prompt-status');
 
-  // 状态标记
   if (isCustom) {
     statusEl.textContent = '已自定义';
     statusEl.classList.add('configured');
@@ -353,6 +482,60 @@ function exitAdmin() {
   document.querySelectorAll('.admin-only').forEach(el => el.style.display = 'none');
   document.querySelectorAll('.admin-hide').forEach(el => el.style.display = '');
   showToast('已退出管理员模式');
+}
+
+// Token 设置弹窗
+function showTokenSetup() {
+  const modal = document.getElementById('tokenModal');
+  const input = document.getElementById('tokenInput');
+  const status = document.getElementById('tokenStatus');
+  modal.style.display = 'flex';
+  const existing = getGitHubToken();
+  if (existing) {
+    input.value = existing;
+    status.textContent = '✅ 已配置 Token';
+    status.style.color = 'var(--success)';
+  } else {
+    input.value = '';
+    status.textContent = '';
+  }
+  setTimeout(() => input.focus(), 100);
+}
+
+function closeTokenModal() {
+  document.getElementById('tokenModal').style.display = 'none';
+}
+
+async function saveToken() {
+  const input = document.getElementById('tokenInput');
+  const status = document.getElementById('tokenStatus');
+  const token = input.value.trim();
+
+  if (!token) {
+    status.textContent = '❌ Token 不能为空';
+    status.style.color = '#dc2626';
+    return;
+  }
+
+  // 验证 Token 是否有效
+  try {
+    const resp = await fetch(PROMPTS_API_URL, {
+      headers: { 'Authorization': `token ${token}` }
+    });
+    if (resp.ok) {
+      setGitHubToken(token);
+      status.textContent = '✅ Token 验证成功，已保存';
+      status.style.color = 'var(--success)';
+      showToast('✅ 同步设置已保存');
+      setTimeout(() => closeTokenModal(), 1000);
+    } else {
+      status.textContent = '❌ Token 无效或权限不足（需要 Contents 读写权限）';
+      status.style.color = '#dc2626';
+    }
+  } catch (e) {
+    status.textContent = '❌ 验证失败，请检查网络';
+    status.style.color = '#dc2626';
+  }
 }
 
 // ==================== 知识库管理 ====================
@@ -935,7 +1118,12 @@ document.addEventListener('DOMContentLoaded', () => {
   initAdminGate();
   renderKnowledgeList();
 
-  // 刷新 Prompt 卡片状态（标记已自定义的）
+  // 从 GitHub 拉取云端 Prompt（后台静默加载，加载完后刷新卡片）
+  fetchCloudPrompts().then(() => {
+    ['ctrip', 'multi', 'training', 'analysis'].forEach(key => renderPromptCard(key));
+  });
+
+  // 刷新 Prompt 卡片状态（先用本地缓存渲染）
   ['ctrip', 'multi', 'training', 'analysis'].forEach(key => renderPromptCard(key));
 
   // 普通用户模式下隐藏管理员元素
