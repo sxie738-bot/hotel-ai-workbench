@@ -198,6 +198,13 @@ async function fetchCloudPrompts() {
     // 同步到 localStorage
     Object.keys(cloudPrompts).forEach(key => {
       if (key.startsWith('_')) return; // 跳过元数据字段
+      if (key === 'feishu_url') {
+        // 飞书链接单独处理，只在没有本地配置时用云端值覆盖
+        if (!localStorage.getItem('feishu_url') && cloudPrompts.feishu_url) {
+          localStorage.setItem('feishu_url', cloudPrompts.feishu_url);
+        }
+        return;
+      }
       localStorage.setItem(`prompt_${key}`, cloudPrompts[key]);
     });
     return true;
@@ -303,6 +310,11 @@ async function syncAllPrompts() {
     ['ctrip', 'multi', 'training', 'analysis'].forEach(key => {
       cloudData[key] = getPrompt(key);
     });
+    // 同步飞书链接
+    const feishuUrl = localStorage.getItem('feishu_url') || '';
+    if (feishuUrl) {
+      cloudData.feishu_url = feishuUrl;
+    }
     cloudData._updated = new Date().toISOString();
 
     const content = btoa(unescape(encodeURIComponent(JSON.stringify(cloudData, null, 2))));
@@ -1168,6 +1180,55 @@ function saveFeishuUrl() {
   }
   localStorage.setItem('feishu_url', url);
   showToast('✅ 飞书链接已保存');
+
+  // 管理员模式下自动同步到云端
+  if (isAdmin) {
+    syncFeishuUrlToCloud(url);
+  }
+}
+
+// 同步飞书链接到 GitHub 云端
+async function syncFeishuUrlToCloud(url) {
+  const token = getGitHubToken();
+  if (!token) {
+    showToast('⚠️ 未设置Token，链接仅保存本地。配置Token后可云端同步', 'warning');
+    return;
+  }
+  try {
+    showToast('⏳ 正在同步飞书链接到云端...');
+    const resp = await fetch(PROMPTS_API_URL, {
+      headers: { 'Authorization': `token ${token}` }
+    });
+    const data = await resp.json();
+    const sha = data.sha;
+
+    const cloudData = await fetch(PROMPTS_CLOUD_URL + '?t=' + Date.now()).then(r => r.json()).catch(() => ({}));
+    cloudData.feishu_url = url;
+    cloudData._updated = new Date().toISOString();
+
+    const content = btoa(unescape(encodeURIComponent(JSON.stringify(cloudData, null, 2))));
+    const updateResp = await fetch(PROMPTS_API_URL, {
+      method: 'PUT',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `token ${token}`
+      },
+      body: JSON.stringify({
+        message: '更新飞书链接',
+        content: content,
+        sha: sha
+      })
+    });
+
+    if (updateResp.ok) {
+      showToast('☁️ 飞书链接已同步到云端，所有学员自动生效');
+    } else {
+      showToast('⚠️ 云端同步失败，链接仅保存本地', 'warning');
+    }
+  } catch (e) {
+    console.log('飞书链接同步失败：', e.message);
+    showToast('⚠️ 同步失败（网络问题），链接仅保存本地', 'warning');
+  }
 }
 
 function initFeishuUrlInput() {
