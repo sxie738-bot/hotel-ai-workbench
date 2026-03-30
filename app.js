@@ -22,6 +22,13 @@ const AI_CONFIG = {
     model: 'deepseek-chat',
     name: 'DeepSeek',
     enabled: false  // 余额不足，待充值
+  },
+  siliconflow: {
+    apiKey: '',
+    baseUrl: 'https://api.siliconflow.cn/v1',
+    model: 'Kwai-Kolors/Kolors',
+    name: '硅基流动',
+    enabled: false  // 需管理员配置API Key后启用
   }
 };
 
@@ -1439,6 +1446,147 @@ async function syncHotelsToCloud() {
   }
 }
 
+// ==================== AI 配图生成 ====================
+let generatedImageUrl = '';
+
+// 切换 SiliconFlow 启用状态
+function toggleSiliconFlow() {
+  const enabled = document.getElementById('siliconflowEnabled')?.checked;
+  const key = document.getElementById('siliconflowKeyInput')?.value.trim();
+  AI_CONFIG.siliconflow.enabled = enabled && !!key;
+  if (enabled && !key) {
+    showToast('请先输入 API Key', 'warning');
+    document.getElementById('siliconflowEnabled').checked = false;
+    AI_CONFIG.siliconflow.enabled = false;
+  }
+  if (key) {
+    AI_CONFIG.siliconflow.apiKey = key;
+    localStorage.setItem('siliconflow_key', key);
+  }
+}
+
+// 初始化 SiliconFlow Key
+function initSiliconFlowKey() {
+  const savedKey = localStorage.getItem('siliconflow_key') || '';
+  const input = document.getElementById('siliconflowKeyInput');
+  const checkbox = document.getElementById('siliconflowEnabled');
+  if (input && savedKey) {
+    input.value = savedKey;
+    AI_CONFIG.siliconflow.apiKey = savedKey;
+  }
+  if (checkbox && savedKey) {
+    checkbox.checked = true;
+    AI_CONFIG.siliconflow.enabled = true;
+  }
+}
+
+// 生成AI配图
+async function generateImage() {
+  const promptEl = document.getElementById('imagePrompt');
+  const styleEl = document.getElementById('imageStyle');
+  const errorEl = document.getElementById('imageError');
+  const loadingEl = document.getElementById('imageLoading');
+  const imageEl = document.getElementById('generatedImage');
+  const placeholderEl = document.getElementById('imagePlaceholder');
+  const downloadBtn = document.getElementById('downloadImageBtn');
+  const generateBtn = document.getElementById('generateImageBtn');
+
+  const prompt = promptEl?.value.trim();
+  if (!prompt) {
+    errorEl.textContent = '请输入配图描述';
+    errorEl.style.display = 'block';
+    return;
+  }
+
+  // 检查 SiliconFlow 是否可用
+  if (!AI_CONFIG.siliconflow.enabled || !AI_CONFIG.siliconflow.apiKey) {
+    errorEl.textContent = 'AI配图功能未启用。管理员请先在「系统设置 → API配置」中配置硅基流动 API Key';
+    errorEl.style.display = 'block';
+    return;
+  }
+
+  // 获取尺寸
+  const sizeRadio = document.querySelector('input[name="imgSize"]:checked');
+  const size = sizeRadio ? sizeRadio.value : '1024x1024';
+
+  // 组合 prompt：原始描述 + 风格
+  const style = styleEl?.value || '';
+  const fullPrompt = style ? `${prompt}，${style}` : prompt;
+
+  // UI 切换到加载状态
+  errorEl.style.display = 'none';
+  placeholderEl.style.display = 'none';
+  imageEl.style.display = 'none';
+  downloadBtn.style.display = 'none';
+  loadingEl.style.display = 'block';
+  generateBtn.disabled = true;
+  generateBtn.textContent = '⏳ 生成中...';
+
+  try {
+    const config = AI_CONFIG.siliconflow;
+    const response = await fetch(`${config.baseUrl}/images/generations`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${config.apiKey}`
+      },
+      body: JSON.stringify({
+        model: config.model,
+        prompt: fullPrompt,
+        image_size: size,
+        num_inference_steps: 20,
+        guidance_scale: 7.5,
+        batch_size: 1
+      })
+    });
+
+    if (!response.ok) {
+      const err = await response.json().catch(() => ({}));
+      throw new Error(err.message || err.error?.message || `API调用失败 (${response.status})`);
+    }
+
+    const data = await response.json();
+    if (!data.images || data.images.length === 0) {
+      throw new Error('未生成图片，请重试');
+    }
+
+    generatedImageUrl = data.images[0].url;
+
+    // 显示图片
+    imageEl.src = generatedImageUrl;
+    imageEl.style.display = 'block';
+    downloadBtn.style.display = 'inline-flex';
+    loadingEl.style.display = 'none';
+    showToast('✅ 配图生成成功');
+
+  } catch (e) {
+    loadingEl.style.display = 'none';
+    placeholderEl.style.display = 'block';
+    errorEl.textContent = `生成失败：${e.message}`;
+    errorEl.style.display = 'block';
+    showToast(`❌ ${e.message}`, 'error');
+  } finally {
+    generateBtn.disabled = false;
+    generateBtn.textContent = '🎨 AI生成配图';
+  }
+}
+
+// 下载生成的图片
+function downloadImage() {
+  if (!generatedImageUrl) {
+    showToast('暂无可保存的图片', 'warning');
+    return;
+  }
+  const link = document.createElement('a');
+  link.href = generatedImageUrl;
+  link.download = `酒店配图_${Date.now()}.png`;
+  link.target = '_blank';
+  document.body.appendChild(link);
+  link.click();
+  document.body.removeChild(link);
+  showToast('📥 图片已开始下载');
+}
+
 // ==================== 飞书链接管理 ====================
 function saveFeishuUrl() {
   const input = document.getElementById('feishuUrlInput');
@@ -1572,6 +1720,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
   // 初始化飞书链接输入框
   initFeishuUrlInput();
+  initSiliconFlowKey();
 
   // 加载本地酒店配置（在云端数据拉取之前先有本地缓存）
   const localHotels = localStorage.getItem('hotels_data');

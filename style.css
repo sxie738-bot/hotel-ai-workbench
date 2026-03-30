@@ -437,6 +437,11 @@ input, select, textarea { font-family: inherit; }
   to { opacity: 1; transform: translateY(0); }
 }
 
+@keyframes pulse {
+  0%, 100% { opacity: 1; transform: scale(1); }
+  50% { opacity: 0.5; transform: scale(1.1); }
+}
+
 /* ==================== 工具布局（左右分栏） ==================== */
 .tool-layout {
   display: grid;

@@ -238,15 +238,18 @@
           <div class="tool-input">
             <div class="form-group">
               <label>配图描述</label>
-              <textarea class="form-textarea" rows="4" placeholder="描述你想要的图片内容，例：现代简约酒店大堂，暖色调灯光，商务风格..."></textarea>
+              <textarea class="form-textarea" id="imagePrompt" rows="4" placeholder="描述你想要的图片内容，例：现代简约酒店大堂，暖色调灯光，商务风格..."></textarea>
             </div>
             <div class="form-group">
-              <label>图片风格</label>
-              <select class="form-select">
-                <option>真实摄影风格</option>
-                <option>清新文艺风</option>
-                <option>商务高端风</option>
-                <option>温馨家庭风</option>
+              <label>图片风格 <span class="optional">（可选，会附加到描述中）</span></label>
+              <select class="form-select" id="imageStyle">
+                <option value="">不添加风格</option>
+                <option value="真实摄影风格，高清照片质感">真实摄影风格</option>
+                <option value="清新文艺风，柔和光线，日系色调">清新文艺风</option>
+                <option value="商务高端风，专业灯光，奢华质感">商务高端风</option>
+                <option value="温馨家庭风，暖色调，舒适氛围">温馨家庭风</option>
+                <option value="ins风，简约干净，低饱和度">ins风</option>
+                <option value="国潮中国风，传统元素，华丽配色">国潮中国风</option>
               </select>
             </div>
             <div class="form-group">
@@ -256,29 +259,36 @@
                   <input type="radio" name="imgSize" value="1024x1024" checked> 1:1 正方形
                 </label>
                 <label class="radio-item">
-                  <input type="radio" name="imgSize" value="1024x1536"> 2:3 竖版
+                  <input type="radio" name="imgSize" value="768x1024"> 3:4 竖版
                 </label>
                 <label class="radio-item">
-                  <input type="radio" name="imgSize" value="1536x1024"> 3:2 横版
+                  <input type="radio" name="imgSize" value="1024x768"> 4:3 横版
                 </label>
               </div>
             </div>
-            <button class="btn btn-primary btn-block">
+            <button class="btn btn-primary btn-block" id="generateImageBtn" onclick="generateImage()">
               🎨 AI生成配图
             </button>
+            <p id="imageError" style="color:var(--danger); font-size:12px; margin-top:8px; display:none;"></p>
           </div>
           <div class="tool-output">
             <div class="output-header">
               <span>生成配图</span>
               <div class="output-actions">
-                <button class="btn-sm">💾 保存</button>
+                <button class="btn-sm" id="downloadImageBtn" onclick="downloadImage()" style="display:none;">💾 保存图片</button>
               </div>
             </div>
-            <div class="output-area image-output">
-              <div class="output-placeholder">
+            <div class="output-area image-output" id="imageOutputArea">
+              <div class="output-placeholder" id="imagePlaceholder">
                 <span class="placeholder-icon">🖼️</span>
                 <p>AI将根据描述自动生成配图</p>
                 <p class="placeholder-hint">适合携程笔记、小红书封面等场景</p>
+              </div>
+              <img id="generatedImage" style="display:none; max-width:100%; max-height:500px; border-radius:var(--radius-md); box-shadow:var(--shadow-md);">
+              <div id="imageLoading" style="display:none; text-align:center; padding:40px;">
+                <div style="font-size:32px; animation: pulse 1.5s infinite;">🎨</div>
+                <p style="margin-top:12px; color:var(--text-secondary);">AI 正在创作中，请稍候...</p>
+                <p style="font-size:12px; color:var(--text-muted);">通常需要 10-20 秒</p>
               </div>
             </div>
           </div>
@@ -576,6 +586,18 @@
                 <label class="checkbox-item" style="margin-top:8px;">
                   <input type="checkbox" disabled> 未启用
                 </label>
+              </div>
+              <div class="api-card" style="border-color:#f59e0b; background:#fffbeb;">
+                <div class="api-logo">🎨</div>
+                <h4>硅基流动 <span style="color:#f59e0b; font-size:11px;">AI配图</span></h4>
+                <p style="font-size:12px; color:var(--text-secondary); margin-bottom:8px;">Kwai-Kolors模型 · 免费额度 · 国内直连</p>
+                <input type="password" id="siliconflowKeyInput" class="form-input" placeholder="输入 SiliconFlow API Key" style="background:var(--white);">
+                <div style="display:flex; align-items:center; justify-content:space-between; margin-top:8px;">
+                  <label class="checkbox-item">
+                    <input type="checkbox" id="siliconflowEnabled" onchange="toggleSiliconFlow()"> 已启用
+                  </label>
+                  <a href="https://cloud.siliconflow.cn" target="_blank" style="font-size:11px; color:var(--primary);">获取 API Key →</a>
+                </div>
               </div>
             </div>
             <div class="setting-tip" style="margin-top:16px;">
