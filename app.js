@@ -1610,4 +1610,65 @@ document.addEventListener('DOMContentLoaded', () => {
   if (isAdmin) {
     renderStudentList();
   }
+
+  // ==================== PWA 安装到桌面 ====================
+  let deferredPrompt = null;
+  const installBtn = document.getElementById('installBtn');
+  const installNav = installBtn ? installBtn.closest('.nav-item') : null;
+
+  window.addEventListener('beforeinstallprompt', (e) => {
+    e.preventDefault();
+    deferredPrompt = e;
+    // 显示安装按钮
+    if (installNav) installNav.style.display = 'flex';
+  });
+
+  if (installBtn) {
+    installBtn.addEventListener('click', async (e) => {
+      e.preventDefault();
+      if (!deferredPrompt) {
+        // 浏览器不支持自动安装提示，显示手动引导
+        showInstallGuide();
+        return;
+      }
+      deferredPrompt.prompt();
+      const { outcome } = await deferredPrompt.userChoice;
+      if (outcome === 'accepted') {
+        showToast('✅ 已安装到桌面，下次双击图标即可打开');
+        if (installNav) installNav.style.display = 'none';
+      }
+      deferredPrompt = null;
+    });
+  }
+
+  // 检查是否已安装（已安装的不显示按钮）
+  window.addEventListener('appinstalled', () => {
+    if (installNav) installNav.style.display = 'none';
+    showToast('✅ 已安装到桌面');
+  });
+
+  // 如果是 standalone 模式运行（已从桌面打开），不显示安装按钮
+  if (window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone) {
+    if (installNav) installNav.style.display = 'none';
+  }
 });
+
+// 手动安装引导弹窗
+function showInstallGuide() {
+  const ua = navigator.userAgent;
+  let guide = '';
+  if (/MicroMessenger/i.test(ua)) {
+    guide = '微信内无法安装，请点击右上角「...」→ 用浏览器打开 → 再安装到桌面';
+  } else if (/Chrome/i.test(ua) && /Android/i.test(ua)) {
+    guide = '请点击浏览器右上角 ⋮ → 「添加到主屏幕」或「安装应用」';
+  } else if (/Safari/i.test(ua) && /iPhone|iPad/i.test(ua)) {
+    guide = '请点击底部分享按钮 → 「添加到主屏幕」';
+  } else if (/Chrome/i.test(ua)) {
+    guide = '请点击地址栏右侧的 📲 安装图标，或点菜单 → 「安装酒店AI工作台」';
+  } else if (/Edge/i.test(ua)) {
+    guide = '请点击地址栏右侧的 📲 图标 → 「安装此应用为应用」';
+  } else {
+    guide = '请使用 Chrome 或 Edge 浏览器打开此页面，即可安装到桌面';
+  }
+  showToast(guide, 'info');
+}
