@@ -1,0 +1,656 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>酒店AI工作台</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <!-- 侧边栏 -->
+  <aside class="sidebar" id="sidebar">
+    <div class="sidebar-header">
+      <div class="logo" id="logoArea" title="">
+        <span class="logo-icon">🏨</span>
+        <div class="logo-text">
+          <h1>酒店AI工作台</h1>
+          <p class="logo-sub">Hotel AI Workbench</p>
+        </div>
+      </div>
+    </div>
+    <nav class="sidebar-nav">
+      <a href="#" class="nav-item active" data-page="dashboard">
+        <span class="nav-icon">📊</span>
+        <span class="nav-label">工作台</span>
+      </a>
+      <a href="#" class="nav-item" data-page="content">
+        <span class="nav-icon">✍️</span>
+        <span class="nav-label">内容创作中心</span>
+      </a>
+      <a href="#" class="nav-item" data-page="training">
+        <span class="nav-icon">📖</span>
+        <span class="nav-label">前台培训管家</span>
+      </a>
+      <a href="#" class="nav-item" data-page="analysis">
+        <span class="nav-icon">📈</span>
+        <span class="nav-label">数据分析助手</span>
+      </a>
+      <div class="nav-divider"></div>
+      <a href="#" class="nav-item admin-only" data-page="settings" style="display:none;">
+        <span class="nav-icon">⚙️</span>
+        <span class="nav-label">系统设置</span>
+      </a>
+    </nav>
+    <div class="sidebar-footer">
+      <div class="user-info admin-only" style="display:none;">
+        <div class="user-avatar">谢</div>
+        <div class="user-detail">
+          <span class="user-name">谢瑷瞳</span>
+          <span class="user-role">管理员</span>
+        </div>
+      </div>
+      <div class="user-info admin-hide">
+        <div class="user-avatar" style="background:var(--gray-600);">🏨</div>
+        <div class="user-detail">
+          <span class="user-name">酒店AI工作台</span>
+          <span class="user-role">v1.0</span>
+        </div>
+      </div>
+    </div>
+  </aside>
+
+  <!-- 主内容区 -->
+  <main class="main-content" id="mainContent">
+    <!-- 顶部栏 -->
+    <header class="topbar">
+      <button class="menu-toggle" id="menuToggle">☰</button>
+      <div class="topbar-title" id="pageTitle">工作台</div>
+      <div class="topbar-actions">
+        <span class="badge">AI实战营专版</span>
+      </div>
+    </header>
+
+    <!-- ==================== 页面：工作台 ==================== -->
+    <section class="page active" id="page-dashboard">
+      <div class="welcome-banner">
+        <div class="welcome-text">
+          <h2 class="admin-hide">欢迎使用酒店AI工作台 🏨</h2>
+          <h2 class="admin-only" style="display:none;" id="adminGreeting">下午好，谢瑷瞳 👋</h2>
+          <p>今天是 <strong id="todayDate"></strong>，你有 <strong>3个AI工具</strong> 可以使用，全部已接入AI能力 ✅</p>
+        </div>
+      </div>
+      <div class="tool-cards">
+        <div class="tool-card" onclick="navigateTo('content')">
+          <div class="tool-card-icon">✍️</div>
+          <h3>内容创作中心</h3>
+          <p>携程社区内容生成、多平台复用、AI配图</p>
+          <span class="tool-card-tag">热门</span>
+        </div>
+        <div class="tool-card" onclick="navigateTo('training')">
+          <div class="tool-card-icon">📖</div>
+          <h3>前台培训管家</h3>
+          <p>知识库查询、应急预案、标准话术输出</p>
+          <span class="tool-card-tag">新功能</span>
+        </div>
+        <div class="tool-card" onclick="navigateTo('analysis')">
+          <div class="tool-card-icon">📈</div>
+          <h3>数据分析助手</h3>
+          <p>上传原始表格，智能生成运营分析报告</p>
+          <span class="tool-card-tag">实用</span>
+        </div>
+      </div>
+    </section>
+
+    <!-- ==================== 页面：内容创作中心 ==================== -->
+    <section class="page" id="page-content">
+      <div class="page-header">
+        <h2>✍️ 内容创作中心</h2>
+        <p>通过AI调教，快速生成携程社区及多平台内容</p>
+      </div>
+
+      <!-- 平台选择标签 -->
+      <div class="tab-bar">
+        <button class="tab-btn active" data-tab="ctrip">携程社区</button>
+        <button class="tab-btn" data-tab="multi">多平台复用</button>
+        <button class="tab-btn" data-tab="image">AI配图</button>
+      </div>
+
+      <!-- 携程社区 -->
+      <div class="tab-content active" id="tab-ctrip">
+        <div class="tool-layout">
+          <div class="tool-input">
+            <div class="form-group">
+              <label>酒店名称</label>
+              <input type="text" placeholder="例：沈阳贝壳酒店（中街店）" class="form-input">
+            </div>
+            <div class="form-group">
+              <label>内容主题</label>
+              <select class="form-select">
+                <option value="">请选择主题类型</option>
+                <option>探店打卡</option>
+                <option>周边游玩攻略</option>
+                <option>亲子出行推荐</option>
+                <option>商务出差首选</option>
+                <option>情侣约会推荐</option>
+                <option>特色房型体验</option>
+                <option>美食推荐</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label>卖点关键词 <span class="optional">（可选）</span></label>
+              <input type="text" placeholder="例：地铁口、免费停车、智能马桶、投影仪" class="form-input">
+            </div>
+            <div class="form-group">
+              <label>补充信息 <span class="optional">（可选）</span></label>
+              <textarea class="form-textarea" rows="3" placeholder="例：周末带家人住的，孩子特别喜欢投影，前台小姐姐还帮忙升级了房间..."></textarea>
+            </div>
+            <button class="btn btn-primary btn-block" onclick="generateCtrip()">
+              🚀 AI生成携程内容
+            </button>
+          </div>
+          <div class="tool-output">
+            <div class="output-header">
+              <span>生成结果</span>
+              <div class="output-actions">
+                <button class="btn-sm" onclick="copyOutput('ctrip-output')">📋 复制</button>
+                <button class="btn-sm" onclick="regenerate()">🔄 重新生成</button>
+              </div>
+            </div>
+            <div class="output-area" id="ctrip-output">
+              <div class="output-placeholder">
+                <span class="placeholder-icon">📝</span>
+                <p>填写左侧信息后，点击生成按钮</p>
+                <p class="placeholder-hint">AI将根据调教模式输出携程社区风格内容</p>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- 多平台复用 -->
+      <div class="tab-content" id="tab-multi">
+        <div class="tool-layout">
+          <div class="tool-input">
+            <div class="form-group">
+              <label>原始内容</label>
+              <textarea class="form-textarea" rows="6" placeholder="粘贴已有内容，或先在「携程社区」生成后自动带入..."></textarea>
+            </div>
+            <div class="form-group">
+              <label>目标平台</label>
+              <div class="checkbox-group">
+                <label class="checkbox-item">
+                  <input type="checkbox" checked> 小红书
+                </label>
+                <label class="checkbox-item">
+                  <input type="checkbox" checked> 微信公众号
+                </label>
+                <label class="checkbox-item">
+                  <input type="checkbox"> 抖音文案
+                </label>
+                <label class="checkbox-item">
+                  <input type="checkbox"> 美团点评
+                </label>
+              </div>
+            </div>
+            <button class="btn btn-primary btn-block" onclick="generateMulti()">
+              🔄 一键适配多平台
+            </button>
+          </div>
+          <div class="tool-output">
+            <div class="output-header">
+              <span>多平台适配结果</span>
+              <div class="output-actions">
+                <button class="btn-sm">📋 全部复制</button>
+              </div>
+            </div>
+            <div class="output-area">
+              <div class="output-placeholder">
+                <span class="placeholder-icon">📱</span>
+                <p>选择目标平台后，AI将自动适配各平台风格</p>
+                <p class="placeholder-hint">小红书 → 笔记体 + Emoji / 公众号 → 深度长文</p>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- AI配图 -->
+      <div class="tab-content" id="tab-image">
+        <div class="tool-layout">
+          <div class="tool-input">
+            <div class="form-group">
+              <label>配图描述</label>
+              <textarea class="form-textarea" rows="4" placeholder="描述你想要的图片内容，例：现代简约酒店大堂，暖色调灯光，商务风格..."></textarea>
+            </div>
+            <div class="form-group">
+              <label>图片风格</label>
+              <select class="form-select">
+                <option>真实摄影风格</option>
+                <option>清新文艺风</option>
+                <option>商务高端风</option>
+                <option>温馨家庭风</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label>图片尺寸</label>
+              <div class="radio-group">
+                <label class="radio-item">
+                  <input type="radio" name="imgSize" value="1024x1024" checked> 1:1 正方形
+                </label>
+                <label class="radio-item">
+                  <input type="radio" name="imgSize" value="1024x1536"> 2:3 竖版
+                </label>
+                <label class="radio-item">
+                  <input type="radio" name="imgSize" value="1536x1024"> 3:2 横版
+                </label>
+              </div>
+            </div>
+            <button class="btn btn-primary btn-block">
+              🎨 AI生成配图
+            </button>
+          </div>
+          <div class="tool-output">
+            <div class="output-header">
+              <span>生成配图</span>
+              <div class="output-actions">
+                <button class="btn-sm">💾 保存</button>
+              </div>
+            </div>
+            <div class="output-area image-output">
+              <div class="output-placeholder">
+                <span class="placeholder-icon">🖼️</span>
+                <p>AI将根据描述自动生成配图</p>
+                <p class="placeholder-hint">适合携程笔记、小红书封面等场景</p>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ==================== 页面：前台培训管家 ==================== -->
+    <section class="page" id="page-training">
+      <div class="page-header">
+        <h2>📖 前台培训管家</h2>
+        <p>录入酒店知识库，AI学习后输出统一标准话术</p>
+      </div>
+
+      <div class="tab-bar">
+        <button class="tab-btn active" data-tab="ask">智能问答</button>
+        <button class="tab-btn" data-tab="knowledge">知识库管理</button>
+        <button class="tab-btn" data-tab="emergency">应急预案</button>
+      </div>
+
+      <!-- 智能问答 -->
+      <div class="tab-content active" id="tab-ask">
+        <div class="chat-container">
+          <div class="chat-messages" id="chatMessages">
+            <div class="chat-welcome">
+              <span class="chat-welcome-icon">🤖</span>
+              <h3>前台培训助手</h3>
+              <p>已学习 <strong>0</strong> 条知识库内容，<strong>0</strong> 个应急预案</p>
+              <p class="chat-hint">试试问我：客人要求退房怎么处理？</p>
+            </div>
+          </div>
+          <div class="chat-input-area">
+            <input type="text" class="chat-input" id="chatInput" placeholder="输入你的问题，按回车发送..." onkeypress="handleChat(event)">
+            <button class="chat-send" onclick="sendMessage()">发送</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- 知识库管理 -->
+      <div class="tab-content" id="tab-knowledge">
+        <div class="knowledge-header">
+          <h3>📚 知识库</h3>
+          <button class="btn btn-primary" onclick="showUploadModal()">+ 录入知识</button>
+        </div>
+        <div class="knowledge-list" id="knowledgeList">
+          <div class="empty-state">
+            <span>📭</span>
+            <p>知识库为空</p>
+            <p class="empty-hint">点击「录入知识」添加酒店信息、服务规范、价格政策等</p>
+          </div>
+        </div>
+      </div>
+
+      <!-- 应急预案 -->
+      <div class="tab-content" id="tab-emergency">
+        <div class="knowledge-header">
+          <h3>🚨 应急预案</h3>
+          <button class="btn btn-primary" onclick="showUploadModal()">+ 添加预案</button>
+        </div>
+        <div class="emergency-grid">
+          <div class="emergency-card">
+            <div class="emergency-icon">🔥</div>
+            <h4>火灾应急</h4>
+            <p>暂未录入</p>
+          </div>
+          <div class="emergency-card">
+            <div class="emergency-icon">🏥</div>
+            <h4>客人突发疾病</h4>
+            <p>暂未录入</p>
+          </div>
+          <div class="emergency-card">
+            <div class="emergency-icon">🔒</div>
+            <h4>客人物品丢失</h4>
+            <p>暂未录入</p>
+          </div>
+          <div class="emergency-card">
+            <div class="emergency-icon">⚡</div>
+            <h4>停电停水</h4>
+            <p>暂未录入</p>
+          </div>
+          <div class="emergency-card">
+            <div class="emergency-icon">😱</div>
+            <h4>客人投诉处理</h4>
+            <p>暂未录入</p>
+          </div>
+          <div class="emergency-card">
+            <div class="emergency-icon">📄</div>
+            <h4>公安检查配合</h4>
+            <p>暂未录入</p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ==================== 页面：数据分析助手 ==================== -->
+    <section class="page" id="page-analysis">
+      <div class="page-header">
+        <h2>📈 数据分析助手</h2>
+        <p>上传原始表格数据，AI自动生成运营分析报告</p>
+      </div>
+
+      <div class="tab-bar">
+        <button class="tab-btn active" data-tab="upload">上传数据</button>
+        <button class="tab-btn" data-tab="report">分析报告</button>
+        <button class="tab-btn" data-tab="history">历史记录</button>
+      </div>
+
+      <!-- 上传数据 -->
+      <div class="tab-content active" id="tab-upload">
+        <div class="upload-area" id="uploadArea">
+          <div class="upload-icon">📁</div>
+          <h3>拖拽文件到此处，或点击选择文件</h3>
+          <p>支持 Excel (.xlsx, .xls)、CSV 格式</p>
+          <p class="upload-hint">建议包含：日期、入住率、房价、OTA渠道等数据</p>
+          <input type="file" id="fileInput" accept=".xlsx,.xls,.csv" hidden>
+          <button class="btn btn-primary" onclick="document.getElementById('fileInput').click()">选择文件</button>
+        </div>
+        <div class="upload-preview" id="uploadPreview" style="display:none;">
+          <div class="file-info">
+            <span class="file-icon">📊</span>
+            <div>
+              <strong id="fileName"></strong>
+              <span id="fileSize" class="file-size"></span>
+            </div>
+            <button class="btn-sm" onclick="removeFile()">✕ 移除</button>
+          </div>
+          <div class="analysis-options">
+            <div class="form-group">
+              <label>分析维度</label>
+              <div class="checkbox-group">
+                <label class="checkbox-item">
+                  <input type="checkbox" checked> OTA渠道分析
+                </label>
+                <label class="checkbox-item">
+                  <input type="checkbox" checked> 出租率趋势
+                </label>
+                <label class="checkbox-item">
+                  <input type="checkbox" checked> 房价分析
+                </label>
+                <label class="checkbox-item">
+                  <input type="checkbox"> 竞品对比
+                </label>
+              </div>
+            </div>
+            <div class="form-group">
+              <label>报告类型</label>
+              <select class="form-select">
+                <option>月度运营分析报告</option>
+                <option>周报速览</option>
+                <option>自定义分析</option>
+              </select>
+            </div>
+            <button class="btn btn-primary btn-block" onclick="startAnalysis()">
+              📊 开始AI分析
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <!-- 分析报告 -->
+      <div class="tab-content" id="tab-report">
+        <div class="report-container">
+          <div class="output-placeholder">
+            <span class="placeholder-icon">📊</span>
+            <p>上传数据并开始分析后，报告将在此展示</p>
+            <p class="placeholder-hint">AI将按照你的调教模式输出标准化分析报告</p>
+          </div>
+        </div>
+      </div>
+
+      <!-- 历史记录 -->
+      <div class="tab-content" id="tab-history">
+        <div class="empty-state">
+          <span>📭</span>
+          <p>暂无分析记录</p>
+          <p class="empty-hint">完成第一次数据分析后，记录将在此显示</p>
+        </div>
+      </div>
+    </section>
+
+    <!-- ==================== 页面：系统设置 ==================== -->
+    <section class="page" id="page-settings">
+      <div class="page-header">
+        <h2>⚙️ 系统设置</h2>
+        <p>配置AI调教Prompt、API密钥和管理员设置</p>
+      </div>
+
+      <div class="settings-layout">
+        <div class="settings-nav">
+          <button class="settings-nav-btn active" data-setting="prompt">🎯 Prompt调教</button>
+          <button class="settings-nav-btn" data-setting="api">🔑 API配置</button>
+          <button class="settings-nav-btn" data-setting="brand">🎨 品牌定制</button>
+        </div>
+        <div class="settings-content">
+          <!-- Prompt调教 -->
+          <div class="setting-section active" id="setting-prompt">
+            <h3>🎯 Prompt调教中心</h3>
+            <p class="setting-desc">编辑各工具的AI提示词，点击保存后<strong>立即生效</strong>。在 ChatGPT/Claude 中调好的 Prompt 直接粘贴过来即可。</p>
+
+            <div class="prompt-list">
+              <div class="prompt-card" data-prompt="ctrip">
+                <div class="prompt-header">
+                  <span class="prompt-name">携程社区内容生成</span>
+                  <span class="prompt-status configured">已配置</span>
+                </div>
+                <p class="prompt-preview">你是酒店OTA运营专家，擅长撰写携程社区笔记。写作风格：真实感强、细节丰富、有温度...</p>
+                <div class="prompt-actions">
+                  <button class="btn-sm" onclick="editPrompt('ctrip')">✏️ 编辑</button>
+                  <button class="btn-sm" onclick="copyPrompt('ctrip')">📋 复制</button>
+                </div>
+              </div>
+
+              <div class="prompt-card" data-prompt="multi">
+                <div class="prompt-header">
+                  <span class="prompt-name">多平台内容适配</span>
+                  <span class="prompt-status configured">已配置</span>
+                </div>
+                <p class="prompt-preview">配置各平台的写作风格和格式要求，AI将自动将原始内容转换为对应平台风格...</p>
+                <div class="prompt-actions">
+                  <button class="btn-sm" onclick="editPrompt('multi')">✏️ 编辑</button>
+                  <button class="btn-sm" onclick="copyPrompt('multi')">📋 复制</button>
+                </div>
+              </div>
+
+              <div class="prompt-card" data-prompt="training">
+                <div class="prompt-header">
+                  <span class="prompt-name">前台话术输出</span>
+                  <span class="prompt-status configured">已配置</span>
+                </div>
+                <p class="prompt-preview">配置前台回复的标准话术风格，确保输出内容专业、统一、符合酒店品牌调性...</p>
+                <div class="prompt-actions">
+                  <button class="btn-sm" onclick="editPrompt('training')">✏️ 编辑</button>
+                  <button class="btn-sm" onclick="copyPrompt('training')">📋 复制</button>
+                </div>
+              </div>
+
+              <div class="prompt-card" data-prompt="analysis">
+                <div class="prompt-header">
+                  <span class="prompt-name">数据分析报告</span>
+                  <span class="prompt-status configured">已配置</span>
+                </div>
+                <p class="prompt-preview">配置分析报告的输出格式、分析维度、关注重点等，确保报告符合运营管理层需求...</p>
+                <div class="prompt-actions">
+                  <button class="btn-sm" onclick="editPrompt('analysis')">✏️ 编辑</button>
+                  <button class="btn-sm" onclick="copyPrompt('analysis')">📋 复制</button>
+                </div>
+              </div>
+            </div>
+
+            <div style="display:flex; gap:12px; margin-bottom:16px;">
+              <button class="btn" onclick="exportConfig()">📦 导出备份</button>
+              <button class="btn" onclick="exitAdmin()">🚪 退出管理员</button>
+            </div>
+
+            <div class="setting-tip">
+              <span>💡 使用说明</span>
+              <p>点击「编辑」修改 Prompt → 点击「保存」立即生效。每个 Prompt 卡片状态会显示「默认」或「已自定义」，支持「恢复默认」。导出备份仅用于存档。</p>
+            </div>
+          </div>
+
+          <!-- API配置 -->
+          <div class="setting-section" id="setting-api">
+            <h3>🔑 AI模型配置</h3>
+            <p class="setting-desc">主模型 + 备用模型自动降级，保障服务稳定。</p>
+            <div class="api-cards">
+              <div class="api-card" style="border-color:var(--primary); background:var(--primary-bg);">
+                <div class="api-logo">🔵</div>
+                <h4>通义千问 <span style="color:var(--primary); font-size:11px;">⭐ 主力模型</span></h4>
+                <p style="font-size:12px; color:var(--text-secondary); margin-bottom:8px;">模型：qwen-plus · 免费额度 · 国内直连</p>
+                <input type="password" value="sk-9a1...06be0" class="form-input" readonly style="background:var(--gray-50);">
+                <label class="checkbox-item" style="margin-top:8px;">
+                  <input type="checkbox" checked disabled> 已启用
+                </label>
+              </div>
+              <div class="api-card" style="border-color:var(--success); background:var(--success-bg);">
+                <div class="api-logo">🟢</div>
+                <h4>MiniMax M2.7 <span style="color:var(--success); font-size:11px;">● 备用模型</span></h4>
+                <p style="font-size:12px; color:var(--text-secondary); margin-bottom:8px;">29元/月 · 600次/5小时 · 自动降级</p>
+                <input type="password" value="sk-api-...HTs" class="form-input" readonly style="background:var(--gray-50);">
+                <label class="checkbox-item" style="margin-top:8px;">
+                  <input type="checkbox" checked disabled> 已启用
+                </label>
+              </div>
+              <div class="api-card" style="opacity:0.5;">
+                <div class="api-logo">🧠</div>
+                <h4>DeepSeek <span style="color:var(--text-muted); font-size:11px;">○ 未激活</span></h4>
+                <p style="font-size:12px; color:var(--text-secondary); margin-bottom:8px;">余额不足，待充值</p>
+                <input type="password" value="sk-dbc...6afe4" class="form-input" readonly style="background:var(--gray-50);">
+                <label class="checkbox-item" style="margin-top:8px;">
+                  <input type="checkbox" disabled> 未启用
+                </label>
+              </div>
+            </div>
+            <div class="setting-tip" style="margin-top:16px;">
+              <span>💡 运行机制</span>
+              <p>所有工具默认使用通义千问。如通义千问不可用，自动切换到 MiniMax 备用模型，无需手动操作。DeepSeek 充值后可随时启用。</p>
+            </div>
+          </div>
+
+          <!-- 品牌定制 -->
+          <div class="setting-section" id="setting-brand">
+            <h3>🎨 品牌定制</h3>
+            <p class="setting-desc">自定义工作台的名称、Logo和主题色。</p>
+            <div class="form-group">
+              <label>工作台名称</label>
+              <input type="text" value="酒店AI工作台" class="form-input">
+            </div>
+            <div class="form-group">
+              <label>品牌标语</label>
+              <input type="text" value="AI赋能酒店运营" class="form-input">
+            </div>
+            <div class="form-group">
+              <label>主题色</label>
+              <div class="color-options">
+                <div class="color-circle" style="background:#2563eb;" title="专业蓝"></div>
+                <div class="color-circle" style="background:#059669;" title="稳重绿"></div>
+                <div class="color-circle" style="background:#d97706;" title="活力橙"></div>
+                <div class="color-circle" style="background:#dc2626;" title="热情红"></div>
+                <div class="color-circle" style="background:#7c3aed;" title="创意紫"></div>
+              </div>
+            </div>
+            <button class="btn btn-primary" style="margin-top:16px;">💾 保存品牌设置</button>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- 上传弹窗 -->
+    <div class="modal-overlay" id="uploadModal" style="display:none;">
+      <div class="modal">
+        <div class="modal-header">
+          <h3>录入知识</h3>
+          <button class="modal-close" onclick="closeModal()">✕</button>
+        </div>
+        <div class="modal-body">
+          <div class="form-group">
+            <label>知识分类</label>
+            <select class="form-select">
+              <option>服务规范</option>
+              <option>价格政策</option>
+              <option>房型信息</option>
+              <option>设施设备</option>
+              <option>周边信息</option>
+              <option>会员权益</option>
+              <option>其他</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label>标题</label>
+            <input type="text" placeholder="例：客房升级政策" class="form-input">
+          </div>
+          <div class="form-group">
+            <label>内容</label>
+            <textarea class="form-textarea" rows="8" placeholder="在此输入知识内容或粘贴调教好的Prompt..."></textarea>
+          </div>
+          <div class="form-group">
+            <label>或上传文件</label>
+            <div class="mini-upload">
+              <span>📎 点击上传文件</span>
+              <input type="file" hidden>
+            </div>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button class="btn" onclick="closeModal()">取消</button>
+          <button class="btn btn-primary" onclick="saveKnowledgeItem()">💾 保存</button>
+        </div>
+      </div>
+    </div>
+  </main>
+
+  <!-- 管理员密码弹窗 -->
+  <div class="modal-overlay" id="adminModal" style="display:none;">
+    <div class="modal" style="max-width:380px;">
+      <div class="modal-header">
+        <h3>🔐 管理员验证</h3>
+        <button class="modal-close" onclick="closeAdminModal()">✕</button>
+      </div>
+      <div class="modal-body">
+        <p style="font-size:13px; color:var(--text-secondary); margin-bottom:16px;">请输入管理员密码以进入管理模式</p>
+        <input type="password" id="adminPasswordInput" class="form-input" placeholder="输入密码..." style="font-size:16px;" autofocus>
+        <p id="adminError" style="color:#dc2626; font-size:12px; margin-top:8px; display:none;">密码错误，请重试</p>
+      </div>
+      <div class="modal-footer">
+        <button class="btn" onclick="closeAdminModal()">取消</button>
+        <button class="btn btn-primary" onclick="submitAdminPassword()">确认</button>
+      </div>
+    </div>
+  </div>
+
+  <script src="app.js"></script>
+</body>
+</html>
