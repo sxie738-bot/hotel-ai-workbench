@@ -24,11 +24,11 @@ const AI_CONFIG = {
     enabled: false  // 余额不足，待充值
   },
   siliconflow: {
-    apiKey: '',
+    apiKey: 'sk-ntmsjwmgneryutqbxvgwakfmlfxgmcjxwtaivncswfjrrcpx',
     baseUrl: 'https://api.siliconflow.cn/v1',
     model: 'Kwai-Kolors/Kolors',
     name: '硅基流动',
-    enabled: false  // 需管理员配置API Key后启用
+    enabled: true  // 已配置免费额度
   }
 };
 
@@ -1467,7 +1467,7 @@ function toggleSiliconFlow() {
 
 // 初始化 SiliconFlow Key
 function initSiliconFlowKey() {
-  const savedKey = localStorage.getItem('siliconflow_key') || '';
+  const savedKey = localStorage.getItem('siliconflow_key') || AI_CONFIG.siliconflow.apiKey || '';
   const input = document.getElementById('siliconflowKeyInput');
   const checkbox = document.getElementById('siliconflowEnabled');
   if (input && savedKey) {
