@@ -645,7 +645,18 @@ function getKnowledgeText() {
 }
 
 // ==================== 页面导航 ====================
+// 飞书多维表格链接（管理员可在设置中修改）
+function getFeishuUrl() {
+  return localStorage.getItem('feishu_url') || 'https://feishu.cn/base/YOUR_TABLE_ID';
+}
+
 function navigateTo(page) {
+  // 飞书表格：外部跳转，不切换页面
+  if (page === 'feishu') {
+    window.open(getFeishuUrl(), '_blank');
+    return;
+  }
+
   // 先移除所有 active
   document.querySelectorAll('.nav-item').forEach(item => {
     if (item.dataset.page === page) {
@@ -1146,6 +1157,29 @@ function copyPrompt(key) {
   });
 }
 
+// ==================== 飞书链接管理 ====================
+function saveFeishuUrl() {
+  const input = document.getElementById('feishuUrlInput');
+  if (!input) return;
+  const url = input.value.trim();
+  if (!url) {
+    showToast('请输入飞书表格链接', 'warning');
+    return;
+  }
+  localStorage.setItem('feishu_url', url);
+  showToast('✅ 飞书链接已保存');
+}
+
+function initFeishuUrlInput() {
+  const input = document.getElementById('feishuUrlInput');
+  if (!input) return;
+  const saved = localStorage.getItem('feishu_url');
+  if (saved) {
+    input.value = saved;
+    input.placeholder = '已配置，学员点击侧边栏即可跳转';
+  }
+}
+
 // ==================== 拖拽上传 ====================
 const uploadArea = document.getElementById('uploadArea');
 if (uploadArea) {
@@ -1204,6 +1238,9 @@ document.addEventListener('DOMContentLoaded', () => {
 
   // 刷新 Prompt 卡片状态（先用本地缓存渲染）
   ['ctrip', 'multi', 'training', 'analysis'].forEach(key => renderPromptCard(key));
+
+  // 初始化飞书链接输入框
+  initFeishuUrlInput();
 
   // 普通用户模式下隐藏管理员元素
   document.querySelectorAll('.admin-only').forEach(el => el.style.display = 'none');

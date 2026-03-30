@@ -36,6 +36,12 @@
         <span class="nav-label">数据分析助手</span>
       </a>
       <div class="nav-divider"></div>
+      <a href="#" class="nav-item" data-page="feishu" id="navFeishu">
+        <span class="nav-icon">📋</span>
+        <span class="nav-label">飞书表格</span>
+        <span class="nav-badge">外部</span>
+      </a>
+      <div class="nav-divider"></div>
       <a href="#" class="nav-item admin-only" data-page="settings" style="display:none;">
         <span class="nav-icon">⚙️</span>
         <span class="nav-label">系统设置</span>
@@ -568,7 +574,7 @@
           <!-- 品牌定制 -->
           <div class="setting-section" id="setting-brand">
             <h3>🎨 品牌定制</h3>
-            <p class="setting-desc">自定义工作台的名称、Logo和主题色。</p>
+            <p class="setting-desc">自定义工作台的名称、Logo、主题色和外部链接。</p>
             <div class="form-group">
               <label>工作台名称</label>
               <input type="text" value="酒店AI工作台" class="form-input">
@@ -576,6 +582,11 @@
             <div class="form-group">
               <label>品牌标语</label>
               <input type="text" value="AI赋能酒店运营" class="form-input">
+            </div>
+            <div class="form-group">
+              <label>飞书多维表格链接</label>
+              <input type="text" id="feishuUrlInput" class="form-input" placeholder="粘贴飞书多维表格的完整链接">
+              <p style="font-size:11px; color:var(--text-muted); margin-top:4px;">学员点击侧边栏「飞书表格」时将跳转到此链接</p>
             </div>
             <div class="form-group">
               <label>主题色</label>
@@ -587,7 +598,7 @@
                 <div class="color-circle" style="background:#7c3aed;" title="创意紫"></div>
               </div>
             </div>
-            <button class="btn btn-primary" style="margin-top:16px;">💾 保存品牌设置</button>
+            <button class="btn btn-primary" style="margin-top:16px;" onclick="saveFeishuUrl()">💾 保存设置</button>
           </div>
         </div>
       </div>

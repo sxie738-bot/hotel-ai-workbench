@@ -177,6 +177,21 @@ input, select, textarea { font-family: inherit; }
   text-align: center;
 }
 
+.nav-badge {
+  margin-left: auto;
+  font-size: 10px;
+  font-weight: 600;
+  padding: 1px 6px;
+  border-radius: 8px;
+  background: rgba(255,255,255,0.1);
+  color: var(--gray-400);
+}
+
+.nav-item:hover .nav-badge {
+  background: rgba(255,255,255,0.15);
+  color: var(--gray-300);
+}
+
 .nav-divider {
   height: 1px;
   background: rgba(255,255,255,0.06);
