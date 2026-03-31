@@ -520,23 +520,19 @@ function updateSidebarByPermissions() {
 // ==================== 会员中心渲染 ====================
 function renderProfilePage() {
   const member = MemberStore.get();
+  const notLoggedIn = document.getElementById('profileNotLoggedIn');
+  const loggedIn = document.getElementById('profileLoggedIn');
 
-  // 如果没有会员信息或未填写姓名，显示提示
+  // 如果没有会员信息或未填写姓名，显示未登录界面
   if (!member || !member.name) {
-    document.getElementById('profileCardHeader').style.background = 'var(--gray-100)';
-    document.getElementById('profileCardIcon').textContent = '👤';
-    document.getElementById('profilePlanName').textContent = '未登录';
-    document.getElementById('profilePlanSub').textContent = '请先完成注册以使用全部功能';
-    document.getElementById('profileName').textContent = '-';
-    document.getElementById('profileHotel').textContent = '-';
-    document.getElementById('profileActivateDate').textContent = '-';
-    document.getElementById('profileExpireDate').textContent = '永久';
-    document.getElementById('profileStatusBar').style.display = 'none';
-    document.getElementById('profileRenewBtn').textContent = '📝 立即注册';
-    document.getElementById('profileRenewBtn').onclick = function() { showHotelWelcome(); };
-    document.getElementById('profileLogoutBtn').style.display = 'none';
+    if (notLoggedIn) notLoggedIn.style.display = 'block';
+    if (loggedIn) loggedIn.style.display = 'none';
     return;
   }
+
+  // 已登录，显示会员信息
+  if (notLoggedIn) notLoggedIn.style.display = 'none';
+  if (loggedIn) loggedIn.style.display = '';
 
   const plan_raw = member.plan || 'free';
   const hotelPlan = MemberStore.getHotelPlan();
@@ -854,14 +850,63 @@ function confirmLogout() {
   localStorage.removeItem('hotel_operation_history');
   localStorage.removeItem('current_hotel');
   localStorage.removeItem('hotel_expiry_reminded');
-  document.getElementById('logoutConfirmModal').style.display = 'none';
   showToast(`👋 ${name}，已退出登录`);
-  // 刷新页面最干净
-  setTimeout(() => location.reload(), 500);
+
+  // 更新侧边栏
+  updateUserNavButton();
+  updateSidebarByPermissions();
+  renderProfilePage();
+
+  // 显示退出后的快捷操作弹窗
+  setTimeout(() => {
+    const modal = document.getElementById('logoutConfirmModal');
+    const actions = document.getElementById('logoutActions');
+    const title = modal?.querySelector('.modal-header h3');
+    const body = modal?.querySelector('.modal-body');
+    const footer = modal?.querySelector('.modal-footer');
+    if (title) title.textContent = '🔐 选择操作';
+    if (body) body.style.display = 'none';
+    if (footer) footer.style.display = 'none';
+    if (actions) actions.style.display = 'block';
+    if (modal) modal.style.display = 'flex';
+  }, 300);
 }
 
 function cancelLogout() {
+  resetLogoutModal();
   document.getElementById('logoutConfirmModal').style.display = 'none';
+}
+
+// 重置退出登录弹窗到初始状态
+function resetLogoutModal() {
+  const modal = document.getElementById('logoutConfirmModal');
+  const title = modal?.querySelector('.modal-header h3');
+  const body = modal?.querySelector('.modal-body');
+  const footer = modal?.querySelector('.modal-footer');
+  const actions = document.getElementById('logoutActions');
+  if (title) title.textContent = '🚪 退出登录';
+  if (body) body.style.display = '';
+  if (footer) footer.style.display = '';
+  if (actions) actions.style.display = 'none';
+}
+
+// 重新登录（已有账号的用户）
+function doLogin() {
+  const modal = document.getElementById('logoutConfirmModal');
+  if (modal) modal.style.display = 'none';
+  resetLogoutModal();
+  // 打开登录弹窗（预填已有信息）
+  showHotelWelcome();
+}
+
+// 新用户注册
+function doRegister() {
+  const modal = document.getElementById('logoutConfirmModal');
+  if (modal) modal.style.display = 'none';
+  // 重置弹窗状态
+  resetLogoutModal();
+  // 清空表单并打开注册弹窗
+  showHotelWelcome(true);
 }
 
 // 更新侧边栏用户按钮显示
@@ -1075,7 +1120,7 @@ const PROMPTS_API_URL = 'https://api.github.com/repos/sxie738-bot/hotel-ai-workb
 let cloudPrompts = null; // 云端 Prompt 缓存
 
 // ==================== 应用版本更新检测 ====================
-const APP_VERSION = '1.5.0'; // 当前代码版本号（每次发布新功能时手动递增）
+const APP_VERSION = '1.5.1'; // 当前代码版本号（每次发布新功能时手动递增）
 
 // 检查是否有新版本可用
 async function checkForUpdate(showToastIfLatest = false) {
@@ -1634,6 +1679,210 @@ function deleteKnowledge(id) {
 function getKnowledgeText() {
   if (knowledgeBase.length === 0) return '暂无知识库内容';
   return knowledgeBase.map(k => `【${k.category}】${k.title}\n${k.content}`).join('\n\n---\n\n');
+}
+
+// ==================== 工作台动态渲染 ====================
+// 模块描述信息（用于工作台卡片和自定义弹窗）
+const MODULE_DESCRIPTIONS = {
+  content:    '携程社区内容生成、多平台复用、AI配图',
+  training:   '知识库查询、应急预案、标准话术输出',
+  analysis:   '上传原始表格，智能生成运营分析报告',
+  image:      'AI智能配图，支持多种风格',
+  video:      'AI脚本+分镜生成，一键创作短视频',
+  geo:        '关键词矩阵+SEO标题+4周内容日历',
+  quicklink:  '小红书/抖音/携程/美团等8大平台直达',
+  review:     '上传Excel → AI统计+逐条回复点评',
+  competitor: '高德地图POI搜索附近酒店竞对',
+  diagnosis:  '输入经营数据 → AI诊断+改进建议',
+  bizdev:     '企业信息 → 合作协议+销售话术',
+  patrol:     '调用摄像头 → AI巡检报告',
+  feedback:   '提交需求建议，被采纳赠1个月会员'
+};
+
+// 获取工作台固定模块
+function getDashboardPinned() {
+  try { return JSON.parse(localStorage.getItem('dashboard_pinned')) || null; } catch { return null; }
+}
+
+// 保存工作台固定模块
+function setDashboardPinned(list) {
+  localStorage.setItem('dashboard_pinned', JSON.stringify(list));
+}
+
+// 渲染工作台卡片
+function renderDashboardCards() {
+  const container = document.getElementById('dashboardCards');
+  if (!container) return;
+
+  const pinned = getDashboardPinned();
+  const perms = MemberStore.getPermissions();
+  let modulesToShow;
+
+  if (pinned && pinned.length > 0) {
+    // 用户有自定义设置，按设置的顺序显示有权限的模块
+    modulesToShow = pinned.filter(key => perms[key] && (MemberStore.canUse(key) || MemberStore.getRemaining(key) > 0));
+    // 补充未固定但有权限的新模块
+    Object.keys(perms).forEach(key => {
+      if (!modulesToShow.includes(key) && (MemberStore.canUse(key) || MemberStore.getRemaining(key) > 0) && perms[key].name) {
+        modulesToShow.push(key);
+      }
+    });
+  } else {
+    // 默认：显示所有有权限的模块
+    modulesToShow = Object.keys(perms).filter(key =>
+      perms[key].name && (MemberStore.canUse(key) || MemberStore.getRemaining(key) > 0)
+    );
+  }
+
+  // 更新工具数量
+  const countText = document.getElementById('toolCountText');
+  if (countText) countText.textContent = `${modulesToShow.length}个AI工具`;
+
+  // 排除 feishu（外部链接，不显示卡片）
+  modulesToShow = modulesToShow.filter(k => k !== 'feishu');
+
+  container.innerHTML = '';
+  modulesToShow.forEach(key => {
+    const info = perms[key] || {};
+    const desc = MODULE_DESCRIPTIONS[key] || '';
+    const card = document.createElement('div');
+    card.className = 'tool-card';
+    card.onclick = () => navigateTo(key);
+    card.innerHTML = `
+      <div class="tool-card-icon">${info.icon || '🔧'}</div>
+      <h3>${info.name || key}</h3>
+      <p>${desc}</p>
+    `;
+    container.appendChild(card);
+  });
+}
+
+// 自定义工作台弹窗
+function showDashboardCustomize() {
+  const modal = document.getElementById('dashboardCustomizeModal');
+  const list = document.getElementById('dashboardModuleList');
+  if (!modal || !list) return;
+
+  const pinned = getDashboardPinned();
+  const perms = MemberStore.getPermissions();
+
+  // 收集可显示的模块（排除feishu）
+  const availableModules = Object.keys(perms).filter(key => key !== 'feishu' && perms[key].name);
+  // 排序：已固定的在前，其余按原始顺序
+  const sorted = availableModules.sort((a, b) => {
+    const aIdx = (pinned || []).indexOf(a);
+    const bIdx = (pinned || []).indexOf(b);
+    if (aIdx === -1 && bIdx === -1) return 0;
+    if (aIdx === -1) return 1;
+    if (bIdx === -1) return -1;
+    return aIdx - bIdx;
+  });
+
+  list.innerHTML = '';
+  sorted.forEach(key => {
+    const info = perms[key] || {};
+    const desc = MODULE_DESCRIPTIONS[key] || '';
+    const isChecked = pinned ? pinned.includes(key) : true; // 默认全选
+    const item = document.createElement('div');
+    item.className = 'dashboard-module-item';
+    item.dataset.module = key;
+    item.draggable = true;
+    item.innerHTML = `
+      <span class="module-drag-handle">⠿</span>
+      <input type="checkbox" class="module-check" data-module="${key}" ${isChecked ? 'checked' : ''}>
+      <span class="module-icon">${info.icon || '🔧'}</span>
+      <div class="module-info">
+        <div class="module-name">${info.name || key}</div>
+        <div class="module-desc">${desc}</div>
+      </div>
+    `;
+    list.appendChild(item);
+  });
+
+  // 拖拽排序
+  initDashboardDragSort(list);
+
+  modal.style.display = 'flex';
+}
+
+function closeDashboardCustomize() {
+  const modal = document.getElementById('dashboardCustomizeModal');
+  if (modal) modal.style.display = 'none';
+}
+
+function saveDashboardModules() {
+  const list = document.getElementById('dashboardModuleList');
+  const items = list?.querySelectorAll('.dashboard-module-item') || [];
+  const pinned = [];
+  items.forEach(item => {
+    const key = item.dataset.module;
+    const checked = item.querySelector('.module-check')?.checked;
+    if (checked) pinned.push(key);
+  });
+  setDashboardPinned(pinned);
+  renderDashboardCards();
+  closeDashboardCustomize();
+  showToast('✅ 工作台已更新');
+}
+
+function resetDashboardModules() {
+  localStorage.removeItem('dashboard_pinned');
+  renderDashboardCards();
+  showDashboardCustomize(); // 重新渲染弹窗
+  showToast('已重置为默认显示');
+}
+
+// 工作台模块拖拽排序
+function initDashboardDragSort(container) {
+  let dragItem = null;
+
+  container.querySelectorAll('.dashboard-module-item').forEach(item => {
+    item.addEventListener('dragstart', (e) => {
+      dragItem = item;
+      setTimeout(() => item.classList.add('dragging'), 0);
+      e.dataTransfer.effectAllowed = 'move';
+    });
+
+    item.addEventListener('dragend', () => {
+      item.classList.remove('dragging');
+      dragItem = null;
+      container.querySelectorAll('.dashboard-module-item').forEach(i => i.style.borderTop = '');
+    });
+
+    item.addEventListener('dragover', (e) => {
+      e.preventDefault();
+      e.dataTransfer.dropEffect = 'move';
+      if (!dragItem || dragItem === item) return;
+      const rect = item.getBoundingClientRect();
+      const mid = rect.top + rect.height / 2;
+      if (e.clientY < mid) {
+        item.style.borderTop = '2px solid var(--primary)';
+        item.style.borderBottom = '';
+      } else {
+        item.style.borderBottom = '2px solid var(--primary)';
+        item.style.borderTop = '';
+      }
+    });
+
+    item.addEventListener('dragleave', () => {
+      item.style.borderTop = '';
+      item.style.borderBottom = '';
+    });
+
+    item.addEventListener('drop', (e) => {
+      e.preventDefault();
+      if (!dragItem || dragItem === item) return;
+      const rect = item.getBoundingClientRect();
+      const mid = rect.top + rect.height / 2;
+      if (e.clientY < mid) {
+        container.insertBefore(dragItem, item);
+      } else {
+        container.insertBefore(dragItem, item.nextSibling);
+      }
+      item.style.borderTop = '';
+      item.style.borderBottom = '';
+    });
+  });
 }
 
 // ==================== 页面导航 ====================
@@ -2212,20 +2461,28 @@ function getHotelConfig(name) {
 }
 
 // 显示酒店名输入弹窗
-function showHotelWelcome() {
+function showHotelWelcome(clearForm = false) {
   const modal = document.getElementById('hotelWelcomeModal');
   const error = document.getElementById('hotelNameError');
   modal.style.display = 'flex';
   error.style.display = 'none';
-  // 预填已有信息
-  const member = MemberStore.get();
-  document.getElementById('welcomeName').value = member?.name || '';
-  document.getElementById('welcomePhone').value = member?.phone || '';
-  document.getElementById('hotelNameInput').value = getCurrentHotel();
-  setTimeout(() => {
-    const firstEmpty = !member?.name ? 'welcomeName' : !member?.phone ? 'welcomePhone' : 'hotelNameInput';
-    document.getElementById(firstEmpty)?.focus();
-  }, 100);
+  if (clearForm) {
+    // 新注册模式：清空表单
+    document.getElementById('welcomeName').value = '';
+    document.getElementById('welcomePhone').value = '';
+    document.getElementById('hotelNameInput').value = '';
+    setTimeout(() => document.getElementById('welcomeName')?.focus(), 100);
+  } else {
+    // 登录模式：预填已有信息
+    const member = MemberStore.get();
+    document.getElementById('welcomeName').value = member?.name || '';
+    document.getElementById('welcomePhone').value = member?.phone || '';
+    document.getElementById('hotelNameInput').value = getCurrentHotel();
+    setTimeout(() => {
+      const firstEmpty = !member?.name ? 'welcomeName' : !member?.phone ? 'welcomePhone' : 'hotelNameInput';
+      document.getElementById(firstEmpty)?.focus();
+    }, 100);
+  }
 }
 
 // 关闭欢迎弹窗
@@ -2273,6 +2530,7 @@ function submitHotelName() {
 
   // 刷新权限显示（酒店配置可能改变了可用权限）
   updateSidebarByPermissions();
+  renderDashboardCards();
   renderProfilePage();
 
   // 更新侧边栏用户按钮显示
@@ -3157,6 +3415,9 @@ function initApp() {
 
   // 更新侧边栏权限显示
   updateSidebarByPermissions();
+
+  // 渲染工作台卡片
+  renderDashboardCards();
 
   // 渲染会员中心初始数据（侧边栏badge等）
   renderProfilePage();

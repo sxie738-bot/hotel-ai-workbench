@@ -327,6 +327,10 @@ input, select, textarea { font-family: inherit; }
   padding: var(--space-8);
   border-radius: var(--radius-lg);
   margin-bottom: var(--space-6);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-4);
 }
 
 .welcome-text h2 {
@@ -387,6 +391,56 @@ input, select, textarea { font-family: inherit; }
   padding: 2px 8px;
   border-radius: 10px;
   margin-top: var(--space-3);
+}
+
+/* ==================== 自定义工作台 ==================== */
+.dashboard-module-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 12px;
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  cursor: grab;
+  transition: all 0.15s;
+  user-select: none;
+}
+.dashboard-module-item:active { cursor: grabbing; }
+.dashboard-module-item.dragging {
+  opacity: 0.5;
+  border-color: var(--primary);
+  box-shadow: 0 2px 8px rgba(37, 99, 235, 0.15);
+}
+.dashboard-module-item .module-drag-handle {
+  color: var(--text-muted);
+  font-size: 14px;
+  flex-shrink: 0;
+}
+.dashboard-module-item .module-check {
+  width: 18px;
+  height: 18px;
+  accent-color: var(--primary);
+  cursor: pointer;
+  flex-shrink: 0;
+}
+.dashboard-module-item .module-icon {
+  font-size: 20px;
+  flex-shrink: 0;
+}
+.dashboard-module-item .module-info {
+  flex: 1;
+  min-width: 0;
+}
+.dashboard-module-item .module-name {
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--text-primary);
+}
+.dashboard-module-item .module-desc {
+  font-size: 11px;
+  color: var(--text-muted);
+  margin-top: 2px;
 }
 
 /* ==================== Tab 标签栏 ==================== */
