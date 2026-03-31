@@ -16,8 +16,14 @@
       "note": "订一晚",
       "plan": "trial",
       "created_at": "2026-03-31T05:43:18.829Z"
+    },
+    "沈阳大酒店": {
+      "feishu_url": "",
+      "note": "",
+      "plan": "monthly",
+      "created_at": "2026-03-31T07:09:06.252Z"
     }
   },
-  "_updated": "2026-03-31T06:55:50.632Z",
+  "_updated": "2026-03-31T07:09:06.345Z",
   "_app_version": "1.5.1"
 }
