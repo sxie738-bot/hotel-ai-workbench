@@ -1228,7 +1228,7 @@ const PROMPTS_API_URL = 'https://api.github.com/repos/sxie738-bot/hotel-ai-workb
 let cloudPrompts = null; // 云端 Prompt 缓存
 
 // ==================== 应用版本更新检测 ====================
-const APP_VERSION = '1.7.0'; // 当前代码版本号（每次发布新功能时手动递增）
+const APP_VERSION = '1.7.3'; // 当前代码版本号（每次发布新功能时手动递增）
 
 // 检查是否有新版本可用
 async function checkForUpdate(showToastIfLatest = false) {
@@ -3147,13 +3147,13 @@ function renderMemberList() {
 }
 
 function isMemberExpired(m) {
-  if (!m.expireDate || m.plan === 'free') return false;
+  if (!m.expireDate || m.plan === 'free' || m.plan === 'freeyear') return false;
   const now = new Date(); now.setHours(0,0,0,0);
   return new Date(m.expireDate) < now;
 }
 
 function getDaysLeftFor(m) {
-  if (!m.expireDate || m.plan === 'free') return 999;
+  if (!m.expireDate || m.plan === 'free' || m.plan === 'freeyear') return 999;
   const now = new Date(); now.setHours(0,0,0,0);
   return Math.ceil((new Date(m.expireDate) - now) / (1000*60*60*24));
 }
@@ -3503,7 +3503,7 @@ function renderStudentList() {
   container.innerHTML = keys.map((name, i) => {
     const config = hotelsData[name];
     const planLabel = config.plan && PLANS[config.plan] ? PLANS[config.plan].label : '免费';
-    const planColor = config.plan === 'yearly' ? 'var(--primary)' : config.plan === 'monthly' ? 'var(--success)' : config.plan === 'trial' ? '#f59e0b' : 'var(--text-muted)';
+    const planColor = config.plan === 'yearly' ? 'var(--primary)' : config.plan === 'monthly' ? 'var(--success)' : config.plan === 'trial' ? '#f59e0b' : config.plan === 'freeyear' ? '#0ea5e9' : 'var(--text-muted)';
     return `
       <div style="background:var(--bg-card); border:1px solid var(--border); border-radius:var(--radius-md); padding:var(--space-4); margin-bottom:var(--space-3); display:flex; justify-content:space-between; align-items:center;">
         <div style="flex:1; min-width:0;">
