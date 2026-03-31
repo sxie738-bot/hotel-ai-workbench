@@ -13,6 +13,195 @@
   <link rel="stylesheet" href="style.css">
 </head>
 <body>
+  <!-- ==================== 入口选择页面（非会员首次访问） ==================== -->
+  <div class="entry-page" id="entryPage" style="display:none;">
+    <div class="entry-container">
+      <div class="entry-header">
+        <div style="font-size:48px; margin-bottom:12px;">🏨</div>
+        <h1 class="entry-title">酒店AI工作台</h1>
+        <p class="entry-subtitle">AI赋能酒店运营 · 让每个决策都有数据支撑</p>
+      </div>
+
+      <!-- Step 0: 套餐选择 -->
+      <div class="entry-step" id="entryStep0">
+        <div class="plan-cards">
+          <div class="plan-card" onclick="selectPlan('free')">
+            <div class="plan-badge">免费</div>
+            <div class="plan-name">🆓 免费体验</div>
+            <div class="plan-price">¥0</div>
+            <div class="plan-desc">每个模块限3次体验</div>
+            <div class="plan-btn">免费体验</div>
+          </div>
+          <div class="plan-card" onclick="selectPlan('trial')">
+            <div class="plan-badge" style="background:#f59e0b;">体验</div>
+            <div class="plan-name">🎫 体验版</div>
+            <div class="plan-price">¥9.9<span class="plan-period">/3天</span></div>
+            <div class="plan-desc">全功能不限次体验3天</div>
+            <div class="plan-btn plan-btn-primary">立即购买</div>
+          </div>
+          <div class="plan-card plan-popular" onclick="selectPlan('monthly')">
+            <div class="plan-badge" style="background:#2563eb;">推荐</div>
+            <div class="plan-name">🔥 连续包月</div>
+            <div class="plan-price">¥39<span class="plan-period">/月</span></div>
+            <div class="plan-desc">全功能不限次使用</div>
+            <div class="plan-btn plan-btn-primary">立即订阅</div>
+          </div>
+          <div class="plan-card" onclick="selectPlan('yearly')">
+            <div class="plan-badge" style="background:#7c3aed;">省40元</div>
+            <div class="plan-name">💎 连续包年</div>
+            <div class="plan-price">¥428<span class="plan-period">/年</span></div>
+            <div class="plan-desc">全功能+优先体验新功能</div>
+            <div class="plan-btn plan-btn-primary">立即订阅</div>
+          </div>
+        </div>
+        <div class="entry-login-link" onclick="showLoginStep()">
+          已是会员？<a href="javascript:void(0)">输入姓名+手机号登录 →</a>
+        </div>
+      </div>
+
+      <!-- Step 1: 填写信息 -->
+      <div class="entry-step" id="entryStep1" style="display:none;">
+        <button class="entry-back" onclick="showStep(0)">← 返回</button>
+        <h2 class="entry-form-title">填写您的信息</h2>
+        <div class="entry-form">
+          <div class="form-group">
+            <label>姓名</label>
+            <input type="text" id="entryName" class="form-input" placeholder="请输入您的姓名">
+          </div>
+          <div class="form-group">
+            <label>酒店名称</label>
+            <input type="text" id="entryHotel" class="form-input" placeholder="请输入酒店名称">
+          </div>
+          <div class="form-group">
+            <label>手机号</label>
+            <input type="tel" id="entryPhone" class="form-input" placeholder="请输入手机号" maxlength="11">
+          </div>
+          <button class="btn btn-primary btn-block" style="margin-top:12px; padding:14px; font-size:15px;" onclick="submitEntryInfo()">
+            下一步：去付款 →
+          </button>
+        </div>
+      </div>
+
+      <!-- Step 2: 扫码付款 -->
+      <div class="entry-step" id="entryStep2" style="display:none;">
+        <button class="entry-back" onclick="showStep(1)">← 返回</button>
+        <h2 class="entry-form-title" id="payTitle">扫码付款</h2>
+        <p class="entry-pay-info" id="payInfo"></p>
+        <div class="entry-qr-area">
+          <div class="entry-qr-box">
+            <img id="payQRCode" src="" alt="收款码" style="width:200px; height:200px; object-fit:contain;">
+          </div>
+          <p style="font-size:13px; color:var(--text-secondary); margin-top:12px;">请使用微信扫码支付</p>
+        </div>
+        <button class="btn btn-primary btn-block" style="margin-top:20px; padding:14px; font-size:15px;" onclick="confirmPaid()">
+          ✅ 我已完成付款
+        </button>
+      </div>
+
+      <!-- Step 3: 等待确认 -->
+      <div class="entry-step" id="entryStep3" style="display:none;">
+        <div style="text-align:center; padding:20px 0;">
+          <div style="font-size:48px; animation: pulse 1.5s infinite;">⏳</div>
+          <h2 style="margin:16px 0 8px; font-size:18px;">管理员正在确认您的付款</h2>
+          <p style="font-size:14px; color:var(--text-secondary); margin-bottom:24px;">通常在5分钟内完成确认，页面会自动刷新</p>
+          <button class="btn btn-primary" onclick="checkPaymentStatus()">🔄 刷新状态</button>
+          <p style="font-size:12px; color:var(--text-muted); margin-top:16px;">
+            <span id="autoRefreshCountdown"></span>
+          </p>
+        </div>
+      </div>
+
+      <!-- Step 4: 激活成功 -->
+      <div class="entry-step" id="entryStep4" style="display:none;">
+        <div style="text-align:center; padding:20px 0;">
+          <div style="font-size:48px;">🎉</div>
+          <h2 style="margin:16px 0 8px; font-size:18px; color:var(--success);">激活成功！</h2>
+          <p style="font-size:14px; color:var(--text-secondary);" id="activateInfo"></p>
+          <div class="entry-invoice" id="invoiceSection" style="margin-top:24px; text-align:left;">
+            <p style="font-size:14px; margin-bottom:12px;">📄 是否需要开具发票？</p>
+            <div style="display:flex; gap:12px;">
+              <button class="btn" onclick="showInvoiceForm()">填写发票信息</button>
+              <button class="btn" onclick="enterWorkbench()" style="background:var(--gray-100);">不需要发票，跳过</button>
+            </div>
+          </div>
+          <div id="invoiceForm" style="display:none; text-align:left; margin-top:16px;">
+            <div class="form-group">
+              <label>发票抬头</label>
+              <input type="text" id="invoiceTitle" class="form-input" placeholder="个人/企业名称">
+            </div>
+            <div class="form-group">
+              <label>税号 <span class="optional">（选填）</span></label>
+              <input type="text" id="invoiceTax" class="form-input" placeholder="企业税号">
+            </div>
+            <div class="form-group">
+              <label>接收邮箱</label>
+              <input type="email" id="invoiceEmail" class="form-input" placeholder="用于接收电子发票">
+            </div>
+            <button class="btn btn-primary btn-block" onclick="submitInvoice()">提交发票信息</button>
+          </div>
+          <button class="btn btn-primary btn-block" id="enterWorkbenchBtn" onclick="enterWorkbench()" style="margin-top:20px; padding:14px; font-size:15px;">
+            进入工作台 →
+          </button>
+        </div>
+      </div>
+
+      <!-- 登录（已有会员） -->
+      <div class="entry-step" id="entryStepLogin" style="display:none;">
+        <button class="entry-back" onclick="showStep(0)">← 返回</button>
+        <h2 class="entry-form-title">会员登录</h2>
+        <div class="entry-form">
+          <div class="form-group">
+            <label>姓名</label>
+            <input type="text" id="loginName" class="form-input" placeholder="请输入您的姓名">
+          </div>
+          <div class="form-group">
+            <label>手机号</label>
+            <input type="tel" id="loginPhone" class="form-input" placeholder="请输入手机号" maxlength="11">
+          </div>
+          <button class="btn btn-primary btn-block" style="margin-top:12px; padding:14px; font-size:15px;" onclick="memberLogin()">
+            登录 →
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ==================== 到期提醒弹窗 ==================== -->
+  <div class="modal-overlay" id="expiryModal" style="display:none;">
+    <div class="modal" style="max-width:380px;">
+      <div class="modal-header">
+        <h3 id="expiryTitle">⏰ 会员即将到期</h3>
+      </div>
+      <div class="modal-body" style="text-align:center;">
+        <p id="expiryMessage" style="font-size:14px; line-height:1.8;"></p>
+      </div>
+      <div class="modal-footer" style="justify-content:center;">
+        <button class="btn" onclick="closeExpiryModal()">稍后再说</button>
+        <button class="btn btn-primary" onclick="renewPlan()">立即续费</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ==================== 模块锁定弹窗 ==================== -->
+  <div class="modal-overlay" id="moduleLockModal" style="display:none;">
+    <div class="modal" style="max-width:380px;">
+      <div class="modal-header">
+        <h3>🔒 该功能需要升级</h3>
+        <button class="modal-close" onclick="closeModalLock()">✕</button>
+      </div>
+      <div class="modal-body" style="text-align:center;">
+        <p id="moduleLockMessage" style="font-size:14px; line-height:1.8;"></p>
+        <div id="moduleLockUsage" style="display:none; margin-top:12px; padding:12px; background:var(--bg-tertiary); border-radius:8px;">
+          <p style="font-size:13px; color:var(--text-secondary);">当前已使用 <strong id="moduleUsedCount">0</strong> 次，体验限额 <strong id="moduleLimitCount">3</strong> 次</p>
+        </div>
+      </div>
+      <div class="modal-footer" style="justify-content:center;">
+        <button class="btn" onclick="closeModalLock()">我知道了</button>
+        <button class="btn btn-primary" onclick="upgradeFromLock()">升级套餐</button>
+      </div>
+    </div>
+  </div>
+
   <!-- 侧边栏 -->
   <aside class="sidebar" id="sidebar">
     <div class="sidebar-header">
@@ -479,9 +668,11 @@
       <div class="settings-layout">
         <div class="settings-nav">
           <button class="settings-nav-btn active" data-setting="prompt">🎯 Prompt调教</button>
+          <button class="settings-nav-btn" data-setting="members">👥 会员管理</button>
+          <button class="settings-nav-btn" data-setting="permissions">🔐 权限配置</button>
           <button class="settings-nav-btn" data-setting="api">🔑 API配置</button>
           <button class="settings-nav-btn" data-setting="brand">🎨 品牌定制</button>
-          <button class="settings-nav-btn" data-setting="students">👥 学员管理</button>
+          <button class="settings-nav-btn" data-setting="students">🏨 酒店配置</button>
         </div>
         <div class="settings-content">
           <!-- Prompt调教 -->
@@ -636,9 +827,94 @@
             <button class="btn btn-primary" style="margin-top:16px;" onclick="saveFeishuUrl()">💾 保存设置</button>
           </div>
 
-          <!-- 学员管理 -->
+          <!-- 会员管理 -->
+          <div class="setting-section" id="setting-members">
+            <h3>👥 会员管理</h3>
+            <p class="setting-desc">管理所有会员，确认付款、续费、查看状态。保存后自动同步到云端。</p>
+
+            <!-- 收款码上传 -->
+            <div style="margin-bottom:20px; padding:16px; background:var(--bg-tertiary); border-radius:10px;">
+              <h4 style="margin:0 0 12px; font-size:14px;">💳 收款码设置</h4>
+              <div style="display:flex; gap:12px; align-items:center; flex-wrap:wrap;">
+                <div id="qrPreview" style="width:80px; height:80px; background:#fff; border-radius:8px; border:1px dashed var(--gray-300); display:flex; align-items:center; justify-content:center; overflow:hidden; cursor:pointer;" onclick="document.getElementById('qrFileInput').click()">
+                  <span id="qrPlaceholder" style="font-size:12px; color:var(--text-muted);">上传收款码</span>
+                  <img id="qrPreviewImg" style="width:100%; height:100%; object-fit:contain; display:none;">
+                </div>
+                <div style="flex:1; min-width:150px;">
+                  <input type="file" id="qrFileInput" accept="image/*" hidden onchange="handleQRUpload(event)">
+                  <p style="font-size:12px; color:var(--text-secondary); margin:0;">点击左侧上传微信/支付宝收款码</p>
+                  <p style="font-size:11px; color:var(--text-muted); margin:4px 0 0;">用户付款时会看到此收款码</p>
+                  <button class="btn-sm" style="margin-top:8px;" onclick="saveQRCode()">💾 保存收款码</button>
+                </div>
+              </div>
+            </div>
+
+            <!-- 统计 -->
+            <div style="display:flex; gap:12px; margin-bottom:16px; flex-wrap:wrap;">
+              <div style="flex:1; min-width:100px; padding:12px; background:var(--primary-bg); border-radius:8px; text-align:center;">
+                <div style="font-size:20px; font-weight:700; color:var(--primary);" id="memberTotalCount">0</div>
+                <div style="font-size:11px; color:var(--text-secondary);">总会员</div>
+              </div>
+              <div style="flex:1; min-width:100px; padding:12px; background:var(--success-bg); border-radius:8px; text-align:center;">
+                <div style="font-size:20px; font-weight:700; color:var(--success);" id="memberActiveCount">0</div>
+                <div style="font-size:11px; color:var(--text-secondary);">有效会员</div>
+              </div>
+              <div style="flex:1; min-width:100px; padding:12px; background:var(--warning-bg); border-radius:8px; text-align:center;">
+                <div style="font-size:20px; font-weight:700; color:var(--warning);" id="memberPendingCount">0</div>
+                <div style="font-size:11px; color:var(--text-secondary);">待确认</div>
+              </div>
+            </div>
+
+            <!-- 待确认队列 -->
+            <div id="pendingQueue" style="margin-bottom:20px;">
+              <h4 style="font-size:14px; margin-bottom:12px;">⏳ 待确认付款</h4>
+              <div id="pendingList"></div>
+            </div>
+
+            <!-- 已开通会员列表 -->
+            <div>
+              <h4 style="font-size:14px; margin-bottom:12px;">✅ 已开通会员</h4>
+              <div id="memberList"></div>
+            </div>
+          </div>
+
+          <!-- 权限配置 -->
+          <div class="setting-section" id="setting-permissions">
+            <h3>🔐 模块权限配置</h3>
+            <p class="setting-desc">设置每个模块在不同会员等级下的权限。保存后自动同步到云端。</p>
+
+            <div style="overflow-x:auto;">
+              <table style="width:100%; border-collapse:collapse; font-size:13px;" id="permissionTable">
+                <thead>
+                  <tr style="background:var(--bg-tertiary);">
+                    <th style="padding:10px; text-align:left; border-bottom:2px solid var(--gray-200);">模块</th>
+                    <th style="padding:10px; text-align:center; border-bottom:2px solid var(--gray-200);">免费体验</th>
+                    <th style="padding:10px; text-align:center; border-bottom:2px solid var(--gray-200);">体验版(¥9.9)</th>
+                    <th style="padding:10px; text-align:center; border-bottom:2px solid var(--gray-200);">包月(¥39)</th>
+                    <th style="padding:10px; text-align:center; border-bottom:2px solid var(--gray-200);">包年(¥428)</th>
+                  </tr>
+                </thead>
+                <tbody id="permissionBody"></tbody>
+              </table>
+            </div>
+
+            <div style="margin-top:16px;">
+              <button class="btn btn-primary" onclick="savePermissions()">💾 保存权限配置</button>
+            </div>
+
+            <div class="setting-tip" style="margin-top:16px;">
+              <span>💡 权限说明</span>
+              <p>
+                <strong>关闭</strong> = 用户不可见该模块<br>
+                <strong>限X次</strong> = 体验用户可使用X次，用完后引导升级<br>
+                <strong>不限次</strong> = 付费用户可无限制使用
+              </p>
+            </div>
+          </div>
+
+          <!-- 酒店配置（原学员管理） -->
           <div class="setting-section" id="setting-students">
-            <h3>👥 学员管理</h3>
+            <h3>🏨 酒店配置</h3>
             <p class="setting-desc">为每个酒店配置专属参数（飞书链接等），学员输入酒店名后自动加载。保存后自动同步到云端。</p>
 
             <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:16px;">

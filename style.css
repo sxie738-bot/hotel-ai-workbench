@@ -1250,3 +1250,118 @@ input, select, textarea { font-family: inherit; }
     grid-template-columns: 1fr;
   }
 }
+
+/* ==================== 入口选择页面 ==================== */
+.entry-page {
+  position: fixed; inset: 0; background: var(--bg-secondary);
+  z-index: 9998; overflow-y: auto;
+}
+.entry-container {
+  max-width: 480px; margin: 0 auto; padding: 40px 20px 60px;
+}
+.entry-header {
+  text-align: center; margin-bottom: 32px;
+}
+.entry-title {
+  font-size: 22px; font-weight: 700; margin: 0 0 8px; color: var(--text-primary);
+}
+.entry-subtitle {
+  font-size: 13px; color: var(--text-secondary); margin: 0;
+}
+
+/* 套餐卡片 */
+.plan-cards {
+  display: grid; grid-template-columns: 1fr 1fr;
+  gap: 12px; margin-bottom: 20px;
+}
+.plan-card {
+  background: #fff; border: 2px solid var(--gray-200);
+  border-radius: 14px; padding: 20px 16px; text-align: center;
+  cursor: pointer; transition: all 0.2s; position: relative; overflow: hidden;
+}
+.plan-card:hover {
+  border-color: var(--primary); transform: translateY(-2px);
+  box-shadow: 0 8px 24px rgba(37,99,235,0.12);
+}
+.plan-card.plan-popular {
+  border-color: var(--primary); background: var(--primary-bg);
+}
+.plan-badge {
+  position: absolute; top: 0; right: 0;
+  padding: 3px 10px; font-size: 10px; font-weight: 600;
+  color: #fff; border-radius: 0 12px 0 10px;
+}
+.plan-name {
+  font-size: 14px; font-weight: 600; margin: 12px 0 6px; color: var(--text-primary);
+}
+.plan-price {
+  font-size: 28px; font-weight: 700; color: var(--primary); margin-bottom: 4px;
+}
+.plan-period {
+  font-size: 13px; font-weight: 400; color: var(--text-secondary);
+}
+.plan-desc {
+  font-size: 12px; color: var(--text-secondary); margin-bottom: 14px;
+}
+.plan-btn {
+  display: inline-block; padding: 8px 24px; border-radius: 8px;
+  font-size: 13px; font-weight: 600; background: var(--gray-100);
+  color: var(--text-primary); cursor: pointer; transition: all 0.2s;
+}
+.plan-btn:hover { background: var(--gray-200); }
+.plan-btn-primary {
+  background: var(--primary); color: #fff;
+}
+.plan-btn-primary:hover { background: var(--primary-dark); }
+
+.entry-login-link {
+  text-align: center; font-size: 13px; color: var(--text-secondary);
+  padding-top: 16px; border-top: 1px solid var(--gray-200);
+}
+.entry-login-link a {
+  color: var(--primary); font-weight: 600; text-decoration: none;
+}
+.entry-login-link a:hover { text-decoration: underline; }
+
+/* 入口表单步骤 */
+.entry-step { display: none; }
+.entry-step.active { display: block; }
+.entry-back {
+  background: none; border: none; font-size: 13px; color: var(--text-secondary);
+  cursor: pointer; margin-bottom: 16px; padding: 4px 0;
+}
+.entry-back:hover { color: var(--primary); }
+.entry-form-title {
+  font-size: 18px; font-weight: 600; margin-bottom: 24px; text-align: center;
+}
+.entry-pay-info {
+  text-align: center; font-size: 16px; font-weight: 600; color: var(--primary);
+  margin-bottom: 20px;
+}
+.entry-qr-area { text-align: center; margin: 16px 0; }
+.entry-qr-box {
+  display: inline-block; padding: 12px; background: #fff;
+  border-radius: 12px; box-shadow: 0 2px 12px rgba(0,0,0,0.08);
+}
+
+/* 发票 */
+.entry-invoice {
+  padding: 16px; background: var(--bg-tertiary); border-radius: 10px;
+}
+
+@media (max-width: 400px) {
+  .plan-cards { grid-template-columns: 1fr; }
+}
+
+/* ==================== 模块锁定标识 ==================== */
+.module-lock-badge {
+  display: inline-block; font-size: 10px; padding: 1px 6px;
+  background: var(--gray-200); color: var(--text-muted);
+  border-radius: 4px; margin-left: 4px; vertical-align: middle;
+}
+.nav-item.locked {
+  opacity: 0.55;
+}
+.nav-item.locked:hover {
+  opacity: 0.8;
+}

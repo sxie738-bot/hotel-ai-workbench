@@ -1,3 +1,427 @@
+// ==================== 会员体系配置 ====================
+const PLANS = {
+  free:    { name: '免费体验', price: 0,    days: 0,   label: '免费体验' },
+  trial:   { name: '体验版',   price: 9.9,  days: 3,   label: '体验版·3天' },
+  monthly: { name: '连续包月', price: 39,   days: 30,  label: '包月会员' },
+  yearly:  { name: '连续包年', price: 428,  days: 365, label: '包年会员' }
+};
+
+// 模块权限默认配置（管理员可在后台修改）
+const DEFAULT_MODULE_PERMISSIONS = {
+  content:       { free: 3,  trial: -1, monthly: -1, yearly: -1, name: '内容创作中心', icon: '✍️' },
+  training:      { free: 3,  trial: -1, monthly: -1, yearly: -1, name: '前台培训管家', icon: '📖' },
+  analysis:      { free: 3,  trial: -1, monthly: -1, yearly: -1, name: '数据分析助手', icon: '📈' },
+  image:         { free: 0,  trial: 3,  monthly: -1, yearly: -1, name: 'AI配图',       icon: '🎨' },
+  feishu:        { free: 0,  trial: 0,  monthly: -1, yearly: -1, name: '飞书表格',     icon: '📋' },
+  feedback:      { free: -1, trial: -1, monthly: -1, yearly: -1, name: '共创中心',     icon: '🎯' }
+};
+
+// -1 = 不限次, 0 = 关闭, >0 = 限次数
+
+// ==================== 会员数据管理 ====================
+const MemberStore = {
+  _key: 'hotel_member',
+  _usageKey: 'hotel_usage',
+
+  // 获取当前会员信息
+  get() {
+    try { return JSON.parse(localStorage.getItem(this._key)) || null; } catch { return null; }
+  },
+
+  // 保存会员信息
+  set(data) {
+    localStorage.setItem(this._key, JSON.stringify(data));
+  },
+
+  // 获取使用次数
+  getUsage() {
+    try { return JSON.parse(localStorage.getItem(this._usageKey)) || {}; } catch { return {}; }
+  },
+
+  // 记录使用次数
+  addUsage(moduleKey) {
+    const usage = this.getUsage();
+    usage[moduleKey] = (usage[moduleKey] || 0) + 1;
+    localStorage.setItem(this._usageKey, JSON.stringify(usage));
+    return usage[moduleKey];
+  },
+
+  // 获取当前有效权限配置（云端 > 代码默认）
+  getPermissions() {
+    const cloudPerms = localStorage.getItem('hotel_module_permissions');
+    if (cloudPerms) {
+      try { return JSON.parse(cloudPerms); } catch {}
+    }
+    return DEFAULT_MODULE_PERMISSIONS;
+  },
+
+  // 判断是否已过期
+  isExpired() {
+    const m = this.get();
+    if (!m || !m.expireDate) return true;
+    const now = new Date(); now.setHours(0,0,0,0);
+    return new Date(m.expireDate) < now;
+  },
+
+  // 判断会员计划类型
+  getPlan() {
+    const m = this.get();
+    return m ? m.plan : 'free';
+  },
+
+  // 剩余天数
+  getDaysLeft() {
+    const m = this.get();
+    if (!m || !m.expireDate) return 0;
+    const now = new Date(); now.setHours(0,0,0,0);
+    const expire = new Date(m.expireDate); expire.setHours(0,0,0,0);
+    return Math.ceil((expire - now) / (1000*60*60*24));
+  },
+
+  // 检查模块是否有权限使用
+  canUse(moduleKey) {
+    const m = this.get();
+    const plan = m ? m.plan : 'free';
+    const perms = this.getPermissions();
+    const config = perms[moduleKey];
+    if (!config) return true; // 未知模块默认可用
+
+    const limit = config[plan];
+    if (limit === -1) return true;  // 不限次
+    if (limit === 0) return false;  // 关闭
+    // 限次数
+    const usage = this.getUsage();
+    return (usage[moduleKey] || 0) < limit;
+  },
+
+  // 获取模块剩余次数（-1表示不限）
+  getRemaining(moduleKey) {
+    const m = this.get();
+    const plan = m ? m.plan : 'free';
+    const perms = this.getPermissions();
+    const config = perms[moduleKey];
+    if (!config) return -1;
+    const limit = config[plan];
+    if (limit === -1) return -1;
+    if (limit === 0) return 0;
+    const usage = this.getUsage();
+    return Math.max(0, limit - (usage[moduleKey] || 0));
+  },
+
+  // 清除会员数据（退出登录）
+  clear() {
+    localStorage.removeItem(this._key);
+    localStorage.removeItem(this._usageKey);
+  }
+};
+
+// ==================== 入口页面流程 ====================
+let selectedPlan = 'free';
+
+function selectPlan(plan) {
+  selectedPlan = plan;
+  if (plan === 'free') {
+    showStep(1); // 免费直接填信息
+    return;
+  }
+  showStep(1); // 付费先填信息
+}
+
+function showLoginStep() {
+  showStep('login');
+}
+
+function showStep(step) {
+  // 隐藏所有步骤
+  document.querySelectorAll('.entry-step').forEach(el => el.style.display = 'none');
+  // 显示目标步骤
+  const target = typeof step === 'number' ? `entryStep${step}` : (step === 'login' ? 'entryStepLogin' : null);
+  if (target) {
+    const el = document.getElementById(target);
+    if (el) el.style.display = 'block';
+  }
+}
+
+function submitEntryInfo() {
+  const name = document.getElementById('entryName').value.trim();
+  const hotel = document.getElementById('entryHotel').value.trim();
+  const phone = document.getElementById('entryPhone').value.trim();
+  if (!name) { showToast('请输入姓名', 'error'); return; }
+  if (!hotel) { showToast('请输入酒店名称', 'error'); return; }
+  if (!phone || phone.length !== 11) { showToast('请输入正确的手机号', 'error'); return; }
+
+  if (selectedPlan === 'free') {
+    // 免费体验：直接激活
+    const memberData = {
+      name, hotel, phone,
+      plan: 'free',
+      activateDate: new Date().toISOString().split('T')[0],
+      expireDate: '2099-12-31', // 免费永不过期
+      status: 'active',
+      usage: MemberStore.getUsage()
+    };
+    MemberStore.set(memberData);
+    localStorage.setItem('current_hotel', hotel);
+    enterWorkbench();
+  } else {
+    // 付费套餐：显示收款码
+    const planInfo = PLANS[selectedPlan];
+    document.getElementById('payTitle').textContent = `扫码支付 · ${planInfo.label}`;
+    document.getElementById('payInfo').textContent = `套餐：${planInfo.label} · ¥${planInfo.price}`;
+    // 收款码图片（从管理员配置读取，暂用占位）
+    const qrImg = document.getElementById('payQRCode');
+    const savedQR = localStorage.getItem('hotel_pay_qrcode');
+    if (savedQR) {
+      qrImg.src = savedQR;
+    } else {
+      // 默认占位 - 管理员上传后会替换
+      qrImg.src = 'data:image/svg+xml,' + encodeURIComponent(
+        '<svg xmlns="http://www.w3.org/2000/svg" width="200" height="200" viewBox="0 0 200 200">' +
+        '<rect fill="#f3f4f6" width="200" height="200"/>' +
+        '<text x="100" y="90" text-anchor="middle" font-size="16" fill="#9ca3af">收款码</text>' +
+        '<text x="100" y="115" text-anchor="middle" font-size="12" fill="#9ca3af">管理员未上传</text>' +
+        '</svg>'
+      );
+    }
+    showStep(2);
+  }
+}
+
+function confirmPaid() {
+  const name = document.getElementById('entryName').value.trim();
+  const hotel = document.getElementById('entryHotel').value.trim();
+  const phone = document.getElementById('entryPhone').value.trim();
+  const planInfo = PLANS[selectedPlan];
+
+  // 提交到云端待确认队列
+  const pendingData = {
+    name, hotel, phone,
+    plan: selectedPlan,
+    planName: planInfo.label,
+    price: planInfo.price,
+    submitTime: new Date().toISOString(),
+    status: 'pending'
+  };
+
+  // 保存到本地待确认状态
+  localStorage.setItem('hotel_pending_payment', JSON.stringify(pendingData));
+
+  // 将用户信息临时保存
+  const memberData = {
+    name, hotel, phone,
+    plan: selectedPlan,
+    activateDate: '',
+    expireDate: '',
+    status: 'pending',
+    usage: {}
+  };
+  MemberStore.set(memberData);
+  localStorage.setItem('current_hotel', hotel);
+
+  showStep(3);
+  // 自动刷新检查（每30秒）
+  startAutoCheck();
+}
+
+function startAutoCheck() {
+  let count = 0;
+  const timer = setInterval(() => {
+    count++;
+    const remaining = 30 - count;
+    document.getElementById('autoRefreshCountdown').textContent =
+      remaining > 0 ? `${remaining}秒后自动刷新...` : '正在检查...';
+    if (count >= 30) {
+      count = 0;
+      checkPaymentStatus();
+    }
+  }, 1000);
+  // 存储定时器以便清理
+  window._paymentCheckTimer = timer;
+}
+
+function checkPaymentStatus() {
+  const member = MemberStore.get();
+  if (member && member.status === 'active') {
+    // 管理员已确认
+    clearInterval(window._paymentCheckTimer);
+    document.getElementById('activateInfo').textContent =
+      `套餐：${PLANS[member.plan].label} · 到期：${member.expireDate}`;
+    showStep(4);
+  } else {
+    showToast('暂未确认，请稍后再试', 'warning');
+  }
+}
+
+function showInvoiceForm() {
+  document.getElementById('invoiceSection').style.display = 'none';
+  document.getElementById('invoiceForm').style.display = 'block';
+}
+
+function submitInvoice() {
+  const title = document.getElementById('invoiceTitle').value.trim();
+  const email = document.getElementById('invoiceEmail').value.trim();
+  if (!title || !email) { showToast('请填写发票抬头和邮箱', 'error'); return; }
+  const invoiceData = {
+    title,
+    tax: document.getElementById('invoiceTax').value.trim(),
+    email,
+    member: MemberStore.get(),
+    submitTime: new Date().toISOString()
+  };
+  localStorage.setItem('hotel_invoice_' + Date.now(), JSON.stringify(invoiceData));
+  showToast('发票信息已提交，工作人员将尽快处理');
+  enterWorkbench();
+}
+
+function enterWorkbench() {
+  document.getElementById('entryPage').style.display = 'none';
+  initApp();
+}
+
+function memberLogin() {
+  const name = document.getElementById('loginName').value.trim();
+  const phone = document.getElementById('loginPhone').value.trim();
+  if (!name || !phone) { showToast('请输入姓名和手机号', 'error'); return; }
+
+  // 从云端检查（通过管理员已开通的用户列表）
+  // 这里需要从prompts.json的members字段匹配
+  // 暂时用本地存储匹配
+  const member = MemberStore.get();
+  if (member && member.name === name && member.phone === phone && member.status === 'active') {
+    if (MemberStore.isExpired() && member.plan !== 'free') {
+      // 已过期，引导续费
+      showStep(0);
+      showToast('会员已到期，请续费', 'warning');
+      return;
+    }
+    enterWorkbench();
+  } else {
+    showToast('未找到匹配的会员信息，请确认或联系管理员', 'error');
+  }
+}
+
+function closeExpiryModal() {
+  document.getElementById('expiryModal').style.display = 'none';
+}
+
+function renewPlan() {
+  document.getElementById('expiryModal').style.display = 'none';
+  document.getElementById('entryPage').style.display = '';
+  showStep(0);
+}
+
+// 检查到期提醒
+function checkExpiryReminder() {
+  const member = MemberStore.get();
+  if (!member || member.plan === 'free' || member.status !== 'active') return;
+
+  const daysLeft = MemberStore.getDaysLeft();
+  const reminded = localStorage.getItem('hotel_expiry_reminded');
+
+  if (daysLeft <= 0) {
+    // 已过期
+    if (!reminded || reminded !== 'expired') {
+      document.getElementById('expiryTitle').textContent = '⚠️ 会员已到期';
+      document.getElementById('expiryMessage').innerHTML =
+        '您的会员已于 <strong>今天</strong> 到期。<br>已自动降级为免费体验（每模块限3次）。<br>续费后可恢复全功能使用。';
+      document.getElementById('expiryModal').style.display = 'flex';
+      localStorage.setItem('hotel_expiry_reminded', 'expired');
+      // 降级
+      member.plan = 'free';
+      MemberStore.set(member);
+    }
+  } else if (daysLeft <= 3) {
+    if (!reminded || reminded !== '3days') {
+      document.getElementById('expiryTitle').textContent = '⏰ 会员即将到期';
+      document.getElementById('expiryMessage').innerHTML =
+        `您的会员将于 <strong>${daysLeft}天后</strong> 到期。<br>到期后将降级为免费体验。<br>建议尽快续费以保持全功能。`;
+      document.getElementById('expiryModal').style.display = 'flex';
+      localStorage.setItem('hotel_expiry_reminded', '3days');
+    }
+  } else if (daysLeft <= 7) {
+    if (!reminded || reminded !== '7days') {
+      document.getElementById('expiryTitle').textContent = '🔔 温馨提醒';
+      document.getElementById('expiryMessage').innerHTML =
+        `您的会员将于 <strong>${daysLeft}天后</strong> 到期。<br>提前续费不浪费剩余天数哦！`;
+      document.getElementById('expiryModal').style.display = 'flex';
+      localStorage.setItem('hotel_expiry_reminded', '7days');
+    }
+  }
+}
+
+// 模块使用前检查
+function checkModuleAccess(moduleKey, onAllowed) {
+  if (MemberStore.canUse(moduleKey)) {
+    if (typeof onAllowed === 'function') onAllowed();
+    return true;
+  }
+  // 没有权限，弹窗
+  const perms = MemberStore.getPermissions();
+  const config = perms[moduleKey];
+  const member = MemberStore.get();
+  const plan = member ? member.plan : 'free';
+  const limit = config ? config[plan] : 0;
+  const remaining = MemberStore.getRemaining(moduleKey);
+
+  document.getElementById('moduleLockMessage').innerHTML =
+    `<strong>${config ? config.name : moduleKey}</strong> 当前套餐不可用。<br>` +
+    (remaining > 0
+      ? `您的免费次数已用完。`
+      : `该功能需要 <strong>升级套餐</strong> 后使用。`) +
+    `<br><br>🔥 连续包月 ¥39/月 · 💎 连续包年 ¥428/年（省40元）`;
+
+  const usageEl = document.getElementById('moduleLockUsage');
+  if (limit > 0) {
+    const usage = MemberStore.getUsage();
+    document.getElementById('moduleUsedCount').textContent = usage[moduleKey] || 0;
+    document.getElementById('moduleLimitCount').textContent = limit;
+    usageEl.style.display = 'block';
+  } else {
+    usageEl.style.display = 'none';
+  }
+
+  document.getElementById('moduleLockModal').style.display = 'flex';
+  return false;
+}
+
+function closeModalLock() {
+  document.getElementById('moduleLockModal').style.display = 'none';
+}
+
+function upgradeFromLock() {
+  document.getElementById('moduleLockModal').style.display = 'none';
+  document.getElementById('entryPage').style.display = '';
+  showStep(0);
+}
+
+// 初始化侧边栏模块显示（根据权限）
+function updateSidebarByPermissions() {
+  const perms = MemberStore.getPermissions();
+  Object.keys(perms).forEach(key => {
+    const canUse = MemberStore.canUse(key);
+    const remaining = MemberStore.getRemaining(key);
+    const navItem = document.querySelector(`[data-page="${key}"]`);
+    if (!navItem) return;
+
+    if (!canUse && remaining === 0) {
+      navItem.classList.add('locked');
+      navItem.onclick = function(e) {
+        e.preventDefault();
+        checkModuleAccess(key);
+      };
+    } else if (canUse && remaining > 0 && remaining <= 2) {
+      // 快用完了，加提示
+      let badge = navItem.querySelector('.module-lock-badge');
+      if (!badge) {
+        badge = document.createElement('span');
+        badge.className = 'module-lock-badge';
+        navItem.querySelector('.nav-label').appendChild(badge);
+      }
+      badge.textContent = `剩${remaining}次`;
+    }
+  });
+}
+
 // ==================== AI API 配置 ====================
 const AI_CONFIG = {
   qwen: {
@@ -1363,6 +1787,254 @@ function deleteStudent(name) {
   if (isAdmin) syncHotelsToCloud();
 }
 
+// ==================== 会员管理（管理员后台） ====================
+function getMembersData() {
+  try { return JSON.parse(localStorage.getItem('hotel_members_data')) || []; } catch { return []; }
+}
+
+function saveMembersData(data) {
+  localStorage.setItem('hotel_members_data', JSON.stringify(data));
+  if (isAdmin) syncMembersToCloud();
+}
+
+function renderMemberList() {
+  const members = getMembersData();
+  const active = members.filter(m => m.status === 'active' && !isMemberExpired(m));
+  const pending = members.filter(m => m.status === 'pending');
+
+  document.getElementById('memberTotalCount').textContent = members.length;
+  document.getElementById('memberActiveCount').textContent = active.length;
+  document.getElementById('memberPendingCount').textContent = pending.length;
+
+  // 待确认列表
+  const pendingContainer = document.getElementById('pendingList');
+  if (pending.length === 0) {
+    pendingContainer.innerHTML = '<div style="padding:20px; text-align:center; color:var(--text-muted); font-size:13px;">暂无待确认付款 ✅</div>';
+  } else {
+    pendingContainer.innerHTML = pending.map((m, i) => `
+      <div style="display:flex; justify-content:space-between; align-items:center; padding:12px; background:var(--warning-bg); border-radius:8px; margin-bottom:8px; border:1px solid #fde68a;">
+        <div>
+          <div style="font-weight:600; font-size:14px;">${m.name} · ${m.hotel}</div>
+          <div style="font-size:12px; color:var(--text-secondary); margin-top:2px;">${m.phone} · ${PLANS[m.plan]?.label || m.plan} · ¥${m.price}</div>
+          <div style="font-size:11px; color:var(--text-muted); margin-top:2px;">${formatTime(m.submitTime)}</div>
+        </div>
+        <div style="display:flex; gap:8px;">
+          <button class="btn-sm" style="background:var(--success); color:#fff;" onclick="approveMember(${members.indexOf(m)})">✓ 确认开通</button>
+          <button class="btn-sm" style="background:var(--danger); color:#fff;" onclick="rejectMember(${members.indexOf(m)})">✕ 拒绝</button>
+        </div>
+      </div>
+    `).join('');
+  }
+
+  // 已开通列表
+  const memberContainer = document.getElementById('memberList');
+  if (active.length === 0) {
+    memberContainer.innerHTML = '<div style="padding:20px; text-align:center; color:var(--text-muted); font-size:13px;">暂无会员</div>';
+  } else {
+    memberContainer.innerHTML = active.sort((a,b) => new Date(a.expireDate) - new Date(b.expireDate)).map((m, i) => {
+      const daysLeft = getDaysLeftFor(m);
+      const isExpiring = daysLeft <= 7 && daysLeft > 0;
+      const isExpired = daysLeft <= 0;
+      return `
+      <div style="display:flex; justify-content:space-between; align-items:center; padding:12px; background:${isExpired ? 'var(--danger-bg)' : isExpiring ? 'var(--warning-bg)' : 'var(--bg-tertiary)'}; border-radius:8px; margin-bottom:8px; ${isExpiring ? 'border:1px solid #fde68a;' : ''}">
+        <div>
+          <div style="font-weight:600; font-size:14px;">${m.name} · ${m.hotel}</div>
+          <div style="font-size:12px; color:var(--text-secondary); margin-top:2px;">${m.phone} · ${PLANS[m.plan]?.label || m.plan}</div>
+          <div style="font-size:11px; margin-top:2px; color:${isExpired ? 'var(--danger)' : isExpiring ? 'var(--warning)' : 'var(--text-muted)'};">
+            到期：${m.expireDate}${isExpired ? ' (已过期)' : isExpiring ? ` (还剩${daysLeft}天)` : ` (${daysLeft}天后到期)`}
+          </div>
+        </div>
+        <div style="display:flex; gap:6px; flex-shrink:0;">
+          <button class="btn-sm" onclick="extendMember(${members.indexOf(m)})">续费</button>
+          <button class="btn-sm" style="background:var(--danger); color:#fff;" onclick="removeMember(${members.indexOf(m)})">删除</button>
+        </div>
+      </div>`;
+    }).join('');
+  }
+}
+
+function isMemberExpired(m) {
+  if (!m.expireDate || m.plan === 'free') return false;
+  const now = new Date(); now.setHours(0,0,0,0);
+  return new Date(m.expireDate) < now;
+}
+
+function getDaysLeftFor(m) {
+  if (!m.expireDate || m.plan === 'free') return 999;
+  const now = new Date(); now.setHours(0,0,0,0);
+  return Math.ceil((new Date(m.expireDate) - now) / (1000*60*60*24));
+}
+
+function formatTime(isoStr) {
+  if (!isoStr) return '';
+  const d = new Date(isoStr);
+  return `${d.getMonth()+1}/${d.getDate()} ${d.getHours()}:${String(d.getMinutes()).padStart(2,'0')}`;
+}
+
+function approveMember(index) {
+  const members = getMembersData();
+  const m = members[index];
+  if (!m) return;
+  const plan = PLANS[m.plan];
+  const now = new Date();
+  const expire = new Date(now);
+  expire.setDate(expire.getDate() + (plan ? plan.days : 30));
+
+  m.status = 'active';
+  m.activateDate = now.toISOString().split('T')[0];
+  m.expireDate = expire.toISOString().split('T')[0];
+  members[index] = m;
+  saveMembersData(members);
+
+  // 如果当前用户是这个人，也更新本地
+  const currentMember = MemberStore.get();
+  if (currentMember && currentMember.phone === m.phone && currentMember.name === m.name) {
+    currentMember.status = 'active';
+    currentMember.plan = m.plan;
+    currentMember.activateDate = m.activateDate;
+    currentMember.expireDate = m.expireDate;
+    MemberStore.set(currentMember);
+  }
+
+  renderMemberList();
+  showToast(`✅ 已开通 ${m.name} 的 ${plan?.label || m.plan}`);
+}
+
+function rejectMember(index) {
+  if (!confirm('确认拒绝该付款申请？')) return;
+  const members = getMembersData();
+  const m = members[index];
+  members.splice(index, 1);
+  saveMembersData(members);
+  renderMemberList();
+  showToast(`已拒绝 ${m?.name || '该用户'} 的申请`);
+}
+
+function extendMember(index) {
+  const members = getMembersData();
+  const m = members[index];
+  if (!m) return;
+  const days = prompt(`为 ${m.name} 延长多少天？\n当前到期：${m.expireDate}`, '30');
+  if (!days || isNaN(days)) return;
+  const expire = new Date(m.expireDate || new Date());
+  expire.setDate(expire.getDate() + parseInt(days));
+  m.expireDate = expire.toISOString().split('T')[0];
+  if (m.status === 'pending') m.status = 'active';
+  members[index] = m;
+  saveMembersData(members);
+  renderMemberList();
+  showToast(`✅ 已延长 ${m.name} ${days}天，新到期日：${m.expireDate}`);
+}
+
+function removeMember(index) {
+  if (!confirm('确认删除该会员？')) return;
+  const members = getMembersData();
+  members.splice(index, 1);
+  saveMembersData(members);
+  renderMemberList();
+}
+
+// 收款码上传
+function handleQRUpload(event) {
+  const file = event.target.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = (e) => {
+    const img = document.getElementById('qrPreviewImg');
+    img.src = e.target.result;
+    img.style.display = 'block';
+    document.getElementById('qrPlaceholder').style.display = 'none';
+    localStorage.setItem('hotel_pay_qrcode_temp', e.target.result);
+  };
+  reader.readAsDataURL(file);
+}
+
+function saveQRCode() {
+  const temp = localStorage.getItem('hotel_pay_qrcode_temp');
+  if (!temp) { showToast('请先上传收款码图片', 'error'); return; }
+  localStorage.setItem('hotel_pay_qrcode', temp);
+  showToast('✅ 收款码已保存，用户付款时将看到此收款码');
+}
+
+// 权限配置渲染
+function renderPermissionTable() {
+  const perms = MemberStore.getPermissions();
+  const body = document.getElementById('permissionBody');
+  body.innerHTML = Object.entries(perms).map(([key, config]) => `
+    <tr style="border-bottom:1px solid var(--gray-100);">
+      <td style="padding:10px;">${config.icon} ${config.name}</td>
+      <td style="padding:10px; text-align:center;">
+        <select class="form-select" style="width:80px; padding:4px;" data-module="${key}" data-plan="free">
+          <option value="0" ${config.free === 0 ? 'selected' : ''}>关闭</option>
+          <option value="3" ${config.free === 3 ? 'selected' : ''}>3次</option>
+          <option value="5" ${config.free === 5 ? 'selected' : ''}>5次</option>
+          <option value="-1" ${config.free === -1 ? 'selected' : ''}>不限</option>
+        </select>
+      </td>
+      <td style="padding:10px; text-align:center;">
+        <select class="form-select" style="width:80px; padding:4px;" data-module="${key}" data-plan="trial">
+          <option value="0" ${config.trial === 0 ? 'selected' : ''}>关闭</option>
+          <option value="3" ${config.trial === 3 ? 'selected' : ''}>3次</option>
+          <option value="5" ${config.trial === 5 ? 'selected' : ''}>5次</option>
+          <option value="-1" ${config.trial === -1 ? 'selected' : ''}>不限</option>
+        </select>
+      </td>
+      <td style="padding:10px; text-align:center;">
+        <select class="form-select" style="width:80px; padding:4px;" data-module="${key}" data-plan="monthly">
+          <option value="0" ${config.monthly === 0 ? 'selected' : ''}>关闭</option>
+          <option value="-1" ${config.monthly === -1 ? 'selected' : ''}>不限</option>
+        </select>
+      </td>
+      <td style="padding:10px; text-align:center;">
+        <select class="form-select" style="width:80px; padding:4px;" data-module="${key}" data-plan="yearly">
+          <option value="0" ${config.yearly === 0 ? 'selected' : ''}>关闭</option>
+          <option value="-1" ${config.yearly === -1 ? 'selected' : ''}>不限</option>
+        </select>
+      </td>
+    </tr>
+  `).join('');
+}
+
+function savePermissions() {
+  const perms = MemberStore.getPermissions();
+  document.querySelectorAll('#permissionBody select').forEach(sel => {
+    const module = sel.dataset.module;
+    const plan = sel.dataset.plan;
+    if (perms[module]) {
+      perms[module][plan] = parseInt(sel.value);
+    }
+  });
+  localStorage.setItem('hotel_module_permissions', JSON.stringify(perms));
+  showToast('✅ 权限配置已保存');
+}
+
+// 同步会员数据到云端
+async function syncMembersToCloud() {
+  const token = localStorage.getItem('github_token');
+  if (!token) return;
+  try {
+    // 先拉取最新
+    const res = await fetch('https://raw.githubusercontent.com/sxie738-bot/hotel-ai-workbench/main/prompts.json?t=' + Date.now());
+    const data = await res.json();
+    data.members = getMembersData();
+    // 保存更新权限
+    const perms = localStorage.getItem('hotel_module_permissions');
+    if (perms) { try { data.modulePermissions = JSON.parse(perms); } catch {} }
+
+    await fetch(`https://api.github.com/repos/sxie738-bot/hotel-ai-workbench/contents/prompts.json`, {
+      method: 'PUT',
+      headers: {
+        'Authorization': `Bearer ${token}`,
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({
+        message: '更新会员数据',
+        content: btoa(unescape(encodeURIComponent(JSON.stringify(data, null, 2))))
+      })
+    });
+  } catch(e) { console.warn('同步会员数据失败:', e); }
+}
+
 function renderStudentList() {
   const container = document.getElementById('studentList');
   const countEl = document.getElementById('studentCount');
@@ -1705,6 +2377,39 @@ function escapeHtml(text) {
 
 // ==================== 初始化 ====================
 document.addEventListener('DOMContentLoaded', () => {
+  // ==================== 会员体系入口判断 ====================
+  const member = MemberStore.get();
+  const isAdminMode = localStorage.getItem('admin_logged_in') === 'true';
+
+  if (isAdminMode) {
+    // 管理员直接进入工作台
+    initApp();
+  } else if (member && member.status === 'active') {
+    // 已激活用户，检查到期
+    if (MemberStore.isExpired() && member.plan !== 'free') {
+      // 已过期，降级 + 弹窗
+      member.plan = 'free';
+      member.status = 'active';
+      MemberStore.set(member);
+    }
+    // 进入工作台
+    initApp();
+    // 延迟检查到期提醒
+    setTimeout(checkExpiryReminder, 2000);
+  } else if (member && member.status === 'pending') {
+    // 待确认状态，显示等待页
+    document.getElementById('entryPage').style.display = '';
+    showStep(3);
+    startAutoCheck();
+  } else {
+    // 未登录，显示入口页面
+    document.getElementById('entryPage').style.display = '';
+    showStep(0);
+  }
+});
+
+// ==================== 工作台初始化（从入口页面进入后调用） ====================
+function initApp() {
   initTabs();
   initSettingsNav();
   initAdminGate();
@@ -1738,10 +2443,10 @@ document.addEventListener('DOMContentLoaded', () => {
     dateEl.textContent = new Date().toLocaleDateString('zh-CN', { year: 'numeric', month: 'long', day: 'numeric', weekday: 'long' });
   }
 
-  // 检查是否需要显示酒店名输入弹窗
+  // 检查是否需要显示酒店名输入弹窗（已有会员信息则跳过）
   const currentHotel = getCurrentHotel();
-  if (!currentHotel && !isAdmin) {
-    // 学员首次进入，显示酒店名输入弹窗
+  const member = MemberStore.get();
+  if (!currentHotel && !isAdmin && !member) {
     setTimeout(() => showHotelWelcome(), 500);
   } else {
     updateHotelUI();
@@ -1755,9 +2460,19 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   }
 
-  // 管理员进入时渲染学员列表
+  // 管理员进入时渲染学员列表 + 会员管理 + 权限配置
   if (isAdmin) {
     renderStudentList();
+    renderMemberList();
+    renderPermissionTable();
+    // 加载收款码预览
+    const savedQR = localStorage.getItem('hotel_pay_qrcode');
+    if (savedQR) {
+      const img = document.getElementById('qrPreviewImg');
+      if (img) { img.src = savedQR; img.style.display = 'block'; }
+      const ph = document.getElementById('qrPlaceholder');
+      if (ph) ph.style.display = 'none';
+    }
   }
 
   // ==================== PWA 安装到桌面 ====================
@@ -1803,7 +2518,10 @@ document.addEventListener('DOMContentLoaded', () => {
     if (installBtn) installBtn.style.display = 'none';
     showToast('✅ 已安装到桌面，下次可直接从桌面打开');
   });
-});
+
+  // 更新侧边栏权限显示
+  updateSidebarByPermissions();
+}
 
 // 手动安装引导弹窗（持久显示，不会自动消失）
 function showInstallGuide() {
