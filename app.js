@@ -1762,62 +1762,128 @@ document.addEventListener('DOMContentLoaded', () => {
 
   // ==================== PWA 安装到桌面 ====================
   let deferredPrompt = null;
+  // installBtn 本身就是 .nav-item，直接操控它
   const installBtn = document.getElementById('installBtn');
-  const installNav = installBtn ? installBtn.closest('.nav-item') : null;
+
+  // 如果是 standalone 模式运行（已从桌面打开），不显示安装按钮
+  if (window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone) {
+    if (installBtn) installBtn.style.display = 'none';
+  }
 
   window.addEventListener('beforeinstallprompt', (e) => {
     e.preventDefault();
     deferredPrompt = e;
-    // 显示安装按钮
-    if (installNav) installNav.style.display = 'flex';
+    // 显示安装按钮（Chrome/Edge 满足PWA条件时触发）
+    if (installBtn) installBtn.style.display = 'flex';
   });
 
   if (installBtn) {
     installBtn.addEventListener('click', async (e) => {
       e.preventDefault();
-      if (!deferredPrompt) {
-        // 浏览器不支持自动安装提示，显示手动引导
+      if (deferredPrompt) {
+        // 有原生安装提示，直接触发
+        deferredPrompt.prompt();
+        const { outcome } = await deferredPrompt.userChoice;
+        deferredPrompt = null;
+        if (outcome === 'accepted') {
+          installBtn.style.display = 'none';
+        }
+      } else {
+        // 无原生提示（Safari/微信等），显示手动引导弹窗
         showInstallGuide();
-        return;
       }
-      deferredPrompt.prompt();
-      const { outcome } = await deferredPrompt.userChoice;
-      if (outcome === 'accepted') {
-        showToast('✅ 已安装到桌面，下次双击图标即可打开');
-        if (installNav) installNav.style.display = 'none';
-      }
-      deferredPrompt = null;
     });
   }
 
-  // 检查是否已安装（已安装的不显示按钮）
+  // 安装完成后隐藏按钮
   window.addEventListener('appinstalled', () => {
-    if (installNav) installNav.style.display = 'none';
-    showToast('✅ 已安装到桌面');
+    if (installBtn) installBtn.style.display = 'none';
+    showToast('✅ 已安装到桌面，下次可直接从桌面打开');
   });
-
-  // 如果是 standalone 模式运行（已从桌面打开），不显示安装按钮
-  if (window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone) {
-    if (installNav) installNav.style.display = 'none';
-  }
 });
 
-// 手动安装引导弹窗
+// 手动安装引导弹窗（持久显示，不会自动消失）
 function showInstallGuide() {
   const ua = navigator.userAgent;
-  let guide = '';
+  let title = '📲 安装到桌面';
+  let steps = '';
+
   if (/MicroMessenger/i.test(ua)) {
-    guide = '微信内无法安装，请点击右上角「...」→ 用浏览器打开 → 再安装到桌面';
-  } else if (/Chrome/i.test(ua) && /Android/i.test(ua)) {
-    guide = '请点击浏览器右上角 ⋮ → 「添加到主屏幕」或「安装应用」';
+    title = '⚠️ 微信内无法直接安装';
+    steps = `
+      <p style="margin:0 0 12px;">请按以下步骤操作：</p>
+      <ol style="margin:0; padding-left:20px; line-height:2;">
+        <li>点击右上角 <b>「...」</b></li>
+        <li>选择 <b>「在浏览器打开」</b></li>
+        <li>在浏览器中重新点击「安装到桌面」</li>
+      </ol>`;
   } else if (/Safari/i.test(ua) && /iPhone|iPad/i.test(ua)) {
-    guide = '请点击底部分享按钮 → 「添加到主屏幕」';
+    steps = `
+      <p style="margin:0 0 12px;">iOS Safari 安装步骤：</p>
+      <ol style="margin:0; padding-left:20px; line-height:2;">
+        <li>点击底部中间的 <b>分享按钮 ⎙</b></li>
+        <li>向下滑动找到 <b>「添加到主屏幕」</b></li>
+        <li>点击右上角 <b>「添加」</b> 即可</li>
+      </ol>`;
+  } else if (/Chrome/i.test(ua) && /Android/i.test(ua)) {
+    steps = `
+      <p style="margin:0 0 12px;">Android Chrome 安装步骤：</p>
+      <ol style="margin:0; padding-left:20px; line-height:2;">
+        <li>点击浏览器右上角 <b>⋮ 菜单</b></li>
+        <li>选择 <b>「添加到主屏幕」</b> 或 <b>「安装应用」</b></li>
+        <li>点击 <b>「安装」</b> 确认</li>
+      </ol>`;
   } else if (/Chrome/i.test(ua)) {
-    guide = '请点击地址栏右侧的 📲 安装图标，或点菜单 → 「安装酒店AI工作台」';
+    steps = `
+      <p style="margin:0 0 12px;">Chrome 桌面版安装步骤：</p>
+      <ol style="margin:0; padding-left:20px; line-height:2;">
+        <li>查看地址栏右侧是否有 <b>📲 安装图标</b>（电脑图标）</li>
+        <li>点击该图标 → 点击 <b>「安装」</b></li>
+        <li>或点击右上角菜单 ⋮ → <b>「安装酒店AI工作台」</b></li>
+      </ol>
+      <p style="margin:12px 0 0; font-size:12px; color:#6b7280;">💡 如未看到安装图标，请刷新页面后再试</p>`;
   } else if (/Edge/i.test(ua)) {
-    guide = '请点击地址栏右侧的 📲 图标 → 「安装此应用为应用」';
+    steps = `
+      <p style="margin:0 0 12px;">Edge 浏览器安装步骤：</p>
+      <ol style="margin:0; padding-left:20px; line-height:2;">
+        <li>点击地址栏右侧的 <b>📲 安装图标</b></li>
+        <li>选择 <b>「安装此站点为应用」</b></li>
+        <li>点击 <b>「安装」</b> 确认</li>
+      </ol>`;
   } else {
-    guide = '请使用 Chrome 或 Edge 浏览器打开此页面，即可安装到桌面';
+    steps = `
+      <p style="margin:0 0 12px;">推荐使用以下浏览器安装：</p>
+      <ul style="margin:0; padding-left:20px; line-height:2;">
+        <li><b>手机</b>：Safari（iPhone）或 Chrome（Android）</li>
+        <li><b>电脑</b>：Chrome 或 Edge</li>
+      </ul>
+      <p style="margin:12px 0 0; font-size:12px; color:#6b7280;">打开后点击「安装到桌面」即可</p>`;
   }
-  showToast(guide, 'info');
+
+  // 创建持久弹窗
+  const overlay = document.createElement('div');
+  overlay.style.cssText = `
+    position:fixed; inset:0; background:rgba(0,0,0,0.5);
+    display:flex; align-items:center; justify-content:center;
+    z-index:9999;
+  `;
+  overlay.innerHTML = `
+    <div style="
+      background:#fff; border-radius:16px; padding:28px;
+      max-width:360px; width:90%; box-shadow:0 20px 60px rgba(0,0,0,0.3);
+      font-size:14px; color:#374151; line-height:1.6;
+    ">
+      <h3 style="margin:0 0 16px; font-size:17px; color:#111827;">${title}</h3>
+      ${steps}
+      <button onclick="this.closest('div[style]').parentElement.remove()" style="
+        margin-top:20px; width:100%; padding:10px;
+        background:#2563eb; color:#fff; border:none;
+        border-radius:8px; font-size:14px; cursor:pointer;
+      ">我知道了</button>
+    </div>
+  `;
+  document.body.appendChild(overlay);
+  overlay.addEventListener('click', (e) => {
+    if (e.target === overlay) overlay.remove();
+  });
 }
