@@ -236,6 +236,10 @@
         <span class="nav-label">飞书表格</span>
         <span class="nav-badge">外部</span>
       </a>
+      <a href="#" class="nav-item" data-page="feedback">
+        <span class="nav-icon">🎯</span>
+        <span class="nav-label">共创中心</span>
+      </a>
       <div class="nav-divider"></div>
       <a href="#" class="nav-item admin-only" data-page="settings" style="display:none;">
         <span class="nav-icon">⚙️</span>
@@ -654,6 +658,50 @@
           <span>📭</span>
           <p>暂无分析记录</p>
           <p class="empty-hint">完成第一次数据分析后，记录将在此显示</p>
+        </div>
+      </div>
+    </section>
+
+    <!-- ==================== 页面：共创中心 ==================== -->
+    <section class="page" id="page-feedback">
+      <div class="page-header">
+        <h2>🎯 共创中心</h2>
+        <p>提交您的需求和建议，被采纳后赠送 <strong>1个月</strong> 会员</p>
+      </div>
+
+      <div style="max-width:600px;">
+        <div class="form-group">
+          <label>反馈类型</label>
+          <select class="form-select" id="feedbackType">
+            <option value="feature">功能建议</option>
+            <option value="bug">问题反馈</option>
+            <option value="improve">体验优化</option>
+            <option value="other">其他</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label>标题</label>
+          <input type="text" id="feedbackTitle" class="form-input" placeholder="用一句话描述您的需求">
+        </div>
+        <div class="form-group">
+          <label>详细描述</label>
+          <textarea class="form-textarea" id="feedbackContent" rows="5" placeholder="请详细描述您的需求、使用场景或遇到的问题..."></textarea>
+        </div>
+        <button class="btn btn-primary btn-block" onclick="submitFeedback()">📤 提交反馈</button>
+
+        <div style="margin-top:24px;">
+          <h3 style="font-size:15px; margin-bottom:12px;">📋 我的反馈记录</h3>
+          <div id="feedbackHistory">
+            <div style="text-align:center; padding:24px; color:var(--text-muted); font-size:13px;">暂无反馈记录</div>
+          </div>
+        </div>
+
+        <div class="setting-tip" style="margin-top:24px;">
+          <span>💡 共创规则</span>
+          <p>1. 提交功能建议或体验优化<br>
+          2. 管理员评估后标记「已采纳」<br>
+          3. 采纳的需求将在 <strong>1周内</strong> 上线<br>
+          4. 采纳后自动赠送 <strong>1个月</strong> 会员时长</p>
         </div>
       </div>
     </section>

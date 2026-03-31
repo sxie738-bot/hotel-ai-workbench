@@ -2521,6 +2521,76 @@ function initApp() {
 
   // 更新侧边栏权限显示
   updateSidebarByPermissions();
+
+  // 渲染反馈历史
+  renderFeedbackHistory();
+}
+
+// ==================== 共创中心 ====================
+function submitFeedback() {
+  const type = document.getElementById('feedbackType').value;
+  const title = document.getElementById('feedbackTitle').value.trim();
+  const content = document.getElementById('feedbackContent').value.trim();
+  if (!title) { showToast('请输入标题', 'error'); return; }
+  if (!content) { showToast('请输入详细描述', 'error'); return; }
+
+  const member = MemberStore.get();
+  const feedback = {
+    id: Date.now(),
+    type,
+    title,
+    content,
+    author: member ? member.name : '匿名',
+    phone: member ? member.phone : '',
+    hotel: member ? member.hotel : '',
+    status: 'pending', // pending / accepted / rejected
+    submitTime: new Date().toISOString(),
+    rewardGiven: false
+  };
+
+  // 保存到本地
+  const feedbacks = JSON.parse(localStorage.getItem('hotel_feedbacks') || '[]');
+  feedbacks.unshift(feedback);
+  localStorage.setItem('hotel_feedbacks', JSON.stringify(feedbacks));
+
+  // 清空表单
+  document.getElementById('feedbackTitle').value = '';
+  document.getElementById('feedbackContent').value = '';
+
+  renderFeedbackHistory();
+  showToast('✅ 反馈已提交，感谢您的参与！');
+}
+
+function renderFeedbackHistory() {
+  const feedbacks = JSON.parse(localStorage.getItem('hotel_feedbacks') || '[]');
+  const container = document.getElementById('feedbackHistory');
+
+  if (feedbacks.length === 0) {
+    container.innerHTML = '<div style="text-align:center; padding:24px; color:var(--text-muted); font-size:13px;">暂无反馈记录</div>';
+    return;
+  }
+
+  const statusMap = {
+    pending: { label: '待评估', color: 'var(--warning)' },
+    accepted: { label: '已采纳 ✅', color: 'var(--success)' },
+    rejected: { label: '未采纳', color: 'var(--text-muted)' }
+  };
+
+  container.innerHTML = feedbacks.slice(0, 10).map(f => {
+    const s = statusMap[f.status] || statusMap.pending;
+    return `
+    <div style="padding:14px; border:1px solid var(--gray-200); border-radius:8px; margin-bottom:10px;">
+      <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:6px;">
+        <strong style="font-size:14px;">${f.title}</strong>
+        <span style="font-size:11px; color:${s.color}; font-weight:600;">${s.label}</span>
+      </div>
+      <p style="font-size:13px; color:var(--text-secondary); margin:0 0 6px; line-height:1.6;">${f.content.length > 80 ? f.content.slice(0, 80) + '...' : f.content}</p>
+      <div style="font-size:11px; color:var(--text-muted);">
+        ${f.type === 'feature' ? '功能建议' : f.type === 'bug' ? '问题反馈' : f.type === 'improve' ? '体验优化' : '其他'} · ${formatTime(f.submitTime)}
+        ${f.rewardGiven ? ' · 🎁 已赠送1个月' : ''}
+      </div>
+    </div>`;
+  }).join('');
 }
 
 // 手动安装引导弹窗（持久显示，不会自动消失）
