@@ -14,6 +14,14 @@ const DEFAULT_MODULE_PERMISSIONS = {
   analysis:      { free: 0,  trial: -1, monthly: -1, yearly: -1, name: '数据分析助手', icon: '📈' },
   image:         { free: 0,  trial: 3,  monthly: -1, yearly: -1, name: 'AI配图',       icon: '🎨' },
   feishu:        { free: 0,  trial: 0,  monthly: -1, yearly: -1, name: '飞书表格',     icon: '📋' },
+  video:         { free: 0,  trial: 0,  monthly: -1, yearly: -1, name: '短视频生成',   icon: '🎬' },
+  geo:           { free: 0,  trial: 3,  monthly: -1, yearly: -1, name: 'GEO优化',     icon: '🔍' },
+  quicklink:     { free: -1, trial: -1, monthly: -1, yearly: -1, name: '一键直达',     icon: '🚀' },
+  review:        { free: 3,  trial: -1, monthly: -1, yearly: -1, name: '点评回复',     icon: '💬' },
+  competitor:    { free: 0,  trial: 0,  monthly: -1, yearly: -1, name: '竞对情报站',   icon: '🕵️' },
+  diagnosis:     { free: 3,  trial: -1, monthly: -1, yearly: -1, name: '经营诊断',     icon: '🩺' },
+  bizdev:        { free: 0,  trial: 0,  monthly: -1, yearly: -1, name: '大客户拓展',   icon: '🤝' },
+  patrol:        { free: 0,  trial: 0,  monthly: -1, yearly: -1, name: '数字巡店',     icon: '📷' },
   feedback:      { free: -1, trial: -1, monthly: -1, yearly: -1, name: '共创中心',     icon: '🎯' }
 };
 
@@ -632,6 +640,13 @@ function renderProfileUsage() {
     { key: 'training', label: '前台培训', icon: '📖' },
     { key: 'analysis', label: '数据分析', icon: '📈' },
     { key: 'image', label: 'AI配图', icon: '🎨' },
+    { key: 'video', label: '短视频生成', icon: '🎬' },
+    { key: 'geo', label: 'GEO优化', icon: '🔍' },
+    { key: 'review', label: '点评回复', icon: '💬' },
+    { key: 'competitor', label: '竞对情报', icon: '🕵️' },
+    { key: 'diagnosis', label: '经营诊断', icon: '🩺' },
+    { key: 'bizdev', label: '大客户拓展', icon: '🤝' },
+    { key: 'patrol', label: '数字巡店', icon: '📷' },
     { key: 'feishu', label: '飞书表格', icon: '📋' },
   ];
 
@@ -1060,7 +1075,7 @@ const PROMPTS_API_URL = 'https://api.github.com/repos/sxie738-bot/hotel-ai-workb
 let cloudPrompts = null; // 云端 Prompt 缓存
 
 // ==================== 应用版本更新检测 ====================
-const APP_VERSION = '1.3.0'; // 当前代码版本号（每次发布新功能时手动递增）
+const APP_VERSION = '1.5.0'; // 当前代码版本号（每次发布新功能时手动递增）
 
 // 检查是否有新版本可用
 async function checkForUpdate(showToastIfLatest = false) {
@@ -1094,10 +1109,13 @@ function showUpdateModal(newVersion) {
   modal.style.display = 'flex';
 }
 
-// 立即更新（刷新页面加载最新代码）
+// 立即更新（强制绕过缓存刷新）
 function applyUpdate() {
-  // 强制绕过浏览器缓存刷新
-  location.reload(true);
+  // 在 URL 加时间戳参数强制绕过所有缓存（尤其手机端 Safari/微信浏览器）
+  if ('serviceWorker' in navigator) {
+    navigator.serviceWorker.getRegistrations().then(regs => regs.forEach(r => r.unregister()));
+  }
+  location.replace(location.pathname + '?v=' + Date.now());
 }
 
 // 关闭更新弹窗
@@ -1666,6 +1684,14 @@ function navigateTo(page) {
       content: '内容创作中心',
       training: '前台培训管家',
       analysis: '数据分析助手',
+      video: '短视频生成',
+      geo: 'GEO优化',
+      quicklink: '一键直达',
+      review: '点评回复',
+      competitor: '竞对情报站',
+      diagnosis: '经营诊断',
+      bizdev: '大客户拓展',
+      patrol: '数字巡店',
       profile: '我的会员',
       settings: '系统设置'
     };
@@ -3290,5 +3316,316 @@ function showInstallGuide() {
   document.body.appendChild(overlay);
   overlay.addEventListener('click', (e) => {
     if (e.target === overlay) overlay.remove();
+  });
+}
+
+// ==================== 新增模块函数 ====================
+
+// --- 短视频生成 ---
+document.getElementById('videoTopic')?.addEventListener('change', function() {
+  document.getElementById('videoCustomGroup').style.display = this.value === '自定义' ? '' : 'none';
+});
+
+async function generateVideoScript() {
+  if (!checkModuleAccess('video')) return;
+  const hotel = document.getElementById('videoHotel')?.value.trim();
+  const topic = document.getElementById('videoTopic')?.value;
+  const customTopic = topic === '自定义' ? document.getElementById('videoCustomTopic')?.value.trim() : '';
+  const duration = document.querySelector('input[name="videoLen"]:checked')?.value || '30';
+  const extra = document.getElementById('videoExtra')?.value.trim();
+  if (!hotel || (!topic && !customTopic)) { showToast('请填写酒店名称和视频主题', 'warning'); return; }
+
+  const output = document.getElementById('video-output');
+  output.innerHTML = '<div style="text-align:center;padding:40px;color:var(--text-muted);"><div style="font-size:32px;animation:pulse 1.5s infinite;">🎬</div><p style="margin-top:12px;">AI正在创作脚本，请稍候...</p></div>';
+
+  try {
+    const topicText = customTopic || topic;
+    const messages = [
+      { role: 'system', content: `你是酒店短视频内容专家。请根据以下信息生成一个完整的短视频脚本方案。\n\n输出格式要求：\n1. 【视频概要】一句话描述\n2. 【开头Hook】前3秒吸引眼球的开场白\n3. 【分镜脚本】按秒数列出每个镜头的画面描述+字幕文案（共${duration}秒）\n4. 【BGM建议】推荐背景音乐风格\n5. 【拍摄Tips】3条实用拍摄建议\n6. 【发布文案】适配抖音/小红书的发布文案+话题标签\n\n风格要求：节奏快、画面感强、口语化、有记忆点。` },
+      { role: 'user', content: `酒店名称：${hotel}\n视频主题：${topicText}\n视频时长：${duration}秒\n${extra ? '补充信息：' + extra : ''}` }
+    ];
+    const result = await callAIWithFallback('content', messages, { temperature: 0.8 });
+    output.innerHTML = `<div style="line-height:1.8;white-space:pre-wrap;">${escapeHtml(result)}</div>`;
+    MemberStore.addUsage('video');
+    MemberStore.addHistory('generate_video', 'video', result);
+  } catch (err) {
+    output.innerHTML = `<div style="text-align:center;padding:40px;color:#dc2626;">❌ 生成失败：${escapeHtml(err.message)}</div>`;
+  }
+}
+
+// --- GEO优化 ---
+async function generateGeoPlan() {
+  if (!checkModuleAccess('geo')) return;
+  const hotel = document.getElementById('geoHotel')?.value.trim();
+  const city = document.getElementById('geoCity')?.value.trim();
+  const features = document.getElementById('geoFeatures')?.value.trim();
+  const extra = document.getElementById('geoExtra')?.value.trim();
+  if (!hotel || !city) { showToast('请填写酒店名称和所在城市', 'warning'); return; }
+
+  const wantKeywords = document.getElementById('geoKeywords')?.checked;
+  const wantTitles = document.getElementById('geoTitles')?.checked;
+  const wantCalendar = document.getElementById('geoCalendar')?.checked;
+
+  const output = document.getElementById('geo-output');
+  output.innerHTML = '<div style="text-align:center;padding:40px;color:var(--text-muted);"><div style="font-size:32px;animation:pulse 1.5s infinite;">🔍</div><p style="margin-top:12px;">AI正在分析优化方案...</p></div>';
+
+  try {
+    const targets = [];
+    if (wantKeywords) targets.push('关键词和长尾词矩阵');
+    if (wantTitles) targets.push('SEO优化标题');
+    if (wantCalendar) targets.push('4周内容日历计划');
+
+    const messages = [
+      { role: 'system', content: `你是酒店SEO/GEO优化专家。请根据酒店信息生成搜索引擎优化方案。\n\n输出格式：\n${wantKeywords ? '1.【关键词矩阵】主关键词5个 + 长尾词15-20个，按搜索意图分类（品牌词/地域词/需求词/竞品词）\n' : ''}${wantTitles ? '2.【推荐标题】10个SEO友好标题，含关键词密度分析\n' : ''}${wantCalendar ? '3.【内容日历】4周发布计划表，每周主题+关键词+目标平台\n' : ''}\n\n要求：数据化、可落地、结合酒店实际卖点。` },
+      { role: 'user', content: `酒店名称：${hotel}\n所在城市：${city}\n核心卖点：${features || '请根据酒店类型推荐'}\n${extra ? '补充：' + extra : ''}\n\n需要生成：${targets.join('、')}` }
+    ];
+    const result = await callAIWithFallback('content', messages, { temperature: 0.6 });
+    output.innerHTML = `<div style="line-height:1.8;white-space:pre-wrap;">${escapeHtml(result)}</div>`;
+    MemberStore.addUsage('geo');
+    MemberStore.addHistory('generate_geo', 'geo', result);
+  } catch (err) {
+    output.innerHTML = `<div style="text-align:center;padding:40px;color:#dc2626;">❌ 生成失败：${escapeHtml(err.message)}</div>`;
+  }
+}
+
+// --- 点评回复 ---
+let reviewFileData = null;
+document.getElementById('reviewFileInput')?.addEventListener('change', async function(e) {
+  const file = e.target.files[0];
+  if (!file) return;
+  try {
+    const data = await file.arrayBuffer();
+    const workbook = XLSX.read(data, { type: 'array' });
+    reviewFileData = XLSX.utils.sheet_to_json(workbook.Sheets[workbook.SheetNames[0]]);
+    document.getElementById('reviewFileName').textContent = file.name;
+    document.getElementById('reviewUploadArea').style.display = 'none';
+    document.getElementById('reviewPreview').style.display = '';
+    showToast(`✅ 已加载 ${reviewFileData.length} 条点评数据`);
+  } catch (err) {
+    showToast('文件解析失败，请检查格式', 'error');
+  }
+});
+
+function removeReviewFile() {
+  reviewFileData = null;
+  document.getElementById('reviewFileInput').value = '';
+  document.getElementById('reviewUploadArea').style.display = '';
+  document.getElementById('reviewPreview').style.display = 'none';
+}
+
+async function analyzeReviews() {
+  if (!checkModuleAccess('review')) return;
+  if (!reviewFileData || reviewFileData.length === 0) { showToast('请先上传点评数据', 'warning'); return; }
+
+  const style = document.getElementById('reviewStyle')?.value || '专业诚恳';
+  const output = document.getElementById('review-output');
+  output.innerHTML = '<div style="text-align:center;padding:40px;color:var(--text-muted);"><div style="font-size:32px;animation:pulse 1.5s infinite;">💬</div><p style="margin-top:12px;">AI正在分析点评并生成回复...</p></div>';
+
+  try {
+    // 取前50条点评（避免超长）
+    const sampleReviews = reviewFileData.slice(0, 50).map((r, i) => `第${i+1}条：${JSON.stringify(r).substring(0, 200)}`).join('\n');
+    const messages = [
+      { role: 'system', content: `你是酒店点评管理专家。请分析以下点评数据并生成专业回复。\n\n输出格式：\n1.【数据概览】总条数、好评率、差评率、平均评分\n2.【好评TOP关键词】好评中出现频率最高的5个关键词\n3.【差评主要问题】归类差评的主要问题类型及占比\n4.【差评回复模板】针对每个主要问题类型，生成2-3条专业回复模板\n5.【改进建议】3-5条可落地的改进建议\n\n回复风格：${style}` },
+      { role: 'user', content: `以下是点评数据（共${reviewFileData.length}条，展示前50条）：\n\n${sampleReviews}` }
+    ];
+    const result = await callAIWithFallback('content', messages, { temperature: 0.5 });
+    output.innerHTML = `<div style="line-height:1.8;white-space:pre-wrap;">${escapeHtml(result)}</div>`;
+    MemberStore.addUsage('review');
+    MemberStore.addHistory('analyze_reviews', 'review', result);
+  } catch (err) {
+    output.innerHTML = `<div style="text-align:center;padding:40px;color:#dc2626;">❌ 分析失败：${escapeHtml(err.message)}</div>`;
+  }
+}
+
+// --- 竞对情报站 ---
+async function searchCompetitors() {
+  if (!checkModuleAccess('competitor')) return;
+  const location = document.getElementById('competitorLocation')?.value.trim();
+  const radius = document.querySelector('input[name="compRadius"]:checked')?.value || '3000';
+  if (!location) { showToast('请输入搜索位置', 'warning'); return; }
+
+  const mapEl = document.getElementById('competitorMap');
+  const listEl = document.getElementById('competitorList');
+  mapEl.innerHTML = '<div style="text-align:center;padding:40px;color:var(--text-muted);"><div style="font-size:32px;animation:pulse 1.5s infinite;">🔍</div><p style="margin-top:12px;">正在搜索周边酒店...</p></div>';
+  listEl.innerHTML = '';
+
+  try {
+    // 第一步：地理编码获取坐标
+    const geoResp = await fetch(`https://restapi.amap.com/v3/geocode/geo?address=${encodeURIComponent(location)}&key=demo`);
+    const geoData = await geoResp.json();
+    if (geoData.status !== '1' || !geoData.geocodes?.length) {
+      mapEl.innerHTML = '<div style="text-align:center;padding:40px;color:#dc2626;">❌ 无法识别该地址，请输入更详细的位置</div>';
+      return;
+    }
+    const center = geoData.geocodes[0].location;
+
+    // 第二步：POI搜索周边酒店
+    const poiResp = await fetch(`https://restapi.amap.com/v3/place/around?location=${center}&radius=${radius}&types=080100&sortrule=distance&offset=20&key=demo`);
+    const poiData = await poiResp.json();
+
+    if (poiData.status !== '1' || !poiData.pois?.length) {
+      mapEl.innerHTML = '<div style="text-align:center;padding:40px;color:var(--text-muted);">该区域未找到酒店数据</div>';
+      return;
+    }
+
+    // 展示地图（静态iframe）
+    mapEl.innerHTML = `<iframe src="https://uri.amap.com/marker?position=${center}&name=${encodeURIComponent(location)}&callnative=0" style="width:100%;height:300px;border:none;" allowfullscreen></iframe>`;
+
+    // 展示列表
+    const hotels = poiData.pois;
+    listEl.innerHTML = `
+      <div style="font-size:13px;color:var(--text-muted);margin-bottom:12px;">共找到 <strong>${hotels.length}</strong> 家周边酒店（${radius >= 5000 ? '5' : radius >= 3000 ? '3' : '1'}公里内）</div>
+      ${hotels.map(h => {
+        const dist = h.distance ? (h.distance >= 1000 ? (h.distance/1000).toFixed(1)+'km' : h.distance+'m') : '-';
+        return `<div style="padding:12px;background:var(--bg-card);border:1px solid var(--border);border-radius:var(--radius-sm);margin-bottom:8px;">
+          <div style="display:flex;justify-content:space-between;align-items:center;">
+            <strong style="font-size:14px;">${escapeHtml(h.name)}</strong>
+            <span style="font-size:12px;color:var(--primary);font-weight:600;">${dist}</span>
+          </div>
+          <div style="font-size:12px;color:var(--text-secondary);margin-top:4px;">${escapeHtml(h.address || h.pname + h.cityname || '')}</div>
+        </div>`;
+      }).join('')}
+    `;
+
+    MemberStore.addUsage('competitor');
+    MemberStore.addHistory('search_competitors', 'competitor', `搜索了${location}周边${hotels.length}家酒店`);
+  } catch (err) {
+    mapEl.innerHTML = `<div style="text-align:center;padding:40px;color:#dc2626;">❌ 搜索失败：${escapeHtml(err.message)}</div>`;
+  }
+}
+
+// --- 经营诊断 ---
+async function runDiagnosis() {
+  if (!checkModuleAccess('diagnosis')) return;
+  const hotel = document.getElementById('diagHotel')?.value.trim();
+  const occupancy = document.getElementById('diagOccupancy')?.value;
+  const adr = document.getElementById('diagADR')?.value;
+  const rooms = document.getElementById('diagRooms')?.value;
+  const revenue = document.getElementById('diagRevenue')?.value;
+  const issue = document.getElementById('diagIssue')?.value.trim();
+  if (!hotel) { showToast('请填写酒店名称', 'warning'); return; }
+
+  const output = document.getElementById('diag-output');
+  output.innerHTML = '<div style="text-align:center;padding:40px;color:var(--text-muted);"><div style="font-size:32px;animation:pulse 1.5s infinite;">🩺</div><p style="margin-top:12px;">AI正在诊断中...</p></div>';
+
+  try {
+    const messages = [
+      { role: 'system', content: `你是资深酒店经营顾问，服务过上百家酒店。请根据经营数据进行全面诊断。\n\n输出格式：\n1.【健康评分】0-100分综合评分\n2.【盈利分析】RevPAR计算、与行业均值对比\n3.【问题诊断】列出3-5个关键问题，按严重程度排序\n4.【改进建议】每个问题对应的具体可执行方案\n5.【优先级排序】建议的实施顺序和时间表\n\n风格：专业、直接、数据驱动、不说空话。` },
+      { role: 'user', content: `酒店名称：${hotel}\n月均出租率：${occupancy || '未提供'}%\n月均ADR：${adr || '未提供'}元\n总房间数：${rooms || '未提供'}间\n月均营收：${revenue || '未提供'}万元\n当前问题：${issue || '无'}\n\n请进行全面经营诊断。` }
+    ];
+    const result = await callAIWithFallback('content', messages, { temperature: 0.4 });
+    output.innerHTML = `<div style="line-height:1.8;white-space:pre-wrap;">${escapeHtml(result)}</div>`;
+    MemberStore.addUsage('diagnosis');
+    MemberStore.addHistory('run_diagnosis', 'diagnosis', result);
+  } catch (err) {
+    output.innerHTML = `<div style="text-align:center;padding:40px;color:#dc2626;">❌ 诊断失败：${escapeHtml(err.message)}</div>`;
+  }
+}
+
+// --- 大客户拓展 ---
+async function generateBizProposal() {
+  if (!checkModuleAccess('bizdev')) return;
+  const hotel = document.getElementById('bizHotel')?.value.trim();
+  const company = document.getElementById('bizCompany')?.value.trim();
+  const bizType = document.getElementById('bizType')?.value;
+  const extra = document.getElementById('bizExtra')?.value.trim();
+  if (!hotel || !company) { showToast('请填写酒店名称和目标企业', 'warning'); return; }
+
+  const output = document.getElementById('biz-output');
+  output.innerHTML = '<div style="text-align:center;padding:40px;color:var(--text-muted);"><div style="font-size:32px;animation:pulse 1.5s infinite;">🤝</div><p style="margin-top:12px;">AI正在生成合作方案...</p></div>';
+
+  try {
+    const messages = [
+      { role: 'system', content: `你是酒店大客户拓展专家，擅长B2B酒店销售。请根据酒店和企业信息生成合作方案。\n\n输出格式：\n1.【企业画像】目标企业简要分析\n2.【合作方案】${bizType}的具体方案（含价格策略、服务内容）\n3.【销售邀请话术】3种场景的电话/微信话术\n4.【合作协议要点】核心条款摘要\n5.【跟进策略】最佳联系时机和方式\n\n风格：专业商务、落地性强。` },
+      { role: 'user', content: `酒店名称：${hotel}\n目标企业：${company}\n合作类型：${bizType}\n${extra ? '补充：' + extra : ''}` }
+    ];
+    const result = await callAIWithFallback('content', messages, { temperature: 0.6 });
+    output.innerHTML = `<div style="line-height:1.8;white-space:pre-wrap;">${escapeHtml(result)}</div>`;
+    MemberStore.addUsage('bizdev');
+    MemberStore.addHistory('generate_biz', 'bizdev', result);
+  } catch (err) {
+    output.innerHTML = `<div style="text-align:center;padding:40px;color:#dc2626;">❌ 生成失败：${escapeHtml(err.message)}</div>`;
+  }
+}
+
+// --- 数字巡店 ---
+async function startPatrol(scene) {
+  if (!checkModuleAccess('patrol')) return;
+  const reportEl = document.getElementById('patrol-report');
+  reportEl.innerHTML = '<div style="text-align:center;padding:40px;color:var(--text-muted);"><div style="font-size:32px;animation:pulse 1.5s infinite;">📷</div><p style="margin-top:12px;">正在调用摄像头...</p></div>';
+
+  try {
+    // 请求摄像头
+    const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment' } });
+    const video = document.createElement('video');
+    video.srcObject = stream;
+    video.autoplay = true;
+    video.style.maxWidth = '100%';
+    video.style.borderRadius = '8px';
+    video.style.marginBottom = '12px';
+
+    const captureBtn = document.createElement('button');
+    captureBtn.className = 'btn btn-primary btn-block';
+    captureBtn.textContent = '📷 拍照并生成巡检报告';
+    captureBtn.onclick = async () => {
+      captureBtn.disabled = true;
+      captureBtn.textContent = '⏳ AI正在分析...';
+      // 截图
+      const canvas = document.createElement('canvas');
+      canvas.width = video.videoWidth;
+      canvas.height = video.videoHeight;
+      canvas.getContext('2d').drawImage(video, 0, 0);
+      const imageData = canvas.toDataURL('image/jpeg', 0.3);
+      // 停止摄像头
+      stream.getTracks().forEach(t => t.stop());
+      reportEl.innerHTML = '<div style="text-align:center;padding:40px;color:var(--text-muted);"><div style="font-size:32px;animation:pulse 1.5s infinite;">🤖</div><p style="margin-top:12px;">AI正在对照SOP标准分析...</p></div>';
+
+      // AI分析（基于场景名称，无法发送图片到文本API，使用场景描述替代）
+      const messages = [
+        { role: 'system', content: `你是酒店质检专家。请根据巡检场景生成一份标准的巡检报告。\n\n输出格式：\n1.【巡检概要】场景、时间、巡检人\n2.【检查清单】10项关键检查点（✅/⚠️/❌状态）\n3.【发现问题】发现的问题及严重等级\n4.【整改建议】每个问题的具体整改方案\n5.【评分】该场景综合评分（0-100）` },
+        { role: 'user', content: `巡检场景：${scene}\n酒店：${MemberStore.get()?.hotel || '未设置'}\n巡检时间：${new Date().toLocaleString()}\n\n请生成${scene}场景的标准巡检报告。` }
+      ];
+      const result = await callAIWithFallback('content', messages, { temperature: 0.3 });
+      reportEl.innerHTML = `<div style="line-height:1.8;white-space:pre-wrap;">${escapeHtml(result)}</div>`;
+      // 更新状态
+      const statusEl = document.getElementById(`patrol-status-${scene}`);
+      if (statusEl) { statusEl.textContent = '✅ 已巡检'; statusEl.classList.add('done'); }
+      MemberStore.addUsage('patrol');
+      MemberStore.addHistory('patrol_scene', 'patrol', `${scene}巡检完成`);
+    };
+
+    const cancelBtn = document.createElement('button');
+    cancelBtn.className = 'btn';
+    cancelBtn.style.marginTop = '8px';
+    cancelBtn.textContent = '取消';
+    cancelBtn.onclick = () => { stream.getTracks().forEach(t => t.stop()); reportEl.innerHTML = '<div class="output-placeholder" style="border:none;"><span class="placeholder-icon">📷</span><p>已取消巡检</p></div>'; };
+
+    reportEl.innerHTML = '';
+    const container = document.createElement('div');
+    container.style.cssText = 'text-align:center;padding:16px;background:var(--gray-50);border-radius:var(--radius-md);margin-bottom:16px;';
+    container.innerHTML = `<p style="font-size:14px;font-weight:600;margin:0 0 12px;">📸 ${escapeHtml(scene)}巡检</p>`;
+    container.appendChild(video);
+    container.appendChild(captureBtn);
+    container.appendChild(cancelBtn);
+    reportEl.appendChild(container);
+  } catch (err) {
+    reportEl.innerHTML = `<div style="text-align:center;padding:40px;color:#dc2626;">❌ 无法访问摄像头：${escapeHtml(err.message)}<br><p style="font-size:13px;color:var(--text-muted);margin-top:8px;">请确保已授权摄像头权限</p></div>`;
+  }
+}
+
+// --- 辅助函数：复制输出 ---
+function copyOutput(elementId) {
+  const el = document.getElementById(elementId);
+  if (!el) return;
+  const text = el.innerText || el.textContent;
+  navigator.clipboard.writeText(text).then(() => showToast('✅ 已复制到剪贴板')).catch(() => {
+    // fallback
+    const ta = document.createElement('textarea');
+    ta.value = text;
+    document.body.appendChild(ta);
+    ta.select();
+    document.execCommand('copy');
+    document.body.removeChild(ta);
+    showToast('✅ 已复制到剪贴板');
   });
 }

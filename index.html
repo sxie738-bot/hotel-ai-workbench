@@ -234,6 +234,40 @@
         <span class="nav-label">数据分析助手</span>
       </a>
       <div class="nav-divider"></div>
+      <a href="#" class="nav-item" data-page="video">
+        <span class="nav-icon">🎬</span>
+        <span class="nav-label">短视频生成</span>
+      </a>
+      <a href="#" class="nav-item" data-page="geo">
+        <span class="nav-icon">🔍</span>
+        <span class="nav-label">GEO优化</span>
+      </a>
+      <a href="#" class="nav-item" data-page="quicklink">
+        <span class="nav-icon">🚀</span>
+        <span class="nav-label">一键直达</span>
+      </a>
+      <a href="#" class="nav-item" data-page="review">
+        <span class="nav-icon">💬</span>
+        <span class="nav-label">点评回复</span>
+      </a>
+      <div class="nav-divider"></div>
+      <a href="#" class="nav-item" data-page="competitor">
+        <span class="nav-icon">🕵️</span>
+        <span class="nav-label">竞对情报站</span>
+      </a>
+      <a href="#" class="nav-item" data-page="diagnosis">
+        <span class="nav-icon">🩺</span>
+        <span class="nav-label">经营诊断</span>
+      </a>
+      <a href="#" class="nav-item" data-page="bizdev">
+        <span class="nav-icon">🤝</span>
+        <span class="nav-label">大客户拓展</span>
+      </a>
+      <a href="#" class="nav-item" data-page="patrol">
+        <span class="nav-icon">📷</span>
+        <span class="nav-label">数字巡店</span>
+      </a>
+      <div class="nav-divider"></div>
       <a href="#" class="nav-item" data-page="feishu" id="navFeishu">
         <span class="nav-icon">📋</span>
         <span class="nav-label">飞书表格</span>
@@ -266,7 +300,7 @@
         <a href="javascript:void(0)" class="nav-item" onclick="checkForUpdate(true)" style="display:flex; align-items:center; padding:8px 10px; border-radius:8px; text-decoration:none; color:var(--text-secondary); font-size:13px; transition:all 0.2s;" onmouseover="this.style.background='var(--gray-100)'" onmouseout="this.style.background='none'">
           <span style="margin-right:8px;">🔄</span>
           <span>检查更新</span>
-          <span style="margin-left:auto; font-size:11px; color:var(--text-muted);" id="appVersionLabel">v1.3.0</span>
+          <span style="margin-left:auto; font-size:11px; color:var(--text-muted);" id="appVersionLabel">v1.5.0</span>
         </a>
       </div>
       <div class="user-info admin-only" style="display:none;">
@@ -303,7 +337,7 @@
         <div class="welcome-text">
           <h2 class="admin-hide">欢迎使用酒店AI实战营 🏨</h2>
           <h2 class="admin-only" style="display:none;" id="adminGreeting">下午好，谢瑷瞳 👋</h2>
-          <p>今天是 <strong id="todayDate"></strong>，你有 <strong>3个AI工具</strong> 可以使用，全部已接入AI能力 ✅</p>
+          <p>今天是 <strong id="todayDate"></strong>，你有 <strong id="toolCountText">11个AI工具</strong> 可以使用，全部已接入AI能力 ✅</p>
         </div>
       </div>
       <div class="tool-cards">
@@ -674,6 +708,450 @@
           <span>📭</span>
           <p>暂无分析记录</p>
           <p class="empty-hint">完成第一次数据分析后，记录将在此显示</p>
+        </div>
+      </div>
+    </section>
+
+    <!-- ==================== 页面：短视频生成 ==================== -->
+    <section class="page" id="page-video">
+      <div class="page-header">
+        <h2>🎬 短视频生成</h2>
+        <p>输入酒店信息和主题，AI自动生成短视频脚本与分镜</p>
+      </div>
+      <div class="tool-layout">
+        <div class="tool-input">
+          <div class="form-group">
+            <label>酒店名称</label>
+            <input type="text" id="videoHotel" class="form-input" placeholder="例：订一晚酒店成都旗舰店">
+          </div>
+          <div class="form-group">
+            <label>视频主题</label>
+            <select class="form-select" id="videoTopic">
+              <option value="">请选择主题</option>
+              <option value="探店打卡">探店打卡</option>
+              <option value="房型展示">房型展示</option>
+              <option value="美食推荐">美食推荐</option>
+              <option value="周边游玩">周边游玩</option>
+              <option value="亲子出游">亲子出游</option>
+              <option value="情侣约会">情侣约会</option>
+              <option value="商务差旅">商务差旅</option>
+              <option value="自定义">自定义主题</option>
+            </select>
+          </div>
+          <div class="form-group" id="videoCustomGroup" style="display:none;">
+            <label>自定义主题</label>
+            <input type="text" id="videoCustomTopic" class="form-input" placeholder="输入自定义视频主题...">
+          </div>
+          <div class="form-group">
+            <label>视频时长</label>
+            <div class="radio-group">
+              <label class="radio-item"><input type="radio" name="videoLen" value="15" checked> 15秒</label>
+              <label class="radio-item"><input type="radio" name="videoLen" value="30"> 30秒</label>
+              <label class="radio-item"><input type="radio" name="videoLen" value="60"> 60秒</label>
+            </div>
+          </div>
+          <div class="form-group">
+            <label>补充信息 <span class="optional">（可选）</span></label>
+            <textarea class="form-textarea" id="videoExtra" rows="3" placeholder="例：突出无边泳池和日式庭院风格，目标客群年轻女性..."></textarea>
+          </div>
+          <button class="btn btn-primary btn-block" onclick="generateVideoScript()">
+            🎬 AI生成脚本与分镜
+          </button>
+        </div>
+        <div class="tool-output">
+          <div class="output-header">
+            <span>生成结果</span>
+            <div class="output-actions">
+              <button class="btn-sm" onclick="copyOutput('video-output')">📋 复制</button>
+              <button class="btn-sm" onclick="generateVideoScript()">🔄 重新生成</button>
+            </div>
+          </div>
+          <div class="output-area" id="video-output">
+            <div class="output-placeholder">
+              <span class="placeholder-icon">🎬</span>
+              <p>填写信息后，AI将生成脚本和分镜</p>
+              <p class="placeholder-hint">包含：开头Hook、分镜描述、BGM建议、字幕文案</p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ==================== 页面：GEO优化 ==================== -->
+    <section class="page" id="page-geo">
+      <div class="page-header">
+        <h2>🔍 GEO优化</h2>
+        <p>提升酒店在搜索引擎中的可见度，AI生成关键词、标题和内容日历</p>
+      </div>
+      <div class="tool-layout">
+        <div class="tool-input">
+          <div class="form-group">
+            <label>酒店名称</label>
+            <input type="text" id="geoHotel" class="form-input" placeholder="例：订一晚酒店成都旗舰店">
+          </div>
+          <div class="form-group">
+            <label>酒店所在城市/区域</label>
+            <input type="text" id="geoCity" class="form-input" placeholder="例：成都市锦江区">
+          </div>
+          <div class="form-group">
+            <label>酒店核心卖点</label>
+            <input type="text" id="geoFeatures" class="form-input" placeholder="例：地铁口、日式风格、投影房、免费停车">
+          </div>
+          <div class="form-group">
+            <label>优化目标</label>
+            <div class="checkbox-group">
+              <label class="checkbox-item"><input type="checkbox" checked id="geoKeywords"> 关键词/长尾词</label>
+              <label class="checkbox-item"><input type="checkbox" checked id="geoTitles"> 推荐标题</label>
+              <label class="checkbox-item"><input type="checkbox" checked id="geoCalendar"> 内容日历计划</label>
+            </div>
+          </div>
+          <div class="form-group">
+            <label>补充说明 <span class="optional">（可选）</span></label>
+            <textarea class="form-textarea" id="geoExtra" rows="2" placeholder="例：目前豆包/千问搜不到我们酒店..."></textarea>
+          </div>
+          <button class="btn btn-primary btn-block" onclick="generateGeoPlan()">
+            🔍 生成GEO优化方案
+          </button>
+        </div>
+        <div class="tool-output">
+          <div class="output-header">
+            <span>优化方案</span>
+            <div class="output-actions">
+              <button class="btn-sm" onclick="copyOutput('geo-output')">📋 复制</button>
+              <button class="btn-sm" onclick="generateGeoPlan()">🔄 重新生成</button>
+            </div>
+          </div>
+          <div class="output-area" id="geo-output">
+            <div class="output-placeholder">
+              <span class="placeholder-icon">🔍</span>
+              <p>填写酒店信息后，AI将生成优化方案</p>
+              <p class="placeholder-hint">包含：关键词矩阵、SEO标题、内容日历</p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ==================== 页面：一键直达 ==================== -->
+    <section class="page" id="page-quicklink">
+      <div class="page-header">
+        <h2>🚀 一键直达</h2>
+        <p>快捷跳转各大OTA和社交平台，手机端自动识别APP</p>
+      </div>
+      <div class="quicklink-grid">
+        <a href="https://www.xiaohongshu.com" target="_blank" rel="noopener" class="quicklink-card" style="--ql-color: #FE2C55;">
+          <div class="quicklink-icon">📕</div>
+          <div class="quicklink-name">小红书</div>
+          <div class="quicklink-desc">笔记种草</div>
+        </a>
+        <a href="https://www.douyin.com" target="_blank" rel="noopener" class="quicklink-card" style="--ql-color: #010101;">
+          <div class="quicklink-icon">🎵</div>
+          <div class="quicklink-name">抖音</div>
+          <div class="quicklink-desc">短视频运营</div>
+        </a>
+        <a href="https://you.ctrip.com" target="_blank" rel="noopener" class="quicklink-card" style="--ql-color: #2577E3;">
+          <div class="quicklink-icon">🧳</div>
+          <div class="quicklink-name">携程商家</div>
+          <div class="quicklink-desc">酒店管理后台</div>
+        </a>
+        <a href="https://hotel.meituan.com" target="_blank" rel="noopener" class="quicklink-card" style="--ql-color: #FFD100;">
+          <div class="quicklink-icon">🏠</div>
+          <div class="quicklink-name">美团酒店</div>
+          <div class="quicklink-desc">商家中心</div>
+        </a>
+        <a href="https://www.dianping.com" target="_blank" rel="noopener" class="quicklink-card" style="--ql-color: #FF6633;">
+          <div class="quicklink-icon">⭐</div>
+          <div class="quicklink-name">大众点评</div>
+          <div class="quicklink-desc">口碑管理</div>
+        </a>
+        <a href="https://www.ele.me" target="_blank" rel="noopener" class="quicklink-card" style="--ql-color: #0097FF;">
+          <div class="quicklink-icon">🍜</div>
+          <div class="quicklink-name">饿了么</div>
+          <div class="quicklink-desc">外卖/团购</div>
+        </a>
+        <a href="https://www.fliggy.com" target="_blank" rel="noopener" class="quicklink-card" style="--ql-color: #FF6600;">
+          <div class="quicklink-icon">✈️</div>
+          <div class="quicklink-name">飞猪</div>
+          <div class="quicklink-desc">阿里系OTA</div>
+        </a>
+        <a href="https://www.baidu.com" target="_blank" rel="noopener" class="quicklink-card" style="--ql-color: #3388FF;">
+          <div class="quicklink-icon">🔎</div>
+          <div class="quicklink-name">百度搜索</div>
+          <div class="quicklink-desc">搜索排名查看</div>
+        </a>
+      </div>
+      <div style="margin-top:24px; padding:16px; background:var(--bg-card); border:1px solid var(--border); border-radius:var(--radius-md);">
+        <div style="display:flex; align-items:center; gap:8px; margin-bottom:8px;">
+          <span style="font-size:16px;">💡</span>
+          <strong style="font-size:14px;">使用提示</strong>
+        </div>
+        <p style="font-size:13px; color:var(--text-secondary); line-height:1.7; margin:0;">
+          · 手机端点击会自动跳转到对应APP（已安装）或网页版<br>
+          · 桌面端直接在新标签页打开网页版<br>
+          · 建议将常用的平台添加到手机桌面，方便随时切换
+        </p>
+      </div>
+    </section>
+
+    <!-- ==================== 页面：点评回复 ==================== -->
+    <section class="page" id="page-review">
+      <div class="page-header">
+        <h2>💬 点评回复</h2>
+        <p>上传点评数据，AI智能统计好评差评并生成专业回复</p>
+      </div>
+      <div class="tool-layout">
+        <div class="tool-input">
+          <div class="upload-area" id="reviewUploadArea" style="padding:24px;">
+            <div class="upload-icon">📊</div>
+            <h3 style="font-size:15px;">上传点评数据</h3>
+            <p style="font-size:13px;">支持 Excel (.xlsx) 格式</p>
+            <p class="upload-hint">建议包含：评分、评论内容、评论时间等字段</p>
+            <input type="file" id="reviewFileInput" accept=".xlsx,.xls,.csv" hidden>
+            <button class="btn btn-primary" style="margin-top:12px;" onclick="document.getElementById('reviewFileInput').click()">选择文件</button>
+          </div>
+          <div id="reviewPreview" style="display:none;">
+            <div style="display:flex; align-items:center; justify-content:space-between; padding:12px; background:var(--bg-card); border:1px solid var(--border); border-radius:var(--radius-sm); margin-bottom:16px;">
+              <div style="display:flex; align-items:center; gap:8px;">
+                <span>📊</span>
+                <strong id="reviewFileName" style="font-size:13px;"></strong>
+              </div>
+              <button class="btn-sm" onclick="removeReviewFile()">✕</button>
+            </div>
+            <div class="form-group">
+              <label>回复风格</label>
+              <select class="form-select" id="reviewStyle">
+                <option value="专业诚恳">专业诚恳</option>
+                <option value="热情亲切">热情亲切</option>
+                <option value="简洁高效">简洁高效</option>
+              </select>
+            </div>
+            <button class="btn btn-primary btn-block" onclick="analyzeReviews()">
+              💬 开始AI分析并回复
+            </button>
+          </div>
+        </div>
+        <div class="tool-output">
+          <div class="output-header">
+            <span>分析结果</span>
+            <div class="output-actions">
+              <button class="btn-sm" onclick="copyOutput('review-output')">📋 复制</button>
+            </div>
+          </div>
+          <div class="output-area" id="review-output">
+            <div class="output-placeholder">
+              <span class="placeholder-icon">💬</span>
+              <p>上传点评数据后，AI将自动分析</p>
+              <p class="placeholder-hint">包含：好评差评统计、逐条专业回复</p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ==================== 页面：竞对情报站 ==================== -->
+    <section class="page" id="page-competitor">
+      <div class="page-header">
+        <h2>🕵️ 竞对情报站</h2>
+        <p>基于高德地图，一键查看周边竞品酒店分布与信息</p>
+      </div>
+      <div class="competitor-layout">
+        <div class="competitor-search">
+          <div class="form-group">
+            <label>搜索位置</label>
+            <input type="text" id="competitorLocation" class="form-input" placeholder="例：成都市锦江区春熙路">
+          </div>
+          <div class="form-group">
+            <label>搜索半径</label>
+            <div class="radio-group">
+              <label class="radio-item"><input type="radio" name="compRadius" value="1000" checked> 1公里</label>
+              <label class="radio-item"><input type="radio" name="compRadius" value="3000"> 3公里</label>
+              <label class="radio-item"><input type="radio" name="compRadius" value="5000"> 5公里</label>
+            </div>
+          </div>
+          <button class="btn btn-primary btn-block" onclick="searchCompetitors()">
+            🔍 搜索周边酒店
+          </button>
+          <p style="font-size:11px; color:var(--text-muted); margin-top:8px; text-align:center;">
+            数据来源：高德地图POI · 免费公开数据
+          </p>
+        </div>
+        <div class="competitor-result">
+          <div id="competitorMap" style="width:100%; height:300px; border-radius:var(--radius-md); overflow:hidden; margin-bottom:16px; background:var(--gray-50); display:flex; align-items:center; justify-content:center; color:var(--text-muted); font-size:14px;">
+            🗺️ 搜索后展示地图
+          </div>
+          <div id="competitorList">
+            <div class="output-placeholder" style="border:none;">
+              <span class="placeholder-icon">🕵️</span>
+              <p>输入位置后搜索周边竞品酒店</p>
+              <p class="placeholder-hint">展示酒店名称、距离、评分、参考价格</p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ==================== 页面：经营诊断 ==================== -->
+    <section class="page" id="page-diagnosis">
+      <div class="page-header">
+        <h2>🩺 经营诊断</h2>
+        <p>输入酒店经营数据，AI自动诊断问题并给出改进建议</p>
+      </div>
+      <div class="tool-layout">
+        <div class="tool-input">
+          <div class="form-group">
+            <label>酒店名称</label>
+            <input type="text" id="diagHotel" class="form-input" placeholder="例：订一晚酒店成都旗舰店">
+          </div>
+          <div class="diag-form-row">
+            <div class="form-group">
+              <label>月均出租率 (%)</label>
+              <input type="number" id="diagOccupancy" class="form-input" placeholder="例：72">
+            </div>
+            <div class="form-group">
+              <label>月均ADR (元)</label>
+              <input type="number" id="diagADR" class="form-input" placeholder="例：258">
+            </div>
+          </div>
+          <div class="diag-form-row">
+            <div class="form-group">
+              <label>总房间数</label>
+              <input type="number" id="diagRooms" class="form-input" placeholder="例：80">
+            </div>
+            <div class="form-group">
+              <label>月均营收 (万元)</label>
+              <input type="number" id="diagRevenue" class="form-input" placeholder="例：42">
+            </div>
+          </div>
+          <div class="form-group">
+            <label>当前主要问题 <span class="optional">（可选）</span></label>
+            <textarea class="form-textarea" id="diagIssue" rows="3" placeholder="例：携程订单下滑、差评增多、周边开了新竞品..."></textarea>
+          </div>
+          <button class="btn btn-primary btn-block" onclick="runDiagnosis()">
+            🩺 开始AI诊断
+          </button>
+        </div>
+        <div class="tool-output">
+          <div class="output-header">
+            <span>诊断报告</span>
+            <div class="output-actions">
+              <button class="btn-sm" onclick="copyOutput('diag-output')">📋 复制</button>
+              <button class="btn-sm" onclick="runDiagnosis()">🔄 重新诊断</button>
+            </div>
+          </div>
+          <div class="output-area" id="diag-output">
+            <div class="output-placeholder">
+              <span class="placeholder-icon">🩺</span>
+              <p>输入经营数据后，AI将生成诊断报告</p>
+              <p class="placeholder-hint">包含：盈利水平评估、问题诊断、改进建议</p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ==================== 页面：大客户拓展 ==================== -->
+    <section class="page" id="page-bizdev">
+      <div class="page-header">
+        <h2>🤝 大客户拓展</h2>
+        <p>快速查找企业信息，一键生成合作协议和拜访方案</p>
+      </div>
+      <div class="tool-layout">
+        <div class="tool-input">
+          <div class="form-group">
+            <label>酒店名称</label>
+            <input type="text" id="bizHotel" class="form-input" placeholder="例：订一晚酒店成都旗舰店">
+          </div>
+          <div class="form-group">
+            <label>目标企业名称</label>
+            <input type="text" id="bizCompany" class="form-input" placeholder="例：成都腾讯科技有限公司">
+          </div>
+          <div class="form-group">
+            <label>合作类型</label>
+            <select class="form-select" id="bizType">
+              <option value="企业协议价">企业协议价</option>
+              <option value="会议接待">会议接待</option>
+              <option value="长住合同">长住合同</option>
+              <option value="团队入住">团队入住</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label>补充说明 <span class="optional">（可选）</span></label>
+            <textarea class="form-textarea" id="bizExtra" rows="2" placeholder="例：该企业经常出差成都，约每月30间夜..."></textarea>
+          </div>
+          <button class="btn btn-primary btn-block" onclick="generateBizProposal()">
+            🤝 生成合作方案
+          </button>
+        </div>
+        <div class="tool-output">
+          <div class="output-header">
+            <span>合作方案</span>
+            <div class="output-actions">
+              <button class="btn-sm" onclick="copyOutput('biz-output')">📋 复制</button>
+              <button class="btn-sm" onclick="generateBizProposal()">🔄 重新生成</button>
+            </div>
+          </div>
+          <div class="output-area" id="biz-output">
+            <div class="output-placeholder">
+              <span class="placeholder-icon">🤝</span>
+              <p>填写企业信息后，AI将生成合作方案</p>
+              <p class="placeholder-hint">包含：合作协议、销售邀请话术、公关方案</p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ==================== 页面：数字巡店 ==================== -->
+    <section class="page" id="page-patrol">
+      <div class="page-header">
+        <h2>📷 数字巡店</h2>
+        <p>调用摄像头拍照巡检，AI对照SOP标准自动生成报告</p>
+      </div>
+      <div class="patrol-layout">
+        <div class="patrol-scene-grid">
+          <div class="patrol-scene-card" onclick="startPatrol('前台')">
+            <div class="patrol-scene-icon">🏨</div>
+            <div class="patrol-scene-name">前台</div>
+            <div class="patrol-scene-status" id="patrol-status-前台">未巡检</div>
+          </div>
+          <div class="patrol-scene-card" onclick="startPatrol('餐厅')">
+            <div class="patrol-scene-icon">🍽️</div>
+            <div class="patrol-scene-name">餐厅</div>
+            <div class="patrol-scene-status" id="patrol-status-餐厅">未巡检</div>
+          </div>
+          <div class="patrol-scene-card" onclick="startPatrol('客房')">
+            <div class="patrol-scene-icon">🛏️</div>
+            <div class="patrol-scene-name">客房</div>
+            <div class="patrol-scene-status" id="patrol-status-客房">未巡检</div>
+          </div>
+          <div class="patrol-scene-card" onclick="startPatrol('工程')">
+            <div class="patrol-scene-icon">🔧</div>
+            <div class="patrol-scene-name">工程</div>
+            <div class="patrol-scene-status" id="patrol-status-工程">未巡检</div>
+          </div>
+          <div class="patrol-scene-card" onclick="startPatrol('公共区域')">
+            <div class="patrol-scene-icon">🌿</div>
+            <div class="patrol-scene-name">公共区域</div>
+            <div class="patrol-scene-status" id="patrol-status-公共区域">未巡检</div>
+          </div>
+          <div class="patrol-scene-card" onclick="startPatrol('消防安全')">
+            <div class="patrol-scene-icon">🚒</div>
+            <div class="patrol-scene-name">消防安全</div>
+            <div class="patrol-scene-status" id="patrol-status-消防安全">未巡检</div>
+          </div>
+        </div>
+        <div class="patrol-report-area" style="margin-top:24px;">
+          <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:16px;">
+            <h3 style="font-size:16px; font-weight:600;">📋 巡检报告</h3>
+            <button class="btn-sm" onclick="copyOutput('patrol-report')">📋 复制</button>
+          </div>
+          <div class="output-area" id="patrol-report">
+            <div class="output-placeholder" style="border:none;">
+              <span class="placeholder-icon">📷</span>
+              <p>选择巡检场景开始拍照巡检</p>
+              <p class="placeholder-hint">AI将对照SOP标准自动判定并生成报告</p>
+            </div>
+          </div>
         </div>
       </div>
     </section>
