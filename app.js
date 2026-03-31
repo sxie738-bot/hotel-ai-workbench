@@ -1762,18 +1762,21 @@ document.addEventListener('DOMContentLoaded', () => {
 
   // ==================== PWA 安装到桌面 ====================
   let deferredPrompt = null;
-  // installBtn 本身就是 .nav-item，直接操控它
   const installBtn = document.getElementById('installBtn');
 
-  // 如果是 standalone 模式运行（已从桌面打开），不显示安装按钮
-  if (window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone) {
+  // 已从桌面打开（standalone模式）→ 不显示安装按钮
+  const isStandalone = window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone;
+  if (isStandalone) {
     if (installBtn) installBtn.style.display = 'none';
+  } else {
+    // 浏览器中打开：始终显示安装按钮（iPhone Safari 不支持 beforeinstallprompt，需要手动引导）
+    if (installBtn) installBtn.style.display = 'flex';
   }
 
   window.addEventListener('beforeinstallprompt', (e) => {
     e.preventDefault();
     deferredPrompt = e;
-    // 显示安装按钮（Chrome/Edge 满足PWA条件时触发）
+    // Chrome/Edge 满足PWA条件时，保存原生安装事件
     if (installBtn) installBtn.style.display = 'flex';
   });
 
