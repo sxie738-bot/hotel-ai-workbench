@@ -56,7 +56,7 @@
           </div>
         </div>
         <div class="entry-login-link" onclick="showLoginStep()">
-          已是会员？<a href="javascript:void(0)">输入姓名+手机号登录 →</a>
+          已是会员？<a href="javascript:void(0)">输入姓名+酒店名登录 →</a>
         </div>
         <div class="entry-skip-link" onclick="skipEntry()">
           跳过，直接浏览 →
@@ -159,8 +159,8 @@
             <input type="text" id="loginName" class="form-input" placeholder="请输入您的姓名">
           </div>
           <div class="form-group">
-            <label>手机号</label>
-            <input type="tel" id="loginPhone" class="form-input" placeholder="请输入手机号" maxlength="11">
+            <label>酒店名称</label>
+            <input type="text" id="loginHotel" class="form-input" placeholder="请输入酒店名称">
           </div>
           <button class="btn btn-primary btn-block" style="margin-top:12px; padding:14px; font-size:15px;" onclick="memberLogin()">
             登录 →
@@ -221,6 +221,10 @@
         <span class="nav-icon">📊</span>
         <span class="nav-label">工作台</span>
       </a>
+      <a href="#" class="nav-item" data-page="recent" id="navRecent">
+        <span class="nav-icon">🕐</span>
+        <span class="nav-label">最近使用</span>
+      </a>
       <a href="#" class="nav-item" data-page="content">
         <span class="nav-icon">✍️</span>
         <span class="nav-label">内容创作中心</span>
@@ -242,7 +246,7 @@
         <span class="nav-icon">🔍</span>
         <span class="nav-label">GEO优化</span>
       </a>
-      <a href="#" class="nav-item" data-page="quicklink">
+      <a href="#" class="nav-item" data-page="quicklink" id="navQuicklink" style="display:none;">
         <span class="nav-icon">🚀</span>
         <span class="nav-label">一键直达</span>
       </a>
@@ -273,6 +277,10 @@
         <span class="nav-label">飞书表格</span>
         <span class="nav-badge">外部</span>
       </a>
+      <a href="#" class="nav-item" data-page="aitask">
+        <span class="nav-icon">🧩</span>
+        <span class="nav-label">AI任务拆解</span>
+      </a>
       <a href="#" class="nav-item" data-page="feedback">
         <span class="nav-icon">🎯</span>
         <span class="nav-label">共创中心</span>
@@ -297,10 +305,10 @@
     <div class="sidebar-footer">
       <!-- 检查更新按钮 -->
       <div style="padding:0 8px; margin-bottom:4px;">
-        <a href="javascript:void(0)" class="nav-item" onclick="checkForUpdate(true)" style="display:flex; align-items:center; padding:8px 10px; border-radius:8px; text-decoration:none; color:var(--text-secondary); font-size:13px; transition:all 0.2s;" onmouseover="this.style.background='var(--gray-100)'" onmouseout="this.style.background='none'">
+        <a href="javascript:void(0)" class="nav-item" onclick="checkForUpdate(true)" style="display:flex; align-items:center; padding:8px 10px; border-radius:8px; text-decoration:none; color:rgba(255,255,255,0.55); font-size:13px; transition:all 0.2s;" onmouseover="this.style.background='rgba(255,255,255,0.08)'" onmouseout="this.style.background='none'">
           <span style="margin-right:8px;">🔄</span>
           <span>检查更新</span>
-          <span style="margin-left:auto; font-size:11px; color:var(--text-muted);" id="appVersionLabel">v1.5.1</span>
+          <span style="margin-left:auto; font-size:11px; color:rgba(255,255,255,0.35);" id="appVersionLabel">v1.5.1</span>
         </a>
       </div>
       <div class="user-info admin-only" style="display:none;">
@@ -331,6 +339,78 @@
       </div>
     </header>
 
+    <!-- ==================== 页面：最近使用 ==================== -->
+    <section class="page" id="page-recent">
+      <div class="page-header">
+        <h2>🕐 最近使用</h2>
+        <p>快速回到上次使用的功能</p>
+      </div>
+      <div id="recentModulesList">
+        <div class="empty-state" style="padding:60px 20px; text-align:center;">
+          <div style="font-size:40px; margin-bottom:16px;">🕐</div>
+          <p style="color:var(--text-muted);">还没有使用记录，去工作台体验功能吧</p>
+          <button class="btn btn-primary" style="margin-top:16px;" onclick="navigateTo('dashboard')">去工作台</button>
+        </div>
+      </div>
+    </section>
+
+    <!-- ==================== 页面：AI任务拆解 ==================== -->
+    <section class="page" id="page-aitask">
+      <div class="page-header">
+        <h2>🧩 AI任务拆解</h2>
+        <p>不知道如何用AI完成一项工作？告诉我任务，AI帮你拆解每一步</p>
+      </div>
+      <div class="tool-layout">
+        <div class="tool-input">
+          <div class="form-group">
+            <label>你想完成什么任务？</label>
+            <textarea class="form-textarea" id="aitaskDesc" rows="4" placeholder="例：我想做一份下周的酒店营销推广计划，但不知道从哪里开始，该怎么用AI一步步完成？"></textarea>
+          </div>
+          <div class="form-group">
+            <label>我的角色 <span class="optional">（可选）</span></label>
+            <select class="form-select" id="aitaskRole">
+              <option value="酒店店长">酒店店长</option>
+              <option value="前台运营">前台运营</option>
+              <option value="酒店投资人">酒店投资人</option>
+              <option value="OTA运营专员">OTA运营专员</option>
+              <option value="销售经理">销售经理</option>
+              <option value="客房管家">客房管家</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label>AI工具熟练程度</label>
+            <div class="radio-group">
+              <label class="radio-item">
+                <input type="radio" name="aitaskLevel" value="新手，几乎没用过AI" checked> 新手
+              </label>
+              <label class="radio-item">
+                <input type="radio" name="aitaskLevel" value="略有了解，偶尔使用"> 初级
+              </label>
+              <label class="radio-item">
+                <input type="radio" name="aitaskLevel" value="比较熟练，经常使用"> 中级
+              </label>
+            </div>
+          </div>
+          <button class="btn btn-primary btn-block" onclick="generateAITaskPlan()">🧩 生成任务拆解方案</button>
+        </div>
+        <div class="tool-output">
+          <div class="output-header">
+            <span>任务拆解方案</span>
+            <div class="output-actions">
+              <button class="btn-sm" onclick="copyOutput('aitask-output')">📋 复制</button>
+            </div>
+          </div>
+          <div class="output-area" id="aitask-output">
+            <div class="output-placeholder">
+              <span class="placeholder-icon">🧩</span>
+              <p>描述你想完成的任务</p>
+              <p class="placeholder-hint">AI会帮你拆解成可执行的步骤，告诉你每步用哪个AI工具怎么做</p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
     <!-- ==================== 页面：工作台 ==================== -->
     <section class="page active" id="page-dashboard">
       <div class="welcome-banner">
@@ -341,7 +421,7 @@
         </div>
         <button class="btn admin-hide" onclick="showDashboardCustomize()" style="background:rgba(255,255,255,0.15); color:#fff; border:1px solid rgba(255,255,255,0.3); font-size:13px; padding:6px 14px;">⚙️ 自定义工作台</button>
       </div>
-      <div class="tool-cards" id="dashboardCards">
+      <div id="dashboardCards">
         <!-- 由 JS 动态渲染 -->
       </div>
     </section>
@@ -349,8 +429,13 @@
     <!-- ==================== 页面：内容创作中心 ==================== -->
     <section class="page" id="page-content">
       <div class="page-header">
-        <h2>✍️ 内容创作中心</h2>
-        <p>通过AI调教，快速生成携程社区及多平台内容</p>
+        <div style="display:flex; justify-content:space-between; align-items:flex-start;">
+          <div>
+            <h2>✍️ 内容创作中心</h2>
+            <p>通过AI调教，快速生成携程社区及多平台内容</p>
+          </div>
+          <button class="btn-sm admin-only" onclick="openPromptTuning('ctrip')" style="flex-shrink:0; margin-top:4px; font-size:12px; color:var(--primary); border-color:var(--primary);">⚙️ 调教Prompt</button>
+        </div>
       </div>
 
       <!-- 平台选择标签 -->
@@ -358,6 +443,7 @@
         <button class="tab-btn active" data-tab="ctrip">携程社区</button>
         <button class="tab-btn" data-tab="multi">多平台复用</button>
         <button class="tab-btn" data-tab="image">AI配图</button>
+        <button class="tab-btn" data-tab="quicklink">一键直达</button>
       </div>
 
       <!-- 携程社区 -->
@@ -521,13 +607,92 @@
           </div>
         </div>
       </div>
+
+      <!-- 一键直达（9大发布平台） -->
+      <div class="tab-content" id="tab-quicklink">
+        <div style="max-width:700px;">
+          <div style="display:flex; align-items:center; gap:8px; margin-bottom:16px; padding:12px 16px; background:var(--primary-bg); border-radius:var(--radius-md);">
+            <span style="font-size:16px;">💡</span>
+            <p style="font-size:13px; color:var(--text-secondary); margin:0; line-height:1.6;">
+              流程：<strong>生成文字</strong> → <strong>AI配图</strong> → 复制/下载 → 点击下方平台 <strong>粘贴发布</strong>即可
+            </p>
+          </div>
+
+          <div class="quicklink-grid" style="grid-template-columns: repeat(auto-fill, minmax(130px, 1fr)); gap:10px;">
+            <!-- 内容种草平台 -->
+            <a href="https://creator.xiaohongshu.com" target="_blank" rel="noopener" class="quicklink-card" style="--ql-color: #FE2C55; padding:14px 8px; text-decoration:none;">
+              <div class="quicklink-icon" style="font-size:24px;">📕</div>
+              <div class="quicklink-name" style="font-size:13px;">小红书</div>
+              <div class="quicklink-desc" style="font-size:11px;">笔记种草</div>
+            </a>
+            <a href="https://video.douyin.com" target="_blank" rel="noopener" class="quicklink-card" style="--ql-color: #010101; padding:14px 8px; text-decoration:none;">
+              <div class="quicklink-icon" style="font-size:24px;">🎵</div>
+              <div class="quicklink-name" style="font-size:13px;">视频号</div>
+              <div class="quicklink-desc" style="font-size:11px;">短视频</div>
+            </a>
+            <a href="https://www.douyin.com" target="_blank" rel="noopener" class="quicklink-card" style="--ql-color: #010101; padding:14px 8px; text-decoration:none;">
+              <div class="quicklink-icon" style="font-size:24px;">🎤</div>
+              <div class="quicklink-name" style="font-size:13px;">抖音</div>
+              <div class="quicklink-desc" style="font-size:11px;">短视频运营</div>
+            </a>
+          </div>
+
+          <div style="margin:16px 0 8px; font-size:12px; color:var(--text-muted); font-weight:600;">— OTA商家后台 —</div>
+          <div class="quicklink-grid" style="grid-template-columns: repeat(auto-fill, minmax(130px, 1fr)); gap:10px;">
+            <a href="https://you.ctrip.com" target="_blank" rel="noopener" class="quicklink-card" style="--ql-color: #2577E3; padding:14px 8px; text-decoration:none;">
+              <div class="quicklink-icon" style="font-size:24px;">🧳</div>
+              <div class="quicklink-name" style="font-size:13px;">携程商家</div>
+              <div class="quicklink-desc" style="font-size:11px;">酒店管理</div>
+            </a>
+            <a href="https://hotel.meituan.com" target="_blank" rel="noopener" class="quicklink-card" style="--ql-color: #FFD100; padding:14px 8px; text-decoration:none;">
+              <div class="quicklink-icon" style="font-size:24px;">🏠</div>
+              <div class="quicklink-name" style="font-size:13px;">美团商家</div>
+              <div class="quicklink-desc" style="font-size:11px;">商家中心</div>
+            </a>
+            <a href="https://www.fliggy.com" target="_blank" rel="noopener" class="quicklink-card" style="--ql-color: #FF6600; padding:14px 8px; text-decoration:none;">
+              <div class="quicklink-icon" style="font-size:24px;">✈️</div>
+              <div class="quicklink-name" style="font-size:13px;">飞猪商家</div>
+              <div class="quicklink-desc" style="font-size:11px;">商家后台</div>
+            </a>
+            <a href="https://www.mafengwo.cn" target="_blank" rel="noopener" class="quicklink-card" style="--ql-color: #1DB164; padding:14px 8px; text-decoration:none;">
+              <div class="quicklink-icon" style="font-size:24px;">🐝</div>
+              <div class="quicklink-name" style="font-size:13px;">马蜂窝</div>
+              <div class="quicklink-desc" style="font-size:11px;">游记攻略</div>
+            </a>
+          </div>
+
+          <div style="margin:16px 0 8px; font-size:12px; color:var(--text-muted); font-weight:600;">— 自媒体平台 —</div>
+          <div class="quicklink-grid" style="grid-template-columns: repeat(auto-fill, minmax(130px, 1fr)); gap:10px;">
+            <a href="https://mp.toutiao.com" target="_blank" rel="noopener" class="quicklink-card" style="--ql-color: #D42D26; padding:14px 8px; text-decoration:none;">
+              <div class="quicklink-icon" style="font-size:24px;">📰</div>
+              <div class="quicklink-name" style="font-size:13px;">今日头条</div>
+              <div class="quicklink-desc" style="font-size:11px;">图文发布</div>
+            </a>
+            <a href="https://baijiahao.baidu.com" target="_blank" rel="noopener" class="quicklink-card" style="--ql-color: #2932E1; padding:14px 8px; text-decoration:none;">
+              <div class="quicklink-icon" style="font-size:24px;">📘</div>
+              <div class="quicklink-name" style="font-size:13px;">百家号</div>
+              <div class="quicklink-desc" style="font-size:11px;">百度生态</div>
+            </a>
+            <a href="https://om.qq.com" target="_blank" rel="noopener" class="quicklink-card" style="--ql-color: #2A8CFF; padding:14px 8px; text-decoration:none;">
+              <div class="quicklink-icon" style="font-size:24px;">🐧</div>
+              <div class="quicklink-name" style="font-size:13px;">企鹅号</div>
+              <div class="quicklink-desc" style="font-size:11px;">腾讯生态</div>
+            </a>
+          </div>
+        </div>
+      </div>
     </section>
 
     <!-- ==================== 页面：前台培训管家 ==================== -->
     <section class="page" id="page-training">
       <div class="page-header">
-        <h2>📖 前台培训管家</h2>
-        <p>录入酒店知识库，AI学习后输出统一标准话术</p>
+        <div style="display:flex; justify-content:space-between; align-items:flex-start;">
+          <div>
+            <h2>📖 前台培训管家</h2>
+            <p>录入酒店知识库，AI学习后输出统一标准话术</p>
+          </div>
+          <button class="btn-sm admin-only" onclick="openPromptTuning('training')" style="flex-shrink:0; margin-top:4px; font-size:12px; color:var(--primary); border-color:var(--primary);">⚙️ 调教Prompt</button>
+        </div>
       </div>
 
       <div class="tab-bar">
@@ -699,8 +864,13 @@
     <!-- ==================== 页面：短视频生成 ==================== -->
     <section class="page" id="page-video">
       <div class="page-header">
-        <h2>🎬 短视频生成</h2>
-        <p>输入酒店信息和主题，AI自动生成短视频脚本与分镜</p>
+        <div style="display:flex; justify-content:space-between; align-items:flex-start;">
+          <div>
+            <h2>🎬 短视频生成</h2>
+            <p>输入酒店信息和主题，AI自动生成短视频脚本与分镜</p>
+          </div>
+          <button class="btn-sm admin-only" onclick="openPromptTuning('video')" style="flex-shrink:0; margin-top:4px; font-size:12px; color:var(--primary); border-color:var(--primary);">⚙️ 调教Prompt</button>
+        </div>
       </div>
       <div class="tool-layout">
         <div class="tool-input">
@@ -764,8 +934,13 @@
     <!-- ==================== 页面：GEO优化 ==================== -->
     <section class="page" id="page-geo">
       <div class="page-header">
-        <h2>🔍 GEO优化</h2>
-        <p>提升酒店在搜索引擎中的可见度，AI生成关键词、标题和内容日历</p>
+        <div style="display:flex; justify-content:space-between; align-items:flex-start;">
+          <div>
+            <h2>🔍 GEO优化</h2>
+            <p>提升酒店在搜索引擎中的可见度，AI生成关键词、标题和内容日历</p>
+          </div>
+          <button class="btn-sm admin-only" onclick="openPromptTuning('geo')" style="flex-shrink:0; margin-top:4px; font-size:12px; color:var(--primary); border-color:var(--primary);">⚙️ 调教Prompt</button>
+        </div>
       </div>
       <div class="tool-layout">
         <div class="tool-input">
@@ -791,7 +966,7 @@
           </div>
           <div class="form-group">
             <label>补充说明 <span class="optional">（可选）</span></label>
-            <textarea class="form-textarea" id="geoExtra" rows="2" placeholder="例：目前豆包/千问搜不到我们酒店..."></textarea>
+            <textarea class="form-textarea" id="geoExtra" rows="2" placeholder="例：我希望用户在豆包/千问/其他AI搜索中，搜索商务酒店就能关联我们酒店..."></textarea>
           </div>
           <button class="btn btn-primary btn-block" onclick="generateGeoPlan()">
             🔍 生成GEO优化方案
@@ -880,23 +1055,28 @@
     <!-- ==================== 页面：点评回复 ==================== -->
     <section class="page" id="page-review">
       <div class="page-header">
-        <h2>💬 点评回复</h2>
-        <p>上传点评数据，AI智能统计好评差评并生成专业回复</p>
+        <div style="display:flex; justify-content:space-between; align-items:flex-start;">
+          <div>
+            <h2>💬 点评回复</h2>
+            <p>上传点评截图，AI智能识别并生成专业回复</p>
+          </div>
+          <button class="btn-sm admin-only" onclick="openPromptTuning('review')" style="flex-shrink:0; margin-top:4px; font-size:12px; color:var(--primary); border-color:var(--primary);">⚙️ 调教Prompt</button>
+        </div>
       </div>
       <div class="tool-layout">
         <div class="tool-input">
           <div class="upload-area" id="reviewUploadArea" style="padding:24px;">
-            <div class="upload-icon">📊</div>
-            <h3 style="font-size:15px;">上传点评数据</h3>
-            <p style="font-size:13px;">支持 Excel (.xlsx) 格式</p>
-            <p class="upload-hint">建议包含：评分、评论内容、评论时间等字段</p>
-            <input type="file" id="reviewFileInput" accept=".xlsx,.xls,.csv" hidden>
+            <div class="upload-icon">📸</div>
+            <h3 style="font-size:15px;">上传点评截图</h3>
+            <p style="font-size:13px;">支持 图片 (.jpg, .png) 格式</p>
+            <p class="upload-hint">截图点评内容，AI将自动识别文字并生成专业回复</p>
+            <input type="file" id="reviewFileInput" accept=".xlsx,.xls,.csv,image/jpeg,image/png,image/jpg" hidden onchange="handleReviewUpload(event)">
             <button class="btn btn-primary" style="margin-top:12px;" onclick="document.getElementById('reviewFileInput').click()">选择文件</button>
           </div>
           <div id="reviewPreview" style="display:none;">
             <div style="display:flex; align-items:center; justify-content:space-between; padding:12px; background:var(--bg-card); border:1px solid var(--border); border-radius:var(--radius-sm); margin-bottom:16px;">
               <div style="display:flex; align-items:center; gap:8px;">
-                <span>📊</span>
+                <span>📸</span>
                 <strong id="reviewFileName" style="font-size:13px;"></strong>
               </div>
               <button class="btn-sm" onclick="removeReviewFile()">✕</button>
@@ -924,8 +1104,8 @@
           <div class="output-area" id="review-output">
             <div class="output-placeholder">
               <span class="placeholder-icon">💬</span>
-              <p>上传点评数据后，AI将自动分析</p>
-              <p class="placeholder-hint">包含：好评差评统计、逐条专业回复</p>
+              <p>上传点评截图后，AI将自动识别并回复</p>
+              <p class="placeholder-hint">支持截图/图片，AI自动识别点评内容生成专业回复</p>
             </div>
           </div>
         </div>
@@ -977,8 +1157,13 @@
     <!-- ==================== 页面：经营诊断 ==================== -->
     <section class="page" id="page-diagnosis">
       <div class="page-header">
-        <h2>🩺 经营诊断</h2>
-        <p>输入酒店经营数据，AI自动诊断问题并给出改进建议</p>
+        <div style="display:flex; justify-content:space-between; align-items:flex-start;">
+          <div>
+            <h2>🩺 经营诊断</h2>
+            <p>输入酒店经营数据，AI自动诊断问题并给出改进建议</p>
+          </div>
+          <button class="btn-sm admin-only" onclick="openPromptTuning('diagnosis')" style="flex-shrink:0; margin-top:4px; font-size:12px; color:var(--primary); border-color:var(--primary);">⚙️ 调教Prompt</button>
+        </div>
       </div>
       <div class="tool-layout">
         <div class="tool-input">
@@ -1088,8 +1273,13 @@
     <!-- ==================== 页面：数字巡店 ==================== -->
     <section class="page" id="page-patrol">
       <div class="page-header">
-        <h2>📷 数字巡店</h2>
-        <p>调用摄像头拍照巡检，AI对照SOP标准自动生成报告</p>
+        <div style="display:flex; justify-content:space-between; align-items:flex-start;">
+          <div>
+            <h2>📷 数字巡店</h2>
+            <p>调用摄像头拍照巡检，AI对照SOP标准自动生成报告</p>
+          </div>
+          <button class="btn-sm admin-only" onclick="openPromptTuning('patrol')" style="flex-shrink:0; margin-top:4px; font-size:12px; color:var(--primary); border-color:var(--primary);">⚙️ 调教Prompt</button>
+        </div>
       </div>
       <div class="patrol-layout">
         <div class="patrol-scene-grid">
@@ -1285,8 +1475,9 @@
 
       <div class="settings-layout">
         <div class="settings-nav">
-          <button class="settings-nav-btn active" data-setting="prompt">🎯 Prompt调教</button>
+          <button class="settings-nav-btn" data-setting="prompt">🎯 Prompt调教</button>
           <button class="settings-nav-btn" data-setting="members">👥 会员管理</button>
+          <button class="settings-nav-btn" data-setting="feedback_admin">💡 共创反馈</button>
           <button class="settings-nav-btn" data-setting="permissions">🔐 权限配置</button>
           <button class="settings-nav-btn" data-setting="api">🔑 API配置</button>
           <button class="settings-nav-btn" data-setting="brand">🎨 品牌定制</button>
@@ -1344,6 +1535,66 @@
                 <div class="prompt-actions">
                   <button class="btn-sm" onclick="editPrompt('analysis')">✏️ 编辑</button>
                   <button class="btn-sm" onclick="copyPrompt('analysis')">📋 复制</button>
+                </div>
+              </div>
+
+              <div class="prompt-card" data-prompt="geo">
+                <div class="prompt-header">
+                  <span class="prompt-name">GEO优化</span>
+                  <span class="prompt-status"></span>
+                </div>
+                <p class="prompt-preview">配置GEO关键词矩阵生成策略，让酒店在豆包/千问等AI搜索中被更精准关联...</p>
+                <div class="prompt-actions">
+                  <button class="btn-sm" onclick="editPrompt('geo')">✏️ 编辑</button>
+                  <button class="btn-sm" onclick="copyPrompt('geo')">📋 复制</button>
+                </div>
+              </div>
+
+              <div class="prompt-card" data-prompt="video">
+                <div class="prompt-header">
+                  <span class="prompt-name">短视频脚本</span>
+                  <span class="prompt-status"></span>
+                </div>
+                <p class="prompt-preview">配置短视频脚本风格、分镜格式、时长节奏等，生成适合抖音/视频号的脚本...</p>
+                <div class="prompt-actions">
+                  <button class="btn-sm" onclick="editPrompt('video')">✏️ 编辑</button>
+                  <button class="btn-sm" onclick="copyPrompt('video')">📋 复制</button>
+                </div>
+              </div>
+
+              <div class="prompt-card" data-prompt="review">
+                <div class="prompt-header">
+                  <span class="prompt-name">点评回复</span>
+                  <span class="prompt-status"></span>
+                </div>
+                <p class="prompt-preview">配置点评回复的风格、语气、引导性语句等，确保回复专业且符合品牌调性...</p>
+                <div class="prompt-actions">
+                  <button class="btn-sm" onclick="editPrompt('review')">✏️ 编辑</button>
+                  <button class="btn-sm" onclick="copyPrompt('review')">📋 复制</button>
+                </div>
+              </div>
+
+              <div class="prompt-card" data-prompt="diagnosis">
+                <div class="prompt-header">
+                  <span class="prompt-name">经营诊断</span>
+                  <span class="prompt-status"></span>
+                </div>
+                <p class="prompt-preview">配置经营诊断的分析框架、关注维度、输出建议格式，确保诊断结果可落地...</p>
+                <div class="prompt-actions">
+                  <button class="btn-sm" onclick="editPrompt('diagnosis')">✏️ 编辑</button>
+                  <button class="btn-sm" onclick="copyPrompt('diagnosis')">📋 复制</button>
+                </div>
+              </div>
+
+              <div class="prompt-card" data-prompt="patrol">
+                <div class="prompt-header">
+                  <span class="prompt-name">数字巡店</span>
+                  <span class="prompt-status"></span>
+                </div>
+                <p class="prompt-preview">配置巡店检查维度、评分标准、问题描述风格，确保报告对标SOP可用...</p>
+                <div class="prompt-actions">
+                  <button class="btn-sm" onclick="editPrompt('patrol')">✏️ 编辑</button>
+                  <button class="btn-sm" onclick="copyPrompt('patrol')">📋 复制</button>
                 </div>
               </div>
             </div>
@@ -1450,6 +1701,75 @@
             <h3>👥 会员管理</h3>
             <p class="setting-desc">管理所有会员，确认付款、续费、查看状态。保存后自动同步到云端。</p>
 
+            <!-- 统计大盘 -->
+            <div style="background:var(--bg-tertiary); border-radius:12px; padding:16px; margin-bottom:20px;">
+              <div style="font-size:13px; font-weight:600; color:var(--text-secondary); margin-bottom:12px; display:flex; align-items:center; gap:6px;">
+                <span>📊</span> 数据统计
+                <button class="btn-sm" style="margin-left:auto; font-size:11px;" onclick="refreshAdminStats()">刷新</button>
+              </div>
+              <!-- 会员 -->
+              <div style="display:flex; gap:10px; flex-wrap:wrap; margin-bottom:12px;">
+                <div style="flex:1; min-width:90px; padding:12px 10px; background:var(--primary-bg); border-radius:8px; text-align:center;">
+                  <div style="font-size:20px; font-weight:700; color:var(--primary);" id="statTotalMembers">0</div>
+                  <div style="font-size:11px; color:var(--text-secondary);">总会员</div>
+                </div>
+                <div style="flex:1; min-width:90px; padding:12px 10px; background:var(--success-bg); border-radius:8px; text-align:center;">
+                  <div style="font-size:20px; font-weight:700; color:var(--success);" id="statActiveMembers">0</div>
+                  <div style="font-size:11px; color:var(--text-secondary);">有效会员</div>
+                </div>
+                <div style="flex:1; min-width:90px; padding:12px 10px; background:#fff7ed; border-radius:8px; text-align:center;">
+                  <div style="font-size:20px; font-weight:700; color:#f97316;" id="statTodayActive">0</div>
+                  <div style="font-size:11px; color:var(--text-secondary);">今日活跃</div>
+                </div>
+                <div style="flex:1; min-width:90px; padding:12px 10px; background:#faf5ff; border-radius:8px; text-align:center;">
+                  <div style="font-size:20px; font-weight:700; color:#9333ea;" id="statMonthActive">0</div>
+                  <div style="font-size:11px; color:var(--text-secondary);">本月活跃</div>
+                </div>
+              </div>
+              <!-- 收入 -->
+              <div style="display:flex; gap:10px; flex-wrap:wrap; margin-bottom:12px;">
+                <div style="flex:1; min-width:90px; padding:12px 10px; background:#fef9c3; border-radius:8px; text-align:center;">
+                  <div style="font-size:18px; font-weight:700; color:#ca8a04;" id="statTotalRevenue">¥0</div>
+                  <div style="font-size:11px; color:var(--text-secondary);">总收入</div>
+                </div>
+                <div style="flex:1; min-width:90px; padding:12px 10px; background:#fef9c3; border-radius:8px; text-align:center;">
+                  <div style="font-size:18px; font-weight:700; color:#ca8a04;" id="statMonthRevenue">¥0</div>
+                  <div style="font-size:11px; color:var(--text-secondary);">本月收入</div>
+                </div>
+                <div style="flex:1; min-width:90px; padding:12px 10px; background:#fef9c3; border-radius:8px; text-align:center;">
+                  <div style="font-size:18px; font-weight:700; color:#ca8a04;" id="statTodayRevenue">¥0</div>
+                  <div style="font-size:11px; color:var(--text-secondary);">今日收入</div>
+                </div>
+                <div style="flex:1; min-width:90px; padding:12px 10px; background:#fef9c3; border-radius:8px; text-align:center;">
+                  <div style="font-size:18px; font-weight:700; color:#ca8a04;" id="statAvgRevenue">¥0</div>
+                  <div style="font-size:11px; color:var(--text-secondary);">客单价</div>
+                </div>
+              </div>
+              <!-- Token使用 -->
+              <div style="background:var(--bg-card); border-radius:8px; padding:12px;">
+                <div style="font-size:12px; font-weight:600; color:var(--text-secondary); margin-bottom:8px;">🤖 Token使用统计（累计）</div>
+                <div style="display:flex; gap:10px; flex-wrap:wrap;">
+                  <div style="flex:1; min-width:120px;">
+                    <div style="font-size:11px; color:var(--text-muted);">通义千问调用</div>
+                    <div style="font-size:16px; font-weight:600; color:var(--primary);" id="statQwenCalls">0 次</div>
+                  </div>
+                  <div style="flex:1; min-width:120px;">
+                    <div style="font-size:11px; color:var(--text-muted);">AI生成总次数</div>
+                    <div style="font-size:16px; font-weight:600; color:var(--text);" id="statTotalCalls">0 次</div>
+                  </div>
+                  <div style="flex:1; min-width:120px;">
+                    <div style="font-size:11px; color:var(--text-muted);">AI配图生成</div>
+                    <div style="font-size:16px; font-weight:600; color:#f59e0b;" id="statImageCalls">0 次</div>
+                  </div>
+                </div>
+              </div>
+              <!-- 套餐分布 -->
+              <div style="margin-top:12px; background:var(--bg-card); border-radius:8px; padding:12px;">
+                <div style="font-size:12px; font-weight:600; color:var(--text-secondary); margin-bottom:8px;">📋 套餐分布</div>
+                <div id="statPlanDistribution" style="display:flex; gap:8px; flex-wrap:wrap; font-size:12px;"></div>
+              </div>
+            </div>
+
             <!-- 收款码上传 -->
             <div style="margin-bottom:20px; padding:16px; background:var(--bg-tertiary); border-radius:10px;">
               <h4 style="margin:0 0 12px; font-size:14px;">💳 收款码设置</h4>
@@ -1467,22 +1787,6 @@
               </div>
             </div>
 
-            <!-- 统计 -->
-            <div style="display:flex; gap:12px; margin-bottom:16px; flex-wrap:wrap;">
-              <div style="flex:1; min-width:100px; padding:12px; background:var(--primary-bg); border-radius:8px; text-align:center;">
-                <div style="font-size:20px; font-weight:700; color:var(--primary);" id="memberTotalCount">0</div>
-                <div style="font-size:11px; color:var(--text-secondary);">总会员</div>
-              </div>
-              <div style="flex:1; min-width:100px; padding:12px; background:var(--success-bg); border-radius:8px; text-align:center;">
-                <div style="font-size:20px; font-weight:700; color:var(--success);" id="memberActiveCount">0</div>
-                <div style="font-size:11px; color:var(--text-secondary);">有效会员</div>
-              </div>
-              <div style="flex:1; min-width:100px; padding:12px; background:var(--warning-bg); border-radius:8px; text-align:center;">
-                <div style="font-size:20px; font-weight:700; color:var(--warning);" id="memberPendingCount">0</div>
-                <div style="font-size:11px; color:var(--text-secondary);">待确认</div>
-              </div>
-            </div>
-
             <!-- 待确认队列 -->
             <div id="pendingQueue" style="margin-bottom:20px;">
               <h4 style="font-size:14px; margin-bottom:12px;">⏳ 待确认付款</h4>
@@ -1493,6 +1797,41 @@
             <div>
               <h4 style="font-size:14px; margin-bottom:12px;">✅ 已开通会员</h4>
               <div id="memberList"></div>
+            </div>
+          </div>
+
+          <!-- 共创中心反馈管理 -->
+          <div class="setting-section" id="setting-feedback_admin">
+            <h3>💡 共创反馈管理</h3>
+            <p class="setting-desc">查看用户提交的功能需求和建议，标记「已采纳」后自动为用户延长1个月会员。</p>
+
+            <div style="display:flex; gap:10px; margin-bottom:16px; flex-wrap:wrap;">
+              <div style="flex:1; min-width:90px; padding:12px; background:var(--primary-bg); border-radius:8px; text-align:center;">
+                <div style="font-size:20px; font-weight:700; color:var(--primary);" id="fbTotalCount">0</div>
+                <div style="font-size:11px; color:var(--text-secondary);">总反馈</div>
+              </div>
+              <div style="flex:1; min-width:90px; padding:12px; background:var(--warning-bg); border-radius:8px; text-align:center;">
+                <div style="font-size:20px; font-weight:700; color:var(--warning);" id="fbPendingCount">0</div>
+                <div style="font-size:11px; color:var(--text-secondary);">待处理</div>
+              </div>
+              <div style="flex:1; min-width:90px; padding:12px; background:var(--success-bg); border-radius:8px; text-align:center;">
+                <div style="font-size:20px; font-weight:700; color:var(--success);" id="fbAdoptedCount">0</div>
+                <div style="font-size:11px; color:var(--text-secondary);">已采纳</div>
+              </div>
+            </div>
+
+            <div style="display:flex; gap:8px; margin-bottom:12px; flex-wrap:wrap;">
+              <button class="btn-sm" id="fbFilterAll" onclick="filterFeedbackAdmin('all')" style="background:var(--primary); color:#fff;">全部</button>
+              <button class="btn-sm" id="fbFilterPending" onclick="filterFeedbackAdmin('pending')">待处理</button>
+              <button class="btn-sm" id="fbFilterAdopted" onclick="filterFeedbackAdmin('adopted')">已采纳</button>
+              <button class="btn-sm" id="fbFilterIgnored" onclick="filterFeedbackAdmin('ignored')">已忽略</button>
+              <button class="btn-sm" style="margin-left:auto;" onclick="loadFeedbackAdmin()">🔄 刷新</button>
+            </div>
+
+            <div id="feedbackAdminList">
+              <div class="empty-state" style="padding:32px 0; text-align:center;">
+                <p style="color:var(--text-muted);">暂无反馈数据，点击刷新重新加载</p>
+              </div>
             </div>
           </div>
 
@@ -1690,6 +2029,11 @@
           <p style="font-size:11px; color:var(--text-muted); margin-top:4px;">学员将用此名称登录，请确保唯一且准确</p>
         </div>
         <div class="form-group">
+          <label>联系人姓名 <span class="optional">（可选，用于加强登录校验）</span></label>
+          <input type="text" id="studentContactName" class="form-input" placeholder="例：张店长（用于登录时双向验证）">
+          <p style="font-size:11px; color:var(--text-muted); margin-top:4px;">填写后，学员登录时系统会校验姓名与酒店是否匹配</p>
+        </div>
+        <div class="form-group">
           <label>会员套餐</label>
           <select class="form-select" id="studentPlan">
             <option value="free">🆓 免费体验（每模块3次）</option>
@@ -1715,35 +2059,62 @@
     </div>
   </div>
 
-  <!-- 学员首次进入：注册（姓名+手机+酒店名） -->
+  <!-- 登录/注册弹窗 -->
   <div class="modal-overlay" id="hotelWelcomeModal" style="display:none;">
-    <div class="modal" style="max-width:420px;">
-      <div class="modal-header">
-        <h3>🏨 欢迎使用酒店AI实战营</h3>
-        <button class="modal-close" onclick="closeHotelWelcome()">✕</button>
-      </div>
-      <div class="modal-body">
-        <div style="font-size:40px; text-align:center; margin-bottom:16px;">🏨</div>
-        <p style="font-size:14px; color:var(--text-secondary); margin-bottom:20px; text-align:center;">填写以下信息即可开始使用</p>
-        <div class="form-group">
-          <label>姓名 <span style="color:var(--danger);">*</span></label>
-          <input type="text" id="welcomeName" class="form-input" placeholder="请输入您的姓名">
+    <div class="modal auth-modal">
+      <div class="auth-modal-header">
+        <div class="auth-brand">
+          <div class="auth-brand-icon">🏨</div>
+          <div class="auth-brand-text">酒店AI实战营</div>
+          <div class="auth-brand-sub">AI赋能酒店运营 · 让每个决策都有数据支撑</div>
         </div>
-        <div class="form-group">
-          <label>手机号 <span style="color:var(--danger);">*</span></label>
-          <input type="tel" id="welcomePhone" class="form-input" placeholder="请输入手机号" maxlength="11">
-        </div>
-        <div class="form-group">
-          <label>酒店名称 <span style="color:var(--danger);">*</span></label>
-          <input type="text" id="hotelNameInput" class="form-input" placeholder="例：订一晚酒店成都旗舰店">
-          <p style="font-size:11px; color:var(--text-muted); margin-top:4px;">酒店名称由管理员分配，请确认后输入</p>
-        </div>
-        <p id="hotelNameError" style="color:#dc2626; font-size:12px; display:none; margin-bottom:8px;"></p>
       </div>
-      <div class="modal-footer" style="justify-content:center;">
-        <button class="btn" onclick="closeHotelWelcome()">稍后再说</button>
-        <button class="btn btn-primary" onclick="submitHotelName()" style="padding:12px 40px; font-size:15px;">进入工作台 →</button>
+
+      <!-- Tab 切换 -->
+      <div class="auth-tabs">
+        <button class="auth-tab active" id="authTabLogin" onclick="switchAuthTab('login')">🔑 登录</button>
+        <button class="auth-tab" id="authTabRegister" onclick="switchAuthTab('register')">📝 注册</button>
+        <div class="auth-tab-indicator" id="authTabIndicator"></div>
       </div>
+
+      <!-- 登录表单 -->
+      <div class="auth-form" id="authLoginForm">
+        <div class="auth-field">
+          <div class="auth-field-icon">👤</div>
+          <input type="text" id="welcomeName" class="auth-input" placeholder="请输入您的姓名" autocomplete="name">
+        </div>
+        <div class="auth-field">
+          <div class="auth-field-icon">🏨</div>
+          <input type="text" id="welcomeHotel" class="auth-input" placeholder="请输入酒店名称" autocomplete="organization">
+        </div>
+        <button class="auth-submit-btn" onclick="submitHotelName()">登 录</button>
+        <div class="auth-switch-hint">
+          还没有账号？<a href="javascript:void(0)" onclick="switchAuthTab('register')">立即注册</a>
+        </div>
+      </div>
+
+      <!-- 注册表单 -->
+      <div class="auth-form" id="authRegisterForm" style="display:none;">
+        <div class="auth-field">
+          <div class="auth-field-icon">👤</div>
+          <input type="text" id="registerName" class="auth-input" placeholder="请输入您的姓名" autocomplete="name">
+        </div>
+        <div class="auth-field">
+          <div class="auth-field-icon">📱</div>
+          <input type="tel" id="registerPhone" class="auth-input" placeholder="请输入手机号" maxlength="11" autocomplete="tel">
+        </div>
+        <div class="auth-field">
+          <div class="auth-field-icon">🏨</div>
+          <input type="text" id="registerHotel" class="auth-input" placeholder="请输入酒店名称" autocomplete="organization">
+          <div class="auth-field-hint">酒店名称由管理员分配，请确认后输入</div>
+        </div>
+        <button class="auth-submit-btn" onclick="submitRegister()">注 册</button>
+        <div class="auth-switch-hint">
+          已有账号？<a href="javascript:void(0)" onclick="switchAuthTab('login')">去登录</a>
+        </div>
+      </div>
+
+      <p id="hotelNameError" class="auth-error" style="display:none;"></p>
     </div>
   </div>
 
@@ -1755,7 +2126,7 @@
         <button class="modal-close" onclick="closeDashboardCustomize()">✕</button>
       </div>
       <div class="modal-body">
-        <p style="font-size:13px; color:var(--text-secondary); margin-bottom:16px;">勾选要在工作台显示的工具，拖动排序优先级</p>
+        <p style="font-size:13px; color:var(--text-secondary); margin-bottom:16px;">勾选要在工作台显示的工具，拖动调整顺序</p>
         <div id="dashboardModuleList" style="display:flex; flex-direction:column; gap:8px;">
           <!-- 由JS渲染 -->
         </div>

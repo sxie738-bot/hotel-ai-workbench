@@ -1,6 +1,7 @@
 // ==================== 会员体系配置 ====================
 const PLANS = {
-  free:    { name: '免费体验', price: 0,    days: 0,   label: '免费体验' },
+  free:    { name: '免费体验', price: 0,    days: 3,   label: '免费体验·3天' },
+  freeyear:{ name: '免费用户', price: 0,    days: 365, label: '免费用户·1年' },
   trial:   { name: '体验版',   price: 9.9,  days: 3,   label: '体验版·3天' },
   monthly: { name: '连续包月', price: 39,   days: 30,  label: '包月会员' },
   yearly:  { name: '连续包年', price: 428,  days: 365, label: '包年会员' }
@@ -9,20 +10,21 @@ const PLANS = {
 // 模块权限默认配置（管理员可在后台修改）
 // free = 0 表示未配置权限的酒店用户看不到任何功能，需管理员在酒店配置中开通
 const DEFAULT_MODULE_PERMISSIONS = {
-  content:       { free: 0,  trial: -1, monthly: -1, yearly: -1, name: '内容创作中心', icon: '✍️' },
-  training:      { free: 0,  trial: -1, monthly: -1, yearly: -1, name: '前台培训管家', icon: '📖' },
-  analysis:      { free: 0,  trial: -1, monthly: -1, yearly: -1, name: '数据分析助手', icon: '📈' },
-  image:         { free: 0,  trial: 3,  monthly: -1, yearly: -1, name: 'AI配图',       icon: '🎨' },
-  feishu:        { free: 0,  trial: 0,  monthly: -1, yearly: -1, name: '飞书表格',     icon: '📋' },
-  video:         { free: 0,  trial: 0,  monthly: -1, yearly: -1, name: '短视频生成',   icon: '🎬' },
-  geo:           { free: 0,  trial: 3,  monthly: -1, yearly: -1, name: 'GEO优化',     icon: '🔍' },
-  quicklink:     { free: -1, trial: -1, monthly: -1, yearly: -1, name: '一键直达',     icon: '🚀' },
-  review:        { free: 3,  trial: -1, monthly: -1, yearly: -1, name: '点评回复',     icon: '💬' },
-  competitor:    { free: 0,  trial: 0,  monthly: -1, yearly: -1, name: '竞对情报站',   icon: '🕵️' },
-  diagnosis:     { free: 3,  trial: -1, monthly: -1, yearly: -1, name: '经营诊断',     icon: '🩺' },
-  bizdev:        { free: 0,  trial: 0,  monthly: -1, yearly: -1, name: '大客户拓展',   icon: '🤝' },
-  patrol:        { free: 0,  trial: 0,  monthly: -1, yearly: -1, name: '数字巡店',     icon: '📷' },
-  feedback:      { free: -1, trial: -1, monthly: -1, yearly: -1, name: '共创中心',     icon: '🎯' }
+  content:       { free: 0,  freeyear: 0,  trial: -1, monthly: -1, yearly: -1, name: '内容创作中心', icon: '✍️' },
+  training:      { free: 0,  freeyear: 0,  trial: -1, monthly: -1, yearly: -1, name: '前台培训管家', icon: '📖' },
+  analysis:      { free: 0,  freeyear: 0,  trial: -1, monthly: -1, yearly: -1, name: '数据分析助手', icon: '📈' },
+  image:         { free: 0,  freeyear: 3,  trial: 3,  monthly: -1, yearly: -1, name: 'AI配图',       icon: '🎨' },
+  feishu:        { free: 0,  freeyear: 0,  trial: 0,  monthly: -1, yearly: -1, name: '飞书表格',     icon: '📋' },
+  video:         { free: 0,  freeyear: 0,  trial: 0,  monthly: -1, yearly: -1, name: '短视频生成',   icon: '🎬' },
+  geo:           { free: 0,  freeyear: 0,  trial: 3,  monthly: -1, yearly: -1, name: 'GEO优化',     icon: '🔍' },
+  quicklink:     { free: -1, freeyear: -1, trial: -1, monthly: -1, yearly: -1, name: '一键直达',     icon: '🚀' },
+  review:        { free: 3,  freeyear: 3,  trial: -1, monthly: -1, yearly: -1, name: '点评回复',     icon: '💬' },
+  competitor:    { free: 0,  freeyear: 0,  trial: 0,  monthly: -1, yearly: -1, name: '竞对情报站',   icon: '🕵️' },
+  diagnosis:     { free: 3,  freeyear: 3,  trial: -1, monthly: -1, yearly: -1, name: '经营诊断',     icon: '🩺' },
+  bizdev:        { free: 0,  freeyear: 0,  trial: 0,  monthly: -1, yearly: -1, name: '大客户拓展',   icon: '🤝' },
+  patrol:        { free: 0,  freeyear: 0,  trial: 0,  monthly: -1, yearly: -1, name: '数字巡店',     icon: '📷' },
+  feedback:      { free: -1, freeyear: -1, trial: -1, monthly: -1, yearly: -1, name: '共创中心',     icon: '🎯' },
+  aitask:        { free: 3,  freeyear: 5,  trial: -1, monthly: -1, yearly: -1, name: 'AI任务拆解',  icon: '🧩' }
 };
 
 // -1 = 不限次, 0 = 关闭, >0 = 限次数
@@ -78,13 +80,14 @@ const MemberStore = {
     return m ? m.plan : 'free';
   },
 
-  // 剩余天数
+  // 剩余天数（到期当天算0天）
   getDaysLeft() {
     const m = this.get();
     if (!m || !m.expireDate) return 0;
     const now = new Date(); now.setHours(0,0,0,0);
     const expire = new Date(m.expireDate); expire.setHours(0,0,0,0);
-    return Math.ceil((expire - now) / (1000*60*60*24));
+    const diff = Math.floor((expire - now) / (1000*60*60*24));
+    return diff > 0 ? diff : 0;
   },
 
   // 获取酒店配置的套餐（优先级高于用户自己注册的套餐）
@@ -192,12 +195,15 @@ function submitEntryInfo() {
   if (!phone || phone.length !== 11) { showToast('请输入正确的手机号', 'error'); return; }
 
   if (selectedPlan === 'free') {
-    // 免费体验：直接激活
+    // 免费体验：3天倒计时
+    const today = new Date();
+    const expire = new Date(today);
+    expire.setDate(expire.getDate() + PLANS.free.days);
     const memberData = {
       name, hotel, phone,
       plan: 'free',
-      activateDate: new Date().toISOString().split('T')[0],
-      expireDate: '2099-12-31', // 免费永不过期
+      activateDate: today.toISOString().split('T')[0],
+      expireDate: expire.toISOString().split('T')[0],
       status: 'active',
       usage: MemberStore.getUsage()
     };
@@ -321,17 +327,20 @@ function enterWorkbench() {
 
 // 跳过入口页面，以免费体验身份直接进入工作台
 function skipEntry() {
-  // 如果还没有会员记录，创建一个免费体验记录
+  // 如果还没有会员记录，创建一个免费体验记录（3天）
   const member = MemberStore.get();
   if (!member) {
+    const today = new Date();
+    const expire = new Date(today);
+    expire.setDate(expire.getDate() + PLANS.free.days);
     MemberStore.set({
       name: '游客',
       hotel: '',
       phone: '',
       plan: 'free',
       status: 'active',
-      activateDate: new Date().toISOString(),
-      expireDate: '' // 免费版无过期时间
+      activateDate: today.toISOString(),
+      expireDate: expire.toISOString().split('T')[0]
     });
   }
   enterWorkbench();
@@ -339,20 +348,18 @@ function skipEntry() {
 
 function memberLogin() {
   const name = document.getElementById('loginName').value.trim();
-  const phone = document.getElementById('loginPhone').value.trim();
-  if (!name || !phone) { showToast('请输入姓名和手机号', 'error'); return; }
+  const hotel = document.getElementById('loginHotel').value.trim();
+  if (!name || !hotel) { showToast('请输入姓名和酒店名称', 'error'); return; }
 
-  // 从云端检查（通过管理员已开通的用户列表）
-  // 这里需要从prompts.json的members字段匹配
-  // 暂时用本地存储匹配
   const member = MemberStore.get();
-  if (member && member.name === name && member.phone === phone && member.status === 'active') {
+  if (member && member.name === name && member.hotel === hotel && member.status === 'active') {
     if (MemberStore.isExpired() && member.plan !== 'free') {
       // 已过期，引导续费
       showStep(0);
       showToast('会员已到期，请续费', 'warning');
       return;
     }
+    setCurrentHotel(hotel);
     enterWorkbench();
   } else {
     showToast('未找到匹配的会员信息，请确认或联系管理员', 'error');
@@ -372,21 +379,43 @@ function renewPlan() {
 // 检查到期提醒
 function checkExpiryReminder() {
   const member = MemberStore.get();
-  if (!member || member.plan === 'free' || member.status !== 'active') return;
+  if (!member || member.status !== 'active') return;
+  if (member.plan === 'freeyear') return; // 1年免费用户不提醒
 
   const daysLeft = MemberStore.getDaysLeft();
   const reminded = localStorage.getItem('hotel_expiry_reminded');
 
+  if (member.plan === 'free') {
+    // 免费体验3天到期
+    if (daysLeft <= 0 && (!reminded || reminded !== 'free_expired')) {
+      document.getElementById('expiryTitle').textContent = '⏰ 免费体验已到期';
+      document.getElementById('expiryMessage').innerHTML =
+        '您的免费体验已于 <strong>今天</strong> 到期。<br>升级付费套餐后可继续使用全部功能。<br>包月 <strong>¥39</strong> / 包年 <strong>¥428</strong>';
+      document.getElementById('expiryModal').style.display = 'flex';
+      localStorage.setItem('hotel_expiry_reminded', 'free_expired');
+    } else if (daysLeft === 1 && (!reminded || reminded !== 'free_1day')) {
+      document.getElementById('expiryTitle').textContent = '⏰ 免费体验明天到期';
+      document.getElementById('expiryMessage').innerHTML =
+        '您的免费体验还剩 <strong>1天</strong>。<br>升级付费套餐后可继续使用全部功能。';
+      document.getElementById('expiryModal').style.display = 'flex';
+      localStorage.setItem('hotel_expiry_reminded', 'free_1day');
+    }
+    return;
+  }
+
   if (daysLeft <= 0) {
-    // 已过期
     if (!reminded || reminded !== 'expired') {
       document.getElementById('expiryTitle').textContent = '⚠️ 会员已到期';
       document.getElementById('expiryMessage').innerHTML =
-        '您的会员已于 <strong>今天</strong> 到期。<br>已自动降级为免费体验（每模块限3次）。<br>续费后可恢复全功能使用。';
+        '您的会员已于 <strong>今天</strong> 到期。<br>已自动降级为免费体验（3天）。<br>续费后可恢复全功能使用。';
       document.getElementById('expiryModal').style.display = 'flex';
       localStorage.setItem('hotel_expiry_reminded', 'expired');
       // 降级
       member.plan = 'free';
+      const today = new Date();
+      const expire = new Date(today);
+      expire.setDate(expire.getDate() + PLANS.free.days);
+      member.expireDate = expire.toISOString().split('T')[0];
       MemberStore.set(member);
     }
   } else if (daysLeft <= 3) {
@@ -574,15 +603,13 @@ function renderProfilePage() {
   document.getElementById('profileName').textContent = member.name || '-';
   document.getElementById('profileHotel').textContent = member.hotel || '-';
   document.getElementById('profileActivateDate').textContent = member.activateDate || '-';
-  document.getElementById('profileExpireDate').textContent = effectivePlan === 'free' ? '永久' : (member.expireDate || '-');
+  document.getElementById('profileExpireDate').textContent = member.expireDate || '-';
 
-  // 天数进度条
+  // 天数进度条（所有套餐统一展示）
   const statusBar = document.getElementById('profileStatusBar');
-  if (effectivePlan === 'free') {
-    statusBar.style.display = 'none';
-  } else {
+  {
     statusBar.style.display = '';
-    const totalDays = planInfo.days;
+    const totalDays = planInfo.days || PLANS.free.days;
     const percent = isExpired ? 0 : Math.min(100, (daysLeft / totalDays) * 100);
     const barColor = isExpired ? 'var(--danger)' : isExpiring ? 'var(--warning)' : 'var(--success)';
     document.getElementById('profileDaysBar').style.width = percent + '%';
@@ -635,7 +662,6 @@ function renderProfileUsage() {
     { key: 'content', label: '内容创作', icon: '✍️' },
     { key: 'training', label: '前台培训', icon: '📖' },
     { key: 'analysis', label: '数据分析', icon: '📈' },
-    { key: 'image', label: 'AI配图', icon: '🎨' },
     { key: 'video', label: '短视频生成', icon: '🎬' },
     { key: 'geo', label: 'GEO优化', icon: '🔍' },
     { key: 'review', label: '点评回复', icon: '💬' },
@@ -850,6 +876,7 @@ function confirmLogout() {
   localStorage.removeItem('hotel_operation_history');
   localStorage.removeItem('current_hotel');
   localStorage.removeItem('hotel_expiry_reminded');
+  localStorage.removeItem('hotel_autologin'); // 清除免登录凭证
   showToast(`👋 ${name}，已退出登录`);
 
   // 更新侧边栏
@@ -1109,7 +1136,87 @@ const PROMPTS = {
 {{data}}
 
 分析维度：{{dimensions}}
-报告类型：{{reportType}}`
+报告类型：{{reportType}}`,
+
+  geo: `你是酒店GEO优化专家，专注于让酒店在AI搜索引擎（豆包、千问等）中被精准关联。
+
+优化策略：
+- 核心关键词：酒店品类词 + 地理位置词 + 特色卖点词
+- 场景关键词：出行场景（商务出差/亲子家庭/情侣蜜月/休闲度假）
+- 内容矩阵：4周内容日历，覆盖不同平台和场景
+- SEO标题：包含地区+品类+卖点，长尾关键词策略
+
+目标：用户在豆包/千问等AI搜索"商务酒店/亲子酒店/{{city}}"时，能关联到{{hotelName}}
+
+酒店信息：{{hotelName}}
+所在城市：{{city}}
+核心卖点：{{features}}`,
+
+  video: `你是酒店短视频脚本创作专家，熟悉抖音/视频号的传播规律。
+
+脚本格式：
+- 片头：3秒钩子，直接抛出痛点或反差
+- 主体：分3个分镜，每镜4-8秒
+- 结尾：引导关注/收藏/到店
+- 总时长：30秒/60秒可选
+
+风格：真实感强、有画面感、配音口语化
+
+酒店名称：{{hotelName}}
+视频主题：{{topic}}
+视频时长：{{duration}}
+补充信息：{{extra}}`,
+
+  review: `你是酒店点评回复专家，熟悉OTA平台规范和客户服务话术。
+
+回复原则：
+- 好评：真诚感谢，强化卖点，引导再次消费
+- 差评：第一句认错，第二句解释，第三句补救，第四句欢迎再来
+- 中评：感谢反馈，突出亮点，说明改进
+
+语气要求：
+- 专业但有温度，不官方腔
+- 个性化，不要所有回复都用同一模板
+- 篇幅：50-150字，差评可稍长
+
+酒店名称：{{hotelName}}
+点评内容：{{reviews}}`,
+
+  diagnosis: `你是酒店经营诊断专家，擅长从数据中找问题、提方案。
+
+诊断框架：
+- 出租率诊断：对标行业均值，分析淡旺季规律
+- 收入结构诊断：ADR/RevPAR/各渠道贡献度
+- 运营成本诊断：人效/能耗/营销ROI
+- 改进建议：TOP3优先级，每条建议有量化目标
+
+输出格式：
+1. 核心问题（3条）
+2. 根因分析
+3. 改进方案（优先级排序）
+4. 预期效果
+
+经营数据：
+{{data}}`,
+
+  patrol: `你是酒店SOP标准执行检查专家。
+
+巡检维度：
+- 大堂&前台：卫生/陈列/工牌/迎客礼仪
+- 客房：床铺整洁/备品齐全/设施完好/气味
+- 餐厅：食品安全/卫生状况/服务规范
+- 公共区域：走廊/电梯/卫生间
+
+评分标准：
+- 优秀（90+）：完全符合SOP
+- 良好（75-89）：小瑕疵，不影响体验
+- 待改进（60-74）：有明显问题需整改
+- 不合格（<60）：立即整改
+
+输出格式：各区域评分 + 具体问题 + 整改要求 + 整改时限
+
+巡检图片描述：{{imageDesc}}
+巡检时间：{{time}}`
 };
 
 // ==================== Prompt 云端同步 ====================
@@ -1120,7 +1227,7 @@ const PROMPTS_API_URL = 'https://api.github.com/repos/sxie738-bot/hotel-ai-workb
 let cloudPrompts = null; // 云端 Prompt 缓存
 
 // ==================== 应用版本更新检测 ====================
-const APP_VERSION = '1.5.1'; // 当前代码版本号（每次发布新功能时手动递增）
+const APP_VERSION = '1.6.1'; // 当前代码版本号（每次发布新功能时手动递增）
 
 // 检查是否有新版本可用
 async function checkForUpdate(showToastIfLatest = false) {
@@ -1682,6 +1789,8 @@ function getKnowledgeText() {
 }
 
 // ==================== 工作台动态渲染 ====================
+// ==================== 工作台分类与模块定义 ====================
+
 // 模块描述信息（用于工作台卡片和自定义弹窗）
 const MODULE_DESCRIPTIONS = {
   content:    '携程社区内容生成、多平台复用、AI配图',
@@ -1699,6 +1808,51 @@ const MODULE_DESCRIPTIONS = {
   feedback:   '提交需求建议，被采纳赠1个月会员'
 };
 
+// 飞书风格分类定义：一级分类包含二级模块
+const DASHBOARD_CATEGORIES = [
+  {
+    id: 'content',
+    name: '内容营销',
+    desc: 'AI内容创作与多平台一键分发',
+    icon: '✍️',
+    modules: ['content', 'video', 'geo', 'review', 'quicklink']
+  },
+  {
+    id: 'training',
+    name: '培训管理',
+    desc: '前台话术、知识库与应急预案',
+    icon: '📖',
+    modules: ['training']
+  },
+  {
+    id: 'data',
+    name: '数据决策',
+    desc: '数据分析、竞对调研与经营诊断',
+    icon: '📈',
+    modules: ['analysis', 'competitor', 'diagnosis']
+  },
+  {
+    id: 'ops',
+    name: '运营工具',
+    desc: '大客户拓展、数字巡店',
+    icon: '🛠️',
+    modules: ['bizdev', 'patrol']
+  },
+  {
+    id: 'tools',
+    name: '更多',
+    desc: 'AI任务拆解、共创中心',
+    icon: '⚙️',
+    modules: ['aitask', 'feedback']
+  }
+];
+
+// 分类与模块的映射（用于快速查找）
+const MODULE_CATEGORY_MAP = {};
+DASHBOARD_CATEGORIES.forEach(cat => {
+  cat.modules.forEach(m => { MODULE_CATEGORY_MAP[m] = cat.id; });
+});
+
 // 获取工作台固定模块
 function getDashboardPinned() {
   try { return JSON.parse(localStorage.getItem('dashboard_pinned')) || null; } catch { return null; }
@@ -1709,94 +1863,155 @@ function setDashboardPinned(list) {
   localStorage.setItem('dashboard_pinned', JSON.stringify(list));
 }
 
-// 渲染工作台卡片
+// 渲染工作台（飞书风格：一级分类 + 二级模块）
 function renderDashboardCards() {
   const container = document.getElementById('dashboardCards');
   if (!container) return;
 
   const pinned = getDashboardPinned();
+  const isAdmin = localStorage.getItem('admin_mode') === 'true';
   const perms = MemberStore.getPermissions();
-  let modulesToShow;
 
-  if (pinned && pinned.length > 0) {
-    // 用户有自定义设置，按设置的顺序显示有权限的模块
-    modulesToShow = pinned.filter(key => perms[key] && (MemberStore.canUse(key) || MemberStore.getRemaining(key) > 0));
-    // 补充未固定但有权限的新模块
-    Object.keys(perms).forEach(key => {
-      if (!modulesToShow.includes(key) && (MemberStore.canUse(key) || MemberStore.getRemaining(key) > 0) && perms[key].name) {
-        modulesToShow.push(key);
-      }
-    });
-  } else {
-    // 默认：显示所有有权限的模块
-    modulesToShow = Object.keys(perms).filter(key =>
+  // 获取用户可见的模块列表
+  function getVisibleModules() {
+    if (isAdmin) {
+      // 管理员看到所有模块
+      return Object.keys(perms).filter(k => perms[k].name);
+    }
+    // 普通用户：根据权限过滤（排除 feishu、image 和 quicklink（已合并到内容创作中心））
+    return Object.keys(perms).filter(key =>
+      key !== 'feishu' && key !== 'image' && key !== 'quicklink' &&
       perms[key].name && (MemberStore.canUse(key) || MemberStore.getRemaining(key) > 0)
     );
   }
 
+  let visibleModules = getVisibleModules();
+
+  // 如果有自定义配置，只显示勾选的模块（保持顺序）
+  if (pinned && pinned.length > 0) {
+    const pinnedSet = new Set(pinned);
+    visibleModules = visibleModules.filter(k => pinnedSet.has(k));
+  } else if (pinned && pinned.length === 0) {
+    // 用户主动清空了所有勾选
+    visibleModules = [];
+  }
+
   // 更新工具数量
   const countText = document.getElementById('toolCountText');
-  if (countText) countText.textContent = `${modulesToShow.length}个AI工具`;
+  if (countText) countText.textContent = `${visibleModules.length}个AI工具`;
 
-  // 排除 feishu（外部链接，不显示卡片）
-  modulesToShow = modulesToShow.filter(k => k !== 'feishu');
+  const visibleSet = new Set(visibleModules);
 
+  // 构建飞书风格布局
   container.innerHTML = '';
-  modulesToShow.forEach(key => {
-    const info = perms[key] || {};
-    const desc = MODULE_DESCRIPTIONS[key] || '';
-    const card = document.createElement('div');
-    card.className = 'tool-card';
-    card.onclick = () => navigateTo(key);
-    card.innerHTML = `
-      <div class="tool-card-icon">${info.icon || '🔧'}</div>
-      <h3>${info.name || key}</h3>
-      <p>${desc}</p>
+  container.className = 'dashboard-categories'; // 替换原来的 tool-cards grid
+
+  DASHBOARD_CATEGORIES.forEach(cat => {
+    // 筛选该分类下可见的模块
+    const catModules = cat.modules.filter(m => visibleSet.has(m));
+    if (catModules.length === 0) return; // 该分类下没有可见模块则跳过
+
+    const catEl = document.createElement('div');
+    catEl.className = `dashboard-category cat-${cat.id} expanded`;
+
+    // 分类名对应英文 class（用于颜色主题）
+    // 渲染分类头
+    const header = document.createElement('div');
+    header.className = 'dashboard-category-header';
+    header.onclick = () => {
+      catEl.classList.toggle('expanded');
+      catEl.classList.toggle('collapsed');
+    };
+    header.innerHTML = `
+      <div class="dashboard-category-icon">${cat.icon}</div>
+      <div class="dashboard-category-text">
+        <div class="dashboard-category-name">${cat.name}</div>
+        <div class="dashboard-category-desc">${cat.desc}</div>
+      </div>
+      <span class="dashboard-category-count">${catModules.length}个工具</span>
+      <span class="dashboard-category-arrow">▶</span>
     `;
-    container.appendChild(card);
+    catEl.appendChild(header);
+
+    // 渲染二级模块网格
+    const modulesGrid = document.createElement('div');
+    modulesGrid.className = 'dashboard-category-modules';
+
+    catModules.forEach(key => {
+      const info = perms[key] || {};
+      const desc = MODULE_DESCRIPTIONS[key] || '';
+
+      const card = document.createElement('div');
+      card.className = 'dashboard-sub-card';
+      card.onclick = () => navigateTo(key);
+
+      // 显示剩余次数（非管理员且有限次时）
+      let usageHtml = '';
+      if (!isAdmin) {
+        const remaining = MemberStore.getRemaining(key);
+        if (remaining >= 0 && remaining <= 10) {
+          usageHtml = `<div class="dashboard-sub-card-usage">剩余 ${remaining} 次</div>`;
+        }
+      }
+
+      card.innerHTML = `
+        <div class="dashboard-sub-card-icon">${info.icon || '🔧'}</div>
+        <div class="dashboard-sub-card-name">${info.name || key}</div>
+        <div class="dashboard-sub-card-desc">${desc}</div>
+        ${usageHtml}
+      `;
+      modulesGrid.appendChild(card);
+    });
+
+    catEl.appendChild(modulesGrid);
+    container.appendChild(catEl);
   });
 }
 
-// 自定义工作台弹窗
+// 自定义工作台弹窗（分类版）
 function showDashboardCustomize() {
   const modal = document.getElementById('dashboardCustomizeModal');
   const list = document.getElementById('dashboardModuleList');
   if (!modal || !list) return;
 
   const pinned = getDashboardPinned();
+  const isAdmin = localStorage.getItem('admin_mode') === 'true';
   const perms = MemberStore.getPermissions();
 
-  // 收集可显示的模块（排除feishu）
-  const availableModules = Object.keys(perms).filter(key => key !== 'feishu' && perms[key].name);
-  // 排序：已固定的在前，其余按原始顺序
-  const sorted = availableModules.sort((a, b) => {
-    const aIdx = (pinned || []).indexOf(a);
-    const bIdx = (pinned || []).indexOf(b);
-    if (aIdx === -1 && bIdx === -1) return 0;
-    if (aIdx === -1) return 1;
-    if (bIdx === -1) return -1;
-    return aIdx - bIdx;
-  });
-
   list.innerHTML = '';
-  sorted.forEach(key => {
-    const info = perms[key] || {};
-    const desc = MODULE_DESCRIPTIONS[key] || '';
-    const isChecked = pinned ? pinned.includes(key) : true; // 默认全选
-    const item = document.createElement('div');
-    item.className = 'dashboard-module-item';
-    item.dataset.module = key;
-    item.draggable = true;
-    item.innerHTML = `
-      <span class="module-drag-handle">⠿</span>
-      <input type="checkbox" class="module-check" data-module="${key}" ${isChecked ? 'checked' : ''}>
-      <span class="module-icon">${info.icon || '🔧'}</span>
-      <div class="module-info">
-        <div class="module-name">${info.name || key}</div>
-        <div class="module-desc">${desc}</div>
-      </div>
-    `;
-    list.appendChild(item);
+
+  DASHBOARD_CATEGORIES.forEach(cat => {
+    // 分类标题
+    const catHeader = document.createElement('div');
+    catHeader.style.cssText = 'font-size:13px; font-weight:600; color:var(--text-secondary); margin-top:8px; margin-bottom:4px; padding-left:4px; display:flex; align-items:center; gap:6px;';
+    catHeader.innerHTML = `${cat.icon} ${cat.name}`;
+    if (list.children.length === 0) catHeader.style.marginTop = '0';
+    list.appendChild(catHeader);
+
+    cat.modules.forEach(key => {
+      // 跳过 feishu 和 image
+      if (key === 'feishu' || key === 'image') return;
+      const info = perms[key] || {};
+      if (!info.name) return;
+
+      const desc = MODULE_DESCRIPTIONS[key] || '';
+      // 默认全选（pinned 为 null 时），有自定义配置时按配置来
+      const isChecked = pinned ? pinned.includes(key) : true;
+      const item = document.createElement('div');
+      item.className = 'dashboard-module-item';
+      item.dataset.module = key;
+      item.draggable = true;
+      item.innerHTML = `
+        <span class="module-drag-handle">⠿</span>
+        <input type="checkbox" class="module-check" data-module="${key}" ${isChecked ? 'checked' : ''}>
+        <span class="module-icon">${info.icon || '🔧'}</span>
+        <div class="module-info">
+          <div class="module-name">${info.name || key}</div>
+          <div class="module-desc">${desc}</div>
+        </div>
+      `;
+      list.appendChild(item);
+    });
   });
 
   // 拖拽排序
@@ -1902,9 +2117,26 @@ function getFeishuUrl() {
 }
 
 function navigateTo(page) {
+  // 一键直达：跳转到内容创作中心并选中 quicklink tab
+  if (page === 'quicklink') {
+    navigateTo('content');
+    // 等页面渲染后切换tab
+    setTimeout(() => {
+      const qlTab = document.querySelector('[data-tab="quicklink"]');
+      if (qlTab) qlTab.click();
+    }, 50);
+    return;
+  }
+
   // 飞书表格：外部跳转，不切换页面
   if (page === 'feishu') {
     window.open(getFeishuUrl(), '_blank');
+    return;
+  }
+
+  // 未登录用户点击"我的会员"直接弹出登录弹窗
+  if (page === 'profile' && (!MemberStore.get() || !MemberStore.get().name)) {
+    showHotelWelcome();
     return;
   }
 
@@ -1930,6 +2162,7 @@ function navigateTo(page) {
     // 更新标题
     const titles = {
       dashboard: '工作台',
+      recent: '最近使用',
       content: '内容创作中心',
       training: '前台培训管家',
       analysis: '数据分析助手',
@@ -1941,6 +2174,8 @@ function navigateTo(page) {
       diagnosis: '经营诊断',
       bizdev: '大客户拓展',
       patrol: '数字巡店',
+      feedback: '共创中心',
+      aitask: 'AI任务拆解',
       profile: '我的会员',
       settings: '系统设置'
     };
@@ -1952,11 +2187,25 @@ function navigateTo(page) {
       renderProfilePage();
     }
 
+    // 切换到最近使用时渲染
+    if (page === 'recent') {
+      renderRecentPage();
+    }
+
+    // 切换到系统设置时刷新统计
+    if (page === 'settings') {
+      setTimeout(() => refreshAdminStats(), 100);
+    }
+
     // 刷新知识库
     if (page === 'training') {
       updateKnowledgeCount();
       renderKnowledgeList();
     }
+
+    // 记录最近使用（非工具性页面不记录）
+    const trackable = ['content','training','analysis','video','geo','review','competitor','diagnosis','bizdev','patrol','feedback','aitask'];
+    if (trackable.includes(page)) recordRecentModule(page);
   });
 }
 
@@ -1991,6 +2240,33 @@ function initTabs() {
 }
 
 // ==================== 设置页导航 ====================
+
+// 快速跳转到Prompt调教并定位到指定卡片（管理员用）
+function openPromptTuning(promptKey) {
+  // 1. 切换到系统设置页
+  navigateTo('settings');
+  // 2. 切换到 Prompt 调教 Tab
+  setTimeout(() => {
+    document.querySelectorAll('.settings-nav-btn').forEach(b => b.classList.remove('active'));
+    document.querySelectorAll('.setting-section').forEach(s => s.classList.remove('active'));
+    const btn = document.querySelector('.settings-nav-btn[data-setting="prompt"]');
+    const section = document.getElementById('setting-prompt');
+    if (btn) btn.classList.add('active');
+    if (section) section.classList.add('active');
+    // 3. 定位到指定卡片（如果有 promptKey）
+    if (promptKey) {
+      const card = document.querySelector(`.prompt-card[data-prompt="${promptKey}"]`);
+      if (card) {
+        card.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        // 高亮闪烁效果
+        card.style.transition = 'box-shadow 0.3s';
+        card.style.boxShadow = '0 0 0 3px var(--primary)';
+        setTimeout(() => { card.style.boxShadow = ''; }, 1500);
+      }
+    }
+  }, 100);
+}
+
 function initSettingsNav() {
   document.querySelectorAll('.settings-nav-btn').forEach(btn => {
     btn.addEventListener('click', () => {
@@ -2000,6 +2276,10 @@ function initSettingsNav() {
       document.querySelectorAll('.setting-section').forEach(s => s.classList.remove('active'));
       const target = document.getElementById('setting-' + setting);
       if (target) target.classList.add('active');
+      // 切换到会员管理时刷新统计
+      if (setting === 'members') setTimeout(() => refreshAdminStats(), 50);
+      // 切换到共创反馈时加载数据
+      if (setting === 'feedback_admin') setTimeout(() => loadFeedbackAdmin(), 50);
     });
   });
 }
@@ -2466,42 +2746,76 @@ function showHotelWelcome(clearForm = false) {
   const error = document.getElementById('hotelNameError');
   modal.style.display = 'flex';
   error.style.display = 'none';
+
   if (clearForm) {
-    // 新注册模式：清空表单
+    // 注册模式
+    switchAuthTab('register');
+    document.getElementById('registerName').value = '';
+    document.getElementById('registerPhone').value = '';
+    document.getElementById('registerHotel').value = '';
     document.getElementById('welcomeName').value = '';
-    document.getElementById('welcomePhone').value = '';
-    document.getElementById('hotelNameInput').value = '';
-    setTimeout(() => document.getElementById('welcomeName')?.focus(), 100);
+    document.getElementById('welcomeHotel').value = '';
+    setTimeout(() => document.getElementById('registerName')?.focus(), 150);
   } else {
-    // 登录模式：预填已有信息
+    // 登录模式
+    switchAuthTab('login');
     const member = MemberStore.get();
+    const currentHotel = getCurrentHotel();
     document.getElementById('welcomeName').value = member?.name || '';
-    document.getElementById('welcomePhone').value = member?.phone || '';
-    document.getElementById('hotelNameInput').value = getCurrentHotel();
+    document.getElementById('welcomeHotel').value = currentHotel || '';
     setTimeout(() => {
-      const firstEmpty = !member?.name ? 'welcomeName' : !member?.phone ? 'welcomePhone' : 'hotelNameInput';
-      document.getElementById(firstEmpty)?.focus();
-    }, 100);
+      const firstEmpty = !member?.name ? 'welcomeName' : !currentHotel ? 'welcomeHotel' : null;
+      if (firstEmpty) document.getElementById(firstEmpty)?.focus();
+    }, 150);
   }
 }
 
-// 关闭欢迎弹窗
-function closeHotelWelcome() {
-  document.getElementById('hotelWelcomeModal').style.display = 'none';
+// 切换登录/注册Tab
+function switchAuthTab(tab) {
+  const loginTab = document.getElementById('authTabLogin');
+  const registerTab = document.getElementById('authTabRegister');
+  const loginForm = document.getElementById('authLoginForm');
+  const registerForm = document.getElementById('authRegisterForm');
+  const indicator = document.getElementById('authTabIndicator');
+  const error = document.getElementById('hotelNameError');
+  error.style.display = 'none';
+
+  if (tab === 'login') {
+    loginTab.classList.add('active');
+    registerTab.classList.remove('active');
+    loginForm.style.display = 'block';
+    registerForm.style.display = 'none';
+    indicator.classList.remove('right');
+    // 同步酒店名到登录表单
+    const regHotel = document.getElementById('registerHotel')?.value.trim();
+    if (regHotel) document.getElementById('welcomeHotel').value = regHotel;
+  } else {
+    registerTab.classList.add('active');
+    loginTab.classList.remove('active');
+    registerForm.style.display = 'block';
+    loginForm.style.display = 'none';
+    indicator.classList.add('right');
+    // 同步已有信息到注册表单
+    const member = MemberStore.get();
+    if (member?.name) document.getElementById('registerName').value = member.name;
+    if (member?.phone) document.getElementById('registerPhone').value = member.phone;
+    const hotel = member?.hotel || getCurrentHotel();
+    if (hotel) document.getElementById('registerHotel').value = hotel;
+  }
 }
 
-// 提交酒店名（同时完成注册）
-function submitHotelName() {
+// 注册提交
+function submitRegister() {
   const error = document.getElementById('hotelNameError');
-  const name = document.getElementById('welcomeName').value.trim();
-  const phone = document.getElementById('welcomePhone').value.trim();
-  const hotel = document.getElementById('hotelNameInput').value.trim();
+  const name = document.getElementById('registerName').value.trim();
+  const phone = document.getElementById('registerPhone').value.trim();
+  const hotel = document.getElementById('registerHotel').value.trim();
 
   if (!name) { error.textContent = '请输入姓名'; error.style.display = 'block'; return; }
   if (!phone || phone.length !== 11) { error.textContent = '请输入正确的11位手机号'; error.style.display = 'block'; return; }
   if (!hotel) { error.textContent = '请输入酒店名称'; error.style.display = 'block'; return; }
 
-  // 检查酒店名是否在云端配置中（如果已有云端数据）
+  // 检查酒店名是否在云端配置中
   if (Object.keys(hotelsData).length > 0 && !hotelsData[hotel]) {
     const similar = Object.keys(hotelsData).find(h => h.includes(hotel) || hotel.includes(h));
     if (similar) {
@@ -2511,38 +2825,144 @@ function submitHotelName() {
     }
   }
 
-  // 保存/更新会员信息（注册+设酒店一步完成）
+  // 保存会员信息
   const existingMember = MemberStore.get();
+  // 计算到期日：如果已有到期日则沿用，否则按当前套餐计算（free/freeyear等）
+  let expireDateStr = existingMember?.expireDate;
+  if (!expireDateStr || expireDateStr === '2099-12-31') {
+    const plan = existingMember?.plan || 'free';
+    const days = (PLANS[plan]?.days) || PLANS.free.days;
+    const expireD = new Date();
+    expireD.setDate(expireD.getDate() + days);
+    expireDateStr = expireD.toISOString().split('T')[0];
+  }
   const memberData = {
     name: name,
     hotel: hotel,
     phone: phone,
     plan: existingMember?.plan || 'free',
     activateDate: existingMember?.activateDate || new Date().toISOString().split('T')[0],
-    expireDate: existingMember?.expireDate || '2099-12-31',
+    expireDate: expireDateStr,
     status: 'active',
     usage: existingMember?.usage || MemberStore.getUsage()
   };
   MemberStore.set(memberData);
   setCurrentHotel(hotel);
+  // 注册成功，记录免登录凭证
+  localStorage.setItem('hotel_autologin', JSON.stringify({ name, hotel, ts: Date.now() }));
+
+  // 同步到登录表单
+  document.getElementById('welcomeName').value = name;
+  document.getElementById('welcomeHotel').value = hotel;
+
   document.getElementById('hotelWelcomeModal').style.display = 'none';
   updateHotelUI();
-
-  // 刷新权限显示（酒店配置可能改变了可用权限）
   updateSidebarByPermissions();
   renderDashboardCards();
   renderProfilePage();
-
-  // 更新侧边栏用户按钮显示
   updateUserNavButton();
+  showToast(`🎉 欢迎 ${name} 注册成功！`);
+}
 
-  // 如果有专属配置，提示加载成功
-  const config = getHotelConfig(hotel);
-  if (config && config.feishu_url) {
-    showToast(`✅ 欢迎 ${name}，${hotel} 专属配置已加载`);
-  } else {
-    showToast(`✅ 欢迎 ${name}，已进入 ${hotel}`);
+// 关闭欢迎弹窗
+function closeHotelWelcome() {
+  document.getElementById('hotelWelcomeModal').style.display = 'none';
+}
+
+// 提交酒店名（登录模式：姓名+酒店名匹配）
+function submitHotelName() {
+  const error = document.getElementById('hotelNameError');
+  const name = document.getElementById('welcomeName').value.trim();
+  const hotel = document.getElementById('welcomeHotel').value.trim();
+
+  if (!name) { error.textContent = '请输入姓名'; error.style.display = 'block'; return; }
+  if (!hotel) { error.textContent = '请输入酒店名称'; error.style.display = 'block'; return; }
+
+  // 1. 先看云端酒店配置（优先级最高）
+  const hotelConfig = getHotelConfig(hotel);
+  if (hotelConfig) {
+    // 云端有此酒店配置
+    if (hotelConfig.contact_name) {
+      // 配置了联系人，必须校验姓名匹配
+      if (hotelConfig.contact_name !== name) {
+        error.textContent = `姓名与酒店不匹配，请确认后重试（酒店「${hotel}」的联系人姓名不正确）`;
+        error.style.display = 'block';
+        return;
+      }
+    }
+    // 云端酒店通过，登录成功（直接信任）
+    _doLogin(name, hotel, error);
+    return;
   }
+
+  // 2. 云端没有此酒店，检查酒店名是否接近
+  const allHotels = Object.keys(hotelsData);
+  if (allHotels.length > 0) {
+    const similar = allHotels.find(h => h.includes(hotel) || hotel.includes(h));
+    if (similar) {
+      error.textContent = `未找到「${hotel}」，您是否想输入「${similar}」？`;
+      error.style.display = 'block';
+      return;
+    }
+    // 有酒店数据但完全找不到，提示联系管理员
+    if (!hotelsData[hotel]) {
+      error.textContent = '未找到该酒店，请确认酒店名称或联系管理员添加';
+      error.style.display = 'block';
+      return;
+    }
+  }
+
+  // 3. 云端无酒店配置（或本地缓存），退回本地 localStorage 校验
+  const member = MemberStore.get();
+  if (member && member.name === name && member.hotel === hotel && member.status === 'active') {
+    if (MemberStore.isExpired() && member.plan !== 'free') {
+      error.textContent = '会员已到期，请联系管理员续费';
+      error.style.display = 'block';
+      return;
+    }
+    _doLogin(name, hotel, error);
+  } else {
+    error.textContent = '未找到匹配信息，请检查后重试或注册新账号';
+    error.style.display = 'block';
+  }
+}
+
+// 登录成功后的公共处理
+function _doLogin(name, hotel, errorEl) {
+  // 更新本地会员记录（确保 name/hotel 最新）
+  const member = MemberStore.get() || {};
+  const hotelConfig = getHotelConfig(hotel);
+  // 套餐以酒店配置为准（如果配置了的话）
+  const plan = hotelConfig?.plan || member.plan || 'free';
+  let expireDate = member.expireDate;
+  if (!expireDate || expireDate === '2099-12-31') {
+    const days = (PLANS[plan]?.days) || PLANS.free.days;
+    const exp = new Date();
+    exp.setDate(exp.getDate() + days);
+    expireDate = exp.toISOString().split('T')[0];
+  }
+  const updated = {
+    ...member,
+    name: name,
+    hotel: hotel,
+    plan: plan,
+    expireDate: expireDate,
+    status: 'active',
+    activateDate: member.activateDate || new Date().toISOString().split('T')[0]
+  };
+  MemberStore.set(updated);
+  // 记录「已登录」标记，用于免登录
+  localStorage.setItem('hotel_autologin', JSON.stringify({ name, hotel, ts: Date.now() }));
+
+  setCurrentHotel(hotel);
+  if (errorEl) errorEl.style.display = 'none';
+  document.getElementById('hotelWelcomeModal').style.display = 'none';
+  updateHotelUI();
+  updateSidebarByPermissions();
+  renderDashboardCards();
+  renderProfilePage();
+  updateUserNavButton();
+  showToast(`👋 欢迎回来，${name}！`);
 }
 
 // 更新侧边栏酒店名显示
@@ -2562,6 +2982,7 @@ function showAddStudentModal() {
   document.getElementById('studentModalTitle').textContent = '🏨 添加酒店';
   document.getElementById('studentHotelName').value = '';
   document.getElementById('studentHotelName').removeAttribute('readonly');
+  document.getElementById('studentContactName').value = '';
   document.getElementById('studentFeishuUrl').value = '';
   document.getElementById('studentNote').value = '';
   document.getElementById('studentPlan').value = 'monthly';
@@ -2578,6 +2999,7 @@ function showEditStudentModal(index) {
   document.getElementById('studentModalTitle').textContent = '✏️ 编辑酒店';
   document.getElementById('studentHotelName').value = name;
   document.getElementById('studentHotelName').setAttribute('readonly', true);
+  document.getElementById('studentContactName').value = config.contact_name || '';
   document.getElementById('studentFeishuUrl').value = config.feishu_url || '';
   document.getElementById('studentNote').value = config.note || '';
   document.getElementById('studentPlan').value = config.plan || 'monthly';
@@ -2590,6 +3012,7 @@ function closeStudentModal() {
 
 async function saveStudent() {
   const name = document.getElementById('studentHotelName').value.trim();
+  const contactName = document.getElementById('studentContactName').value.trim();
   const feishuUrl = document.getElementById('studentFeishuUrl').value.trim();
   const note = document.getElementById('studentNote').value.trim();
   const plan = document.getElementById('studentPlan').value;
@@ -2607,6 +3030,7 @@ async function saveStudent() {
 
   // 更新本地数据
   hotelsData[name] = {
+    contact_name: contactName,
     feishu_url: feishuUrl,
     note: note,
     plan: plan,
@@ -2655,9 +3079,8 @@ function renderMemberList() {
   const active = members.filter(m => m.status === 'active' && !isMemberExpired(m));
   const pending = members.filter(m => m.status === 'pending');
 
-  document.getElementById('memberTotalCount').textContent = members.length;
-  document.getElementById('memberActiveCount').textContent = active.length;
-  document.getElementById('memberPendingCount').textContent = pending.length;
+  // 更新统计大盘
+  refreshAdminStats();
 
   // 待确认列表
   const pendingContainer = document.getElementById('pendingList');
@@ -2947,6 +3370,7 @@ function renderStudentList() {
         <div style="flex:1; min-width:0;">
           <div style="display:flex; align-items:center; gap:8px; margin-bottom:4px;">
             <strong style="font-size:14px;">${escapeHtml(name)}</strong>
+            ${config.contact_name ? `<span style="font-size:12px; color:var(--text-secondary);">${escapeHtml(config.contact_name)}</span>` : ''}
             <span style="font-size:10px; background:${planColor}15; color:${planColor}; padding:1px 6px; border-radius:8px;">${planLabel}</span>
             ${config.feishu_url ? '<span style="font-size:10px; background:var(--success-bg); color:var(--success); padding:1px 6px; border-radius:8px;">已配飞书</span>' : ''}
           </div>
@@ -3278,16 +3702,19 @@ document.addEventListener('DOMContentLoaded', () => {
     MemberStore.set(member);
   }
 
-  // 如果完全没有会员记录，创建一个默认的游客记录（方便权限判断）
+  // 如果完全没有会员记录，创建一个默认的游客记录（免费体验3天）
   if (!member) {
+    const _now = new Date();
+    const _exp = new Date(_now);
+    _exp.setDate(_exp.getDate() + PLANS.free.days);
     MemberStore.set({
       name: '',
       hotel: '',
       phone: '',
       plan: 'free',
       status: 'active',
-      activateDate: new Date().toISOString().split('T')[0],
-      expireDate: '2099-12-31',
+      activateDate: _now.toISOString().split('T')[0],
+      expireDate: _exp.toISOString().split('T')[0],
       usage: {}
     });
   }
@@ -3337,7 +3764,22 @@ function initApp() {
   // 检查是否需要显示注册弹窗（未填写姓名和手机号时弹出）
   const currentHotel = getCurrentHotel();
   const member = MemberStore.get();
-  if (!isAdmin && (!member || !member.name || !member.phone)) {
+
+  // 免登录检查：已有有效登录记录且会员信息完整，直接跳过弹窗
+  const autoLogin = (() => {
+    try { return JSON.parse(localStorage.getItem('hotel_autologin') || 'null'); } catch { return null; }
+  })();
+  const hasValidSession = autoLogin && member && member.name && member.hotel &&
+    member.name === autoLogin.name && member.hotel === autoLogin.hotel &&
+    !MemberStore.isExpired();
+
+  if (!isAdmin && hasValidSession) {
+    // 免登录：静默恢复会话
+    updateHotelUI();
+    updateSidebarByPermissions();
+    renderDashboardCards();
+    updateUserNavButton();
+  } else if (!isAdmin && (!member || !member.name || !member.phone)) {
     setTimeout(() => showHotelWelcome(), 500);
   } else if (!currentHotel && !isAdmin) {
     // 有会员信息但没设酒店名，弹出设酒店
@@ -3346,13 +3788,23 @@ function initApp() {
     updateHotelUI();
   }
 
-  // 欢迎弹窗回车提交
-  const hotelInput = document.getElementById('hotelNameInput');
-  if (hotelInput) {
-    hotelInput.addEventListener('keypress', (e) => {
-      if (e.key === 'Enter') submitHotelName();
-    });
-  }
+  // 登录/注册弹窗回车提交
+  ['welcomeName', 'welcomeHotel'].forEach(id => {
+    const el = document.getElementById(id);
+    if (el) {
+      el.addEventListener('keypress', (e) => {
+        if (e.key === 'Enter') submitHotelName();
+      });
+    }
+  });
+  ['registerName', 'registerPhone', 'registerHotel'].forEach(id => {
+    const el = document.getElementById(id);
+    if (el) {
+      el.addEventListener('keypress', (e) => {
+        if (e.key === 'Enter') submitRegister();
+      });
+    }
+  });
 
   // 管理员进入时渲染学员列表 + 会员管理 + 权限配置
   if (isAdmin) {
@@ -3492,6 +3944,289 @@ function renderFeedbackHistory() {
       </div>
     </div>`;
   }).join('');
+}
+
+// ==================== 最近使用记录 ====================
+const RECENT_MODULES_KEY = 'hotel_recent_modules';
+const RECENT_MAX = 10;
+
+function recordRecentModule(moduleId) {
+  try {
+    const MODULE_NAMES = {
+      content: { name: '内容创作中心', icon: '✍️' },
+      training: { name: '前台培训管家', icon: '📖' },
+      analysis:  { name: '数据分析助手', icon: '📈' },
+      video:    { name: '短视频生成', icon: '🎬' },
+      geo:      { name: 'GEO优化', icon: '🔍' },
+      review:   { name: '点评回复', icon: '💬' },
+      competitor:{ name: '竞对情报站', icon: '🕵️' },
+      diagnosis: { name: '经营诊断', icon: '🩺' },
+      bizdev:   { name: '大客户拓展', icon: '🤝' },
+      patrol:   { name: '数字巡店', icon: '📷' },
+      feedback:  { name: '共创中心', icon: '🎯' },
+      aitask:   { name: 'AI任务拆解', icon: '🧩' }
+    };
+    const info = MODULE_NAMES[moduleId];
+    if (!info) return;
+    let recents = JSON.parse(localStorage.getItem(RECENT_MODULES_KEY) || '[]');
+    recents = recents.filter(r => r.id !== moduleId);
+    recents.unshift({ id: moduleId, ...info, time: Date.now() });
+    if (recents.length > RECENT_MAX) recents = recents.slice(0, RECENT_MAX);
+    localStorage.setItem(RECENT_MODULES_KEY, JSON.stringify(recents));
+  } catch(e) {}
+}
+
+function renderRecentPage() {
+  const recents = JSON.parse(localStorage.getItem(RECENT_MODULES_KEY) || '[]');
+  const container = document.getElementById('recentModulesList');
+  if (!container) return;
+  if (recents.length === 0) {
+    container.innerHTML = `<div class="empty-state" style="padding:60px 20px; text-align:center;">
+      <div style="font-size:40px; margin-bottom:16px;">🕐</div>
+      <p style="color:var(--text-muted);">还没有使用记录，去工作台体验功能吧</p>
+      <button class="btn btn-primary" style="margin-top:16px;" onclick="navigateTo('dashboard')">去工作台</button>
+    </div>`;
+    return;
+  }
+  container.innerHTML = `<div style="display:grid; grid-template-columns: repeat(auto-fill, minmax(160px, 1fr)); gap:12px; padding-bottom:16px;">
+    ${recents.map(r => `
+      <div onclick="navigateTo('${r.id}')" style="cursor:pointer; padding:16px; background:var(--bg-card); border:1px solid var(--border); border-radius:12px; display:flex; flex-direction:column; gap:8px; transition:all 0.2s;" onmouseover="this.style.borderColor='var(--primary)'; this.style.boxShadow='var(--shadow-md)'" onmouseout="this.style.borderColor='var(--border)'; this.style.boxShadow='none'">
+        <div style="font-size:28px;">${r.icon}</div>
+        <div style="font-size:14px; font-weight:600;">${r.name}</div>
+        <div style="font-size:11px; color:var(--text-muted);">${formatTime(new Date(r.time).toISOString())}</div>
+      </div>`).join('')}
+  </div>`;
+}
+
+// ==================== 后台统计面板 ====================
+function refreshAdminStats() {
+  const members = loadMembersData();
+  const today = new Date().toISOString().split('T')[0];
+  const thisMonth = today.slice(0, 7);
+
+  const plan_prices = { trial: 9.9, monthly: 39, yearly: 428, free: 0, freeyear: 0 };
+
+  // 基础数量
+  const total = members.length;
+  const active = members.filter(m => {
+    if (!m.expireDate) return m.plan === 'freeyear';
+    return new Date(m.expireDate) >= new Date(today);
+  }).length;
+
+  // 今日/本月活跃（以 activateDate 或 lastActiveDate 判断）
+  const todayActive = members.filter(m => {
+    const d = m.lastActiveDate || m.activateDate || '';
+    return d.startsWith(today);
+  }).length;
+  const monthActive = members.filter(m => {
+    const d = m.lastActiveDate || m.activateDate || '';
+    return d.startsWith(thisMonth);
+  }).length;
+
+  // 收入（只统计付费套餐）
+  const paidMembers = members.filter(m => ['trial','monthly','yearly'].includes(m.plan));
+  const totalRevenue = paidMembers.reduce((s, m) => s + (plan_prices[m.plan] || 0), 0);
+  const monthRevenue = paidMembers.filter(m => (m.activateDate || '').startsWith(thisMonth))
+    .reduce((s, m) => s + (plan_prices[m.plan] || 0), 0);
+  const todayRevenue = paidMembers.filter(m => (m.activateDate || '').startsWith(today))
+    .reduce((s, m) => s + (plan_prices[m.plan] || 0), 0);
+  const avgRevenue = paidMembers.length > 0 ? (totalRevenue / paidMembers.length).toFixed(1) : 0;
+
+  // 套餐分布
+  const planDist = {};
+  members.forEach(m => { planDist[m.plan] = (planDist[m.plan] || 0) + 1; });
+
+  // Token统计（从全员 usage 合计）
+  let totalCalls = 0, imageCalls = 0;
+  members.forEach(m => {
+    if (m.usage) {
+      Object.values(m.usage).forEach(v => { totalCalls += (v || 0); });
+      imageCalls += m.usage.image || 0;
+    }
+  });
+
+  // 更新 DOM
+  const set = (id, val) => { const el = document.getElementById(id); if (el) el.textContent = val; };
+  set('statTotalMembers', total);
+  set('statActiveMembers', active);
+  set('statTodayActive', todayActive);
+  set('statMonthActive', monthActive);
+  set('statTotalRevenue', '¥' + totalRevenue);
+  set('statMonthRevenue', '¥' + monthRevenue);
+  set('statTodayRevenue', '¥' + todayRevenue);
+  set('statAvgRevenue', '¥' + avgRevenue);
+  set('statQwenCalls', totalCalls + ' 次');
+  set('statTotalCalls', totalCalls + ' 次');
+  set('statImageCalls', imageCalls + ' 次');
+
+  // 套餐分布
+  const planNames = { free: '免费体验', freeyear: '免费用户', trial: '体验版', monthly: '包月', yearly: '包年' };
+  const distEl = document.getElementById('statPlanDistribution');
+  if (distEl) {
+    distEl.innerHTML = Object.entries(planDist).map(([plan, count]) =>
+      `<span style="padding:4px 10px; background:var(--bg-tertiary); border-radius:20px; color:var(--text-secondary);">
+        ${planNames[plan] || plan}: <strong style="color:var(--primary);">${count}</strong>
+      </span>`
+    ).join('');
+  }
+}
+
+// ==================== 共创反馈后台管理 ====================
+let _fbFilter = 'all';
+
+function loadFeedbackAdmin() {
+  // 从云端拉取反馈（当前用 localStorage 模拟，云端同步版后续补充）
+  const feedbacks = loadFeedbacksFromCloud();
+  renderFeedbackAdmin(feedbacks);
+}
+
+function loadFeedbacksFromCloud() {
+  // 合并本地所有 hotel_feedbacks（将来替换为 GitHub 云端读取）
+  return JSON.parse(localStorage.getItem('hotel_feedbacks') || '[]');
+}
+
+function filterFeedbackAdmin(status) {
+  _fbFilter = status;
+  ['All','Pending','Adopted','Ignored'].forEach(s => {
+    const btn = document.getElementById('fbFilter' + s);
+    if (btn) btn.style.background = (status === s.toLowerCase()) ? 'var(--primary)' : '';
+    if (btn) btn.style.color = (status === s.toLowerCase()) ? '#fff' : '';
+  });
+  loadFeedbackAdmin();
+}
+
+function renderFeedbackAdmin(feedbacks) {
+  const filtered = _fbFilter === 'all' ? feedbacks : feedbacks.filter(f => f.status === _fbFilter);
+  const container = document.getElementById('feedbackAdminList');
+  if (!container) return;
+
+  // 更新统计数字
+  const set = (id, val) => { const el = document.getElementById(id); if (el) el.textContent = val; };
+  set('fbTotalCount', feedbacks.length);
+  set('fbPendingCount', feedbacks.filter(f => f.status === 'pending').length);
+  set('fbAdoptedCount', feedbacks.filter(f => f.status === 'adopted' || f.status === 'accepted').length);
+
+  if (filtered.length === 0) {
+    container.innerHTML = '<div class="empty-state" style="padding:32px 0; text-align:center;"><p style="color:var(--text-muted);">暂无符合条件的反馈</p></div>';
+    return;
+  }
+
+  const typeMap = { feature: '💡功能建议', bug: '🐛问题反馈', improve: '✨体验优化', other: '📝其他' };
+  const statusMap = { pending: { label: '待处理', color: '#f59e0b' }, adopted: { label: '已采纳', color: 'var(--success)' }, accepted: { label: '已采纳', color: 'var(--success)' }, ignored: { label: '已忽略', color: 'var(--text-muted)' } };
+
+  container.innerHTML = filtered.map(f => {
+    const s = statusMap[f.status] || statusMap.pending;
+    return `<div style="padding:14px; border:1px solid var(--border); border-radius:10px; margin-bottom:10px; background:var(--bg-card);">
+      <div style="display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:8px; gap:8px;">
+        <div>
+          <span style="font-size:11px; color:var(--text-muted); background:var(--bg-tertiary); padding:2px 8px; border-radius:4px;">${typeMap[f.type] || f.type}</span>
+          <strong style="font-size:14px; display:block; margin-top:4px;">${escapeHtml(f.title)}</strong>
+        </div>
+        <span style="font-size:11px; color:${s.color}; font-weight:600; white-space:nowrap;">${s.label}</span>
+      </div>
+      <p style="font-size:13px; color:var(--text-secondary); margin:0 0 8px; line-height:1.6;">${escapeHtml(f.content)}</p>
+      <div style="font-size:11px; color:var(--text-muted); margin-bottom:8px;">
+        👤 ${f.author || '匿名'} · 🏨 ${f.hotel || '-'} · ${formatTime(f.submitTime)}
+        ${f.rewardGiven ? ' · 🎁 已赠送1个月' : ''}
+      </div>
+      ${f.status === 'pending' ? `
+      <div style="display:flex; gap:8px; flex-wrap:wrap;">
+        <button class="btn-sm" style="background:var(--success); color:#fff;" onclick="setFeedbackStatus(${f.id}, 'adopted')">✅ 采纳（+1个月）</button>
+        <button class="btn-sm" onclick="setFeedbackStatus(${f.id}, 'ignored')">🚫 忽略</button>
+      </div>` : ''}
+    </div>`;
+  }).join('');
+}
+
+function setFeedbackStatus(feedbackId, status) {
+  const feedbacks = JSON.parse(localStorage.getItem('hotel_feedbacks') || '[]');
+  const idx = feedbacks.findIndex(f => f.id === feedbackId);
+  if (idx < 0) { showToast('未找到该反馈', 'error'); return; }
+
+  feedbacks[idx].status = status;
+
+  if ((status === 'adopted' || status === 'accepted') && !feedbacks[idx].rewardGiven) {
+    feedbacks[idx].rewardGiven = true;
+    // 查找对应用户并给+1个月
+    const targetHotel = feedbacks[idx].hotel;
+    const targetName = feedbacks[idx].author;
+    if (targetHotel || targetName) {
+      const members = loadMembersData();
+      const memberIdx = members.findIndex(m =>
+        (targetHotel && m.hotel === targetHotel) ||
+        (targetName && targetName !== '匿名' && m.name === targetName)
+      );
+      if (memberIdx >= 0) {
+        const m = members[memberIdx];
+        if (m.expireDate) {
+          const exp = new Date(m.expireDate);
+          exp.setMonth(exp.getMonth() + 1);
+          m.expireDate = exp.toISOString().split('T')[0];
+          members[memberIdx] = m;
+          saveMembersData(members);
+          showToast(`✅ 已采纳，已为 ${m.name || targetHotel} 延长1个月会员`);
+        }
+      } else {
+        showToast('✅ 已标记为采纳（未找到对应会员，请手动延期）');
+      }
+    }
+  } else {
+    showToast(status === 'ignored' ? '已标记忽略' : '状态已更新');
+  }
+
+  localStorage.setItem('hotel_feedbacks', JSON.stringify(feedbacks));
+  loadFeedbackAdmin();
+}
+
+// ==================== AI任务拆解 ====================
+async function generateAITaskPlan() {
+  const desc = document.getElementById('aitaskDesc')?.value.trim();
+  const role = document.getElementById('aitaskRole')?.value || '酒店店长';
+  const level = document.querySelector('input[name="aitaskLevel"]:checked')?.value || '新手，几乎没用过AI';
+  const output = document.getElementById('aitask-output');
+
+  if (!desc) { showToast('请先描述你想完成的任务', 'warning'); return; }
+
+  output.innerHTML = '<div style="text-align:center;padding:40px;color:var(--text-muted);"><div style="font-size:32px;animation:pulse 1.5s infinite;">🧩</div><p style="margin-top:12px;">AI正在拆解任务步骤...</p></div>';
+
+  const hotelName = MemberStore.get()?.hotel || '我们酒店';
+  const messages = [
+    {
+      role: 'system',
+      content: `你是酒店AI实战营导师，专门帮助酒店人用AI高效完成工作。
+用户角色：${role}，AI熟练度：${level}，酒店：${hotelName}。
+
+请用以下格式输出任务拆解方案：
+
+## 🎯 任务理解
+[用1-2句话确认你理解的任务目标]
+
+## 📋 任务拆解（步骤清单）
+[将任务拆成3-7个可执行步骤，每步包含：]
+**第X步：[步骤名称]**
+- 🤖 **推荐工具**：[使用哪个AI工具，如：本工作台的「内容创作中心」/通义千问/豆包等]
+- 💬 **操作方法**：[具体怎么操作，给出Prompt示例]
+- ⏱️ **预计时间**：[X分钟]
+
+## 💡 注意事项
+[2-3条重点提醒]
+
+## 🚀 快速开始
+[告诉用户现在最应该先做第几步，并给一句鼓励]`
+    },
+    {
+      role: 'user',
+      content: `我的任务是：${desc}`
+    }
+  ];
+
+  try {
+    const result = await callAIWithFallback('content', messages, { temperature: 0.6 });
+    output.innerHTML = `<div style="line-height:1.8; white-space:pre-wrap; font-size:14px;">${escapeHtml(result)}</div>`;
+    recordRecentModule('aitask');
+  } catch (err) {
+    output.innerHTML = `<div style="text-align:center;padding:40px;color:#dc2626;">❌ 生成失败：${escapeHtml(err.message)}</div>`;
+  }
 }
 
 // 手动安装引导弹窗（持久显示，不会自动消失）
@@ -3651,24 +4386,51 @@ async function generateGeoPlan() {
 
 // --- 点评回复 ---
 let reviewFileData = null;
-document.getElementById('reviewFileInput')?.addEventListener('change', async function(e) {
+let reviewImageBase64 = null; // 图片上传时存储base64
+
+function handleReviewUpload(e) {
   const file = e.target.files[0];
   if (!file) return;
-  try {
-    const data = await file.arrayBuffer();
-    const workbook = XLSX.read(data, { type: 'array' });
-    reviewFileData = XLSX.utils.sheet_to_json(workbook.Sheets[workbook.SheetNames[0]]);
-    document.getElementById('reviewFileName').textContent = file.name;
-    document.getElementById('reviewUploadArea').style.display = 'none';
-    document.getElementById('reviewPreview').style.display = '';
-    showToast(`✅ 已加载 ${reviewFileData.length} 条点评数据`);
-  } catch (err) {
-    showToast('文件解析失败，请检查格式', 'error');
+
+  // 判断文件类型
+  const isImage = file.type.startsWith('image/');
+
+  if (isImage) {
+    // 图片上传：转为base64
+    const reader = new FileReader();
+    reader.onload = function(ev) {
+      reviewImageBase64 = ev.target.result;
+      reviewFileData = [{ type: 'image', name: file.name }];
+      document.getElementById('reviewFileName').textContent = '📸 ' + file.name;
+      document.getElementById('reviewUploadArea').style.display = 'none';
+      document.getElementById('reviewPreview').style.display = '';
+      showToast('✅ 截图已加载，AI将识别点评内容并生成回复');
+    };
+    reader.readAsDataURL(file);
+  } else {
+    // Excel/CSV上传
+    const reader = new FileReader();
+    reader.onload = async function(ev) {
+      try {
+        const data = ev.target.result;
+        const workbook = XLSX.read(data, { type: 'array' });
+        reviewFileData = XLSX.utils.sheet_to_json(workbook.Sheets[workbook.SheetNames[0]]);
+        reviewImageBase64 = null;
+        document.getElementById('reviewFileName').textContent = '📊 ' + file.name;
+        document.getElementById('reviewUploadArea').style.display = 'none';
+        document.getElementById('reviewPreview').style.display = '';
+        showToast(`✅ 已加载 ${reviewFileData.length} 条点评数据`);
+      } catch (err) {
+        showToast('文件解析失败，请检查格式', 'error');
+      }
+    };
+    reader.readAsArrayBuffer(file);
   }
-});
+}
 
 function removeReviewFile() {
   reviewFileData = null;
+  reviewImageBase64 = null;
   document.getElementById('reviewFileInput').value = '';
   document.getElementById('reviewUploadArea').style.display = '';
   document.getElementById('reviewPreview').style.display = 'none';
@@ -3683,12 +4445,26 @@ async function analyzeReviews() {
   output.innerHTML = '<div style="text-align:center;padding:40px;color:var(--text-muted);"><div style="font-size:32px;animation:pulse 1.5s infinite;">💬</div><p style="margin-top:12px;">AI正在分析点评并生成回复...</p></div>';
 
   try {
-    // 取前50条点评（避免超长）
-    const sampleReviews = reviewFileData.slice(0, 50).map((r, i) => `第${i+1}条：${JSON.stringify(r).substring(0, 200)}`).join('\n');
-    const messages = [
-      { role: 'system', content: `你是酒店点评管理专家。请分析以下点评数据并生成专业回复。\n\n输出格式：\n1.【数据概览】总条数、好评率、差评率、平均评分\n2.【好评TOP关键词】好评中出现频率最高的5个关键词\n3.【差评主要问题】归类差评的主要问题类型及占比\n4.【差评回复模板】针对每个主要问题类型，生成2-3条专业回复模板\n5.【改进建议】3-5条可落地的改进建议\n\n回复风格：${style}` },
-      { role: 'user', content: `以下是点评数据（共${reviewFileData.length}条，展示前50条）：\n\n${sampleReviews}` }
-    ];
+    let messages;
+
+    if (reviewImageBase64) {
+      // 图片模式：使用视觉模型识别点评内容
+      messages = [
+        { role: 'system', content: `你是酒店点评管理专家。请识别这张点评截图中的内容，并分析点评数据，生成专业回复。\n\n输出格式：\n1.【截图识别结果】提取出的点评内容\n2.【数据概览】评分、评论重点\n3.【回复模板】生成3-5条专业回复模板\n4.【改进建议】根据点评内容，给出改进建议\n\n回复风格：${style}` },
+        { role: 'user', content: [
+          { type: 'text', text: '请识别和分析这张点评截图，然后生成专业回复' },
+          { type: 'image_url', image_url: { url: reviewImageBase64 } }
+        ]}
+      ];
+    } else {
+      // Excel/CSV模式：分析结构化数据
+      const sampleReviews = reviewFileData.slice(0, 50).map((r, i) => `第${i+1}条：${JSON.stringify(r).substring(0, 200)}`).join('\n');
+      messages = [
+        { role: 'system', content: `你是酒店点评管理专家。请分析以下点评数据并生成专业回复。\n\n输出格式：\n1.【数据概览】总条数、好评率、差评率、平均评分\n2.【好评TOP关键词】好评中出现频率最高的5个关键词\n3.【差评主要问题】归类差评的主要问题类型及占比\n4.【差评回复模板】针对每个主要问题类型，生成2-3条专业回复模板\n5.【改进建议】3-5条可落地的改进建议\n\n回复风格：${style}` },
+        { role: 'user', content: `以下是点评数据（共${reviewFileData.length}条，展示前50条）：\n\n${sampleReviews}` }
+      ];
+    }
+
     const result = await callAIWithFallback('content', messages, { temperature: 0.5 });
     output.innerHTML = `<div style="line-height:1.8;white-space:pre-wrap;">${escapeHtml(result)}</div>`;
     MemberStore.addUsage('review');
