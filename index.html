@@ -1902,35 +1902,52 @@
           <!-- 权限配置 -->
           <div class="setting-section" id="setting-permissions">
             <h3>🔐 模块权限配置</h3>
-            <p class="setting-desc">设置每个模块在不同会员等级下的权限。保存后自动同步到云端。</p>
+            <p class="setting-desc">为每个模块独立设置各套餐的开放状态和使用次数。保存后自动同步到云端，学员刷新即生效。</p>
 
-            <div style="overflow-x:auto;">
-              <table style="width:100%; border-collapse:collapse; font-size:13px;" id="permissionTable">
-                <thead>
-                  <tr style="background:var(--bg-tertiary);">
-                    <th style="padding:10px; text-align:left; border-bottom:2px solid var(--gray-200);">模块</th>
-                    <th style="padding:10px; text-align:center; border-bottom:2px solid var(--gray-200);">免费体验<br><span style="font-weight:400;color:var(--text-muted);font-size:11px;">3天</span></th>
-                    <th style="padding:10px; text-align:center; border-bottom:2px solid var(--gray-200);">免费年卡<br><span style="font-weight:400;color:var(--text-muted);font-size:11px;">1年限次</span></th>
-                    <th style="padding:10px; text-align:center; border-bottom:2px solid var(--gray-200);">体验版<br><span style="font-weight:400;color:var(--text-muted);font-size:11px;">¥9.9</span></th>
-                    <th style="padding:10px; text-align:center; border-bottom:2px solid var(--gray-200);">包月<br><span style="font-weight:400;color:var(--text-muted);font-size:11px;">¥39</span></th>
-                    <th style="padding:10px; text-align:center; border-bottom:2px solid var(--gray-200);">包年<br><span style="font-weight:400;color:var(--text-muted);font-size:11px;">¥428</span></th>
-                  </tr>
-                </thead>
-                <tbody id="permissionBody"></tbody>
-              </table>
+            <!-- 套餐说明横幅 -->
+            <div style="display:flex; gap:8px; flex-wrap:wrap; margin-bottom:16px;">
+              <div style="flex:1; min-width:100px; background:#f9fafb; border:1px solid var(--gray-200); border-radius:8px; padding:10px 12px; text-align:center;">
+                <div style="font-size:18px; margin-bottom:4px;">🆓</div>
+                <div style="font-weight:600; font-size:13px;">免费体验</div>
+                <div style="font-size:11px; color:var(--text-muted);">3天</div>
+              </div>
+              <div style="flex:1; min-width:100px; background:#f9fafb; border:1px solid var(--gray-200); border-radius:8px; padding:10px 12px; text-align:center;">
+                <div style="font-size:18px; margin-bottom:4px;">🎁</div>
+                <div style="font-weight:600; font-size:13px;">免费年卡</div>
+                <div style="font-size:11px; color:var(--text-muted);">1年限次</div>
+              </div>
+              <div style="flex:1; min-width:100px; background:#fff7ed; border:1px solid #fed7aa; border-radius:8px; padding:10px 12px; text-align:center;">
+                <div style="font-size:18px; margin-bottom:4px;">🌟</div>
+                <div style="font-weight:600; font-size:13px;">体验版</div>
+                <div style="font-size:11px; color:var(--text-muted);">¥9.9 / 3天</div>
+              </div>
+              <div style="flex:1; min-width:100px; background:#eff6ff; border:1px solid #bfdbfe; border-radius:8px; padding:10px 12px; text-align:center;">
+                <div style="font-size:18px; margin-bottom:4px;">💎</div>
+                <div style="font-weight:600; font-size:13px;">包月</div>
+                <div style="font-size:11px; color:var(--text-muted);">¥39 / 月</div>
+              </div>
+              <div style="flex:1; min-width:100px; background:#f0fdf4; border:1px solid #bbf7d0; border-radius:8px; padding:10px 12px; text-align:center;">
+                <div style="font-size:18px; margin-bottom:4px;">👑</div>
+                <div style="font-weight:600; font-size:13px;">包年</div>
+                <div style="font-size:11px; color:var(--text-muted);">¥428 / 年</div>
+              </div>
             </div>
 
-            <div style="margin-top:16px; display:flex; gap:10px; flex-wrap:wrap;">
-              <button class="btn btn-primary" onclick="savePermissions()">💾 保存权限配置</button>
+            <!-- 模块权限卡片列表 -->
+            <div id="permissionCardList" style="display:flex; flex-direction:column; gap:12px;"></div>
+
+            <div style="margin-top:20px; display:flex; gap:10px; flex-wrap:wrap; align-items:center;">
+              <button class="btn btn-primary" onclick="savePermissions()">💾 保存并同步到云端</button>
               <button class="btn" style="background:var(--bg-tertiary); color:var(--text-secondary);" onclick="resetPermissions()">🔄 重置为默认值</button>
+              <span style="font-size:12px; color:var(--text-muted);">保存后学员刷新页面即生效</span>
             </div>
 
             <div class="setting-tip" style="margin-top:16px;">
               <span>💡 权限说明</span>
               <p>
-                <strong>关闭</strong> = 用户不可见该模块<br>
-                <strong>限X次</strong> = 该套餐用户可使用X次，用完后引导升级<br>
-                <strong>不限次</strong> = 该套餐用户可无限制使用
+                <strong>开关关闭</strong> = 该套餐用户看不到此模块（锁定状态）<br>
+                <strong>不限次</strong> = 开关开启，无限制使用<br>
+                <strong>限 N 次</strong> = 开关开启，该套餐每月可用 N 次，用完后引导升级
               </p>
             </div>
           </div>

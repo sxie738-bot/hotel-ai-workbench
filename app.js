@@ -3264,42 +3264,143 @@ function saveQRCode() {
   syncMembersToCloud();
 }
 
-// 权限配置渲染
+// 权限配置渲染（卡片开关式）
 function renderPermissionTable() {
   const perms = MemberStore.getPermissions();
-  const body = document.getElementById('permissionBody');
-  if (!body) return;
+  const container = document.getElementById('permissionCardList');
+  if (!container) return;
 
-  // 生成单个 select 的 HTML
-  function makeSelect(key, plan, currentVal, options) {
-    const opts = options.map(o => {
-      const label = o === -1 ? '不限' : o === 0 ? '关闭' : `${o}次`;
-      const selected = currentVal === o ? 'selected' : '';
-      return `<option value="${o}" ${selected}>${label}</option>`;
+  // 套餐定义（展示用）
+  const plans = [
+    { key: 'free',     label: '免费体验', icon: '🆓', color: '#6b7280', badge: '3天' },
+    { key: 'freeyear', label: '免费年卡', icon: '🎁', color: '#6b7280', badge: '1年限次' },
+    { key: 'trial',    label: '体验版',   icon: '🌟', color: '#f97316', badge: '¥9.9' },
+    { key: 'monthly',  label: '包月',     icon: '💎', color: '#3b82f6', badge: '¥39' },
+    { key: 'yearly',   label: '包年',     icon: '👑', color: '#10b981', badge: '¥428' },
+  ];
+
+  container.innerHTML = Object.entries(perms).map(([key, config]) => {
+    const planItems = plans.map(p => {
+      const val = config[p.key] ?? (p.key === 'monthly' || p.key === 'yearly' ? -1 : 0);
+      const isOn = val !== 0;
+      const isUnlimited = val === -1;
+      const count = val > 0 ? val : (p.key === 'monthly' || p.key === 'yearly' ? '' : '3');
+
+      // 是否允许设置次数（付费套餐默认不限，免费类可设次数）
+      const canSetCount = (p.key === 'free' || p.key === 'freeyear' || p.key === 'trial');
+
+      return `
+        <div class="perm-plan-cell" data-module="${key}" data-plan="${p.key}"
+          style="display:flex; flex-direction:column; align-items:center; gap:6px; padding:10px 8px;
+                 background:${isOn ? 'white' : '#f9fafb'}; border:1px solid ${isOn ? p.color+'40' : 'var(--gray-200)'};
+                 border-radius:10px; min-width:90px; flex:1; transition:all 0.2s;">
+          <div style="font-size:16px;">${p.icon}</div>
+          <div style="font-size:12px; font-weight:600; color:${isOn ? p.color : '#9ca3af'};">${p.label}</div>
+          <div style="font-size:10px; color:var(--text-muted);">${p.badge}</div>
+          <!-- 开关 -->
+          <label class="perm-toggle" style="position:relative; display:inline-block; width:40px; height:22px; cursor:pointer;">
+            <input type="checkbox" ${isOn ? 'checked' : ''}
+              onchange="permToggleChange(this, '${key}', '${p.key}', ${canSetCount})"
+              style="opacity:0; width:0; height:0; position:absolute;">
+            <span style="position:absolute; cursor:pointer; top:0; left:0; right:0; bottom:0;
+              background:${isOn ? p.color : '#d1d5db'}; border-radius:22px; transition:.3s;">
+              <span style="position:absolute; height:16px; width:16px; left:${isOn ? '20px' : '3px'}; bottom:3px;
+                background:white; border-radius:50%; transition:.3s; box-shadow:0 1px 3px rgba(0,0,0,0.2);"></span>
+            </span>
+          </label>
+          <!-- 次数设置（仅开启时且可设次数套餐显示） -->
+          <div class="perm-count-wrap" style="display:${isOn && canSetCount ? 'flex' : 'none'}; align-items:center; gap:4px;">
+            <label style="display:flex; align-items:center; gap:4px; font-size:11px; color:var(--text-muted); cursor:pointer;">
+              <input type="checkbox" ${isUnlimited ? 'checked' : ''}
+                onchange="permUnlimitedChange(this, '${key}', '${p.key}')"
+                style="width:13px; height:13px; cursor:pointer;">
+              不限次
+            </label>
+          </div>
+          <div class="perm-count-input-wrap" style="display:${isOn && canSetCount && !isUnlimited ? 'flex' : 'none'}; align-items:center; gap:2px;">
+            <input type="number" min="1" max="999" value="${isUnlimited ? 3 : (val > 0 ? val : 3)}"
+              data-module="${key}" data-plan="${p.key}"
+              class="perm-count-input form-select"
+              style="width:56px; padding:3px 6px; font-size:12px; text-align:center;"
+              placeholder="次数">
+            <span style="font-size:11px; color:var(--text-muted);">次</span>
+          </div>
+          <!-- 状态标签 -->
+          <div style="font-size:10px; font-weight:600; padding:2px 8px; border-radius:10px;
+            background:${isOn ? p.color+'15' : '#f3f4f6'}; color:${isOn ? p.color : '#9ca3af'};">
+            ${isOn ? (isUnlimited ? '不限次' : (canSetCount ? `${val > 0 ? val : 3}次` : '不限次')) : '关闭'}
+          </div>
+        </div>`;
     }).join('');
-    return `<select class="form-select" style="width:72px; padding:4px 2px; font-size:12px;" data-module="${key}" data-plan="${plan}">${opts}</select>`;
-  }
 
-  body.innerHTML = Object.entries(perms).map(([key, config]) => `
-    <tr style="border-bottom:1px solid var(--gray-100);">
-      <td style="padding:10px; white-space:nowrap;">${config.icon || ''} ${config.name || key}</td>
-      <td style="padding:8px; text-align:center;">
-        ${makeSelect(key, 'free',     config.free     ?? 0,  [0, 1, 3, 5, 10, -1])}
-      </td>
-      <td style="padding:8px; text-align:center;">
-        ${makeSelect(key, 'freeyear', config.freeyear ?? 0,  [0, 1, 3, 5, 10, -1])}
-      </td>
-      <td style="padding:8px; text-align:center;">
-        ${makeSelect(key, 'trial',    config.trial    ?? 0,  [0, 1, 3, 5, 10, -1])}
-      </td>
-      <td style="padding:8px; text-align:center;">
-        ${makeSelect(key, 'monthly',  config.monthly  ?? -1, [0, -1])}
-      </td>
-      <td style="padding:8px; text-align:center;">
-        ${makeSelect(key, 'yearly',   config.yearly   ?? -1, [0, -1])}
-      </td>
-    </tr>
-  `).join('');
+    return `
+      <div style="background:white; border:1px solid var(--gray-200); border-radius:12px; padding:14px 16px; box-shadow:0 1px 3px rgba(0,0,0,0.04);">
+        <div style="display:flex; align-items:center; gap:8px; margin-bottom:12px;">
+          <span style="font-size:20px;">${config.icon || '📦'}</span>
+          <div>
+            <div style="font-weight:600; font-size:14px;">${config.name || key}</div>
+            <div style="font-size:11px; color:var(--text-muted);">模块ID: ${key}</div>
+          </div>
+        </div>
+        <div style="display:flex; gap:8px; flex-wrap:wrap;">
+          ${planItems}
+        </div>
+      </div>`;
+  }).join('');
+}
+
+// 开关切换
+function permToggleChange(checkbox, moduleKey, planKey, canSetCount) {
+  const cell = checkbox.closest('.perm-plan-cell');
+  const isOn = checkbox.checked;
+  // 更新开关外观
+  const span = checkbox.nextElementSibling;
+  const plans = { free:'#6b7280', freeyear:'#6b7280', trial:'#f97316', monthly:'#3b82f6', yearly:'#10b981' };
+  const color = plans[planKey] || '#6b7280';
+  span.style.background = isOn ? color : '#d1d5db';
+  span.querySelector('span').style.left = isOn ? '20px' : '3px';
+  cell.style.background = isOn ? 'white' : '#f9fafb';
+  cell.style.borderColor = isOn ? color + '40' : 'var(--gray-200)';
+  // 显示次数控件
+  if (canSetCount) {
+    cell.querySelector('.perm-count-wrap').style.display = isOn ? 'flex' : 'none';
+    const unlimitedCb = cell.querySelector('.perm-count-wrap input[type=checkbox]');
+    const isUnlimited = unlimitedCb ? unlimitedCb.checked : false;
+    cell.querySelector('.perm-count-input-wrap').style.display = (isOn && !isUnlimited) ? 'flex' : 'none';
+  }
+  // 更新状态标签
+  updatePermStatusLabel(cell, moduleKey, planKey, canSetCount, color);
+}
+
+// 不限次勾选切换
+function permUnlimitedChange(checkbox, moduleKey, planKey) {
+  const cell = checkbox.closest('.perm-plan-cell');
+  const isUnlimited = checkbox.checked;
+  cell.querySelector('.perm-count-input-wrap').style.display = isUnlimited ? 'none' : 'flex';
+  const plans = { free:'#6b7280', freeyear:'#6b7280', trial:'#f97316', monthly:'#3b82f6', yearly:'#10b981' };
+  const color = plans[planKey] || '#6b7280';
+  updatePermStatusLabel(cell, moduleKey, planKey, true, color);
+}
+
+// 更新状态标签文字
+function updatePermStatusLabel(cell, moduleKey, planKey, canSetCount, color) {
+  const label = cell.querySelector('div[style*="font-size:10px; font-weight:600"]');
+  if (!label) return;
+  const isOn = cell.querySelector('input[type=checkbox]').checked;
+  if (!isOn) {
+    label.style.background = '#f3f4f6'; label.style.color = '#9ca3af';
+    label.textContent = '关闭'; return;
+  }
+  if (!canSetCount) {
+    label.style.background = color + '15'; label.style.color = color;
+    label.textContent = '不限次'; return;
+  }
+  const unlimitedCb = cell.querySelector('.perm-count-wrap input[type=checkbox]');
+  const isUnlimited = unlimitedCb && unlimitedCb.checked;
+  const countInput = cell.querySelector('.perm-count-input');
+  const count = countInput ? (parseInt(countInput.value) || 3) : 3;
+  label.style.background = color + '15'; label.style.color = color;
+  label.textContent = isUnlimited ? '不限次' : `${count}次`;
 }
 
 function resetPermissions() {
@@ -3311,14 +3412,39 @@ function resetPermissions() {
 
 function savePermissions() {
   const perms = MemberStore.getPermissions();
-  document.querySelectorAll('#permissionBody select').forEach(sel => {
-    const module = sel.dataset.module;
-    const plan = sel.dataset.plan;
-    if (perms[module]) {
-      perms[module][plan] = parseInt(sel.value);
+  // 遍历每个卡片单元格读取状态
+  document.querySelectorAll('.perm-plan-cell').forEach(cell => {
+    const moduleKey = cell.dataset.module;
+    const planKey = cell.dataset.plan;
+    if (!moduleKey || !planKey || !perms[moduleKey]) return;
+
+    const toggleCb = cell.querySelector('input[type=checkbox]:not(.perm-count-wrap input)');
+    const isOn = toggleCb ? toggleCb.checked : false;
+
+    if (!isOn) {
+      perms[moduleKey][planKey] = 0; // 关闭
+      return;
+    }
+
+    // 付费套餐（包月/包年）开启即不限
+    if (planKey === 'monthly' || planKey === 'yearly') {
+      perms[moduleKey][planKey] = -1;
+      return;
+    }
+
+    // 免费/体验类套餐：判断是否不限次
+    const unlimitedCb = cell.querySelector('.perm-count-wrap input[type=checkbox]');
+    const isUnlimited = unlimitedCb && unlimitedCb.checked;
+    if (isUnlimited) {
+      perms[moduleKey][planKey] = -1;
+    } else {
+      const countInput = cell.querySelector('.perm-count-input');
+      perms[moduleKey][planKey] = countInput ? (parseInt(countInput.value) || 3) : 3;
     }
   });
+
   localStorage.setItem('hotel_module_permissions', JSON.stringify(perms));
+  renderPermissionTable(); // 刷新显示
   showToast('✅ 权限配置已保存');
   // 同步到云端
   syncMembersToCloud();
