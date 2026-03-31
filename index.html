@@ -249,6 +249,11 @@
         <span class="nav-icon">⚙️</span>
         <span class="nav-label">系统设置</span>
       </a>
+      <a href="#" class="nav-item admin-hide" data-page="profile">
+        <span class="nav-icon">👤</span>
+        <span class="nav-label">我的会员</span>
+        <span class="nav-badge" id="profileBadge" style="background:var(--success); color:#fff; display:none;">有效</span>
+      </a>
       <div class="nav-divider"></div>
       <a href="#" class="nav-item" id="installBtn" style="display:none;">
         <span class="nav-icon">📲</span>
@@ -262,7 +267,7 @@
         <a href="javascript:void(0)" class="nav-item" onclick="checkForUpdate(true)" style="display:flex; align-items:center; padding:8px 10px; border-radius:8px; text-decoration:none; color:var(--text-secondary); font-size:13px; transition:all 0.2s;" onmouseover="this.style.background='var(--gray-100)'" onmouseout="this.style.background='none'">
           <span style="margin-right:8px;">🔄</span>
           <span>检查更新</span>
-          <span style="margin-left:auto; font-size:11px; color:var(--text-muted);" id="appVersionLabel">v1.0.0</span>
+          <span style="margin-left:auto; font-size:11px; color:var(--text-muted);" id="appVersionLabel">v1.1.0</span>
         </a>
       </div>
       <div class="user-info admin-only" style="display:none;">
@@ -670,6 +675,86 @@
           <span>📭</span>
           <p>暂无分析记录</p>
           <p class="empty-hint">完成第一次数据分析后，记录将在此显示</p>
+        </div>
+      </div>
+    </section>
+
+    <!-- ==================== 页面：我的会员 ==================== -->
+    <section class="page" id="page-profile">
+      <div class="page-header">
+        <h2>👤 我的会员</h2>
+        <p>查看会员状态、到期时间、自主续费和操作记录</p>
+      </div>
+
+      <div class="profile-layout">
+        <!-- 会员信息卡片 -->
+        <div class="profile-card" id="profileCard">
+          <div class="profile-card-header" id="profileCardHeader">
+            <div class="profile-card-icon" id="profileCardIcon">🏆</div>
+            <div>
+              <div class="profile-card-title" id="profilePlanName">加载中...</div>
+              <div class="profile-card-sub" id="profilePlanSub"></div>
+            </div>
+          </div>
+          <div class="profile-card-body">
+            <div class="profile-info-grid">
+              <div class="profile-info-item">
+                <span class="profile-info-label">会员姓名</span>
+                <span class="profile-info-value" id="profileName">-</span>
+              </div>
+              <div class="profile-info-item">
+                <span class="profile-info-label">所属酒店</span>
+                <span class="profile-info-value" id="profileHotel">-</span>
+              </div>
+              <div class="profile-info-item">
+                <span class="profile-info-label">激活日期</span>
+                <span class="profile-info-value" id="profileActivateDate">-</span>
+              </div>
+              <div class="profile-info-item">
+                <span class="profile-info-label">到期日期</span>
+                <span class="profile-info-value" id="profileExpireDate">-</span>
+              </div>
+            </div>
+            <div class="profile-status-bar" id="profileStatusBar">
+              <div class="profile-status-label">剩余天数</div>
+              <div class="profile-status-bar-track">
+                <div class="profile-status-bar-fill" id="profileDaysBar"></div>
+              </div>
+              <div class="profile-status-value" id="profileDaysLeft">-</div>
+            </div>
+          </div>
+          <div class="profile-card-footer">
+            <button class="btn" onclick="showRenewModal()" id="profileRenewBtn">🔄 续费/升级套餐</button>
+            <button class="btn" onclick="showLogoutConfirm()" id="profileLogoutBtn" style="color:var(--danger);">🚪 退出登录</button>
+          </div>
+        </div>
+
+        <!-- 各模块使用情况 -->
+        <div class="profile-card">
+          <div class="profile-card-header" style="background:var(--primary-bg); color:var(--primary);">
+            <div class="profile-card-icon" style="background:var(--primary);">📊</div>
+            <div>
+              <div class="profile-card-title">使用情况</div>
+              <div class="profile-card-sub">各模块已使用次数和剩余额度</div>
+            </div>
+          </div>
+          <div class="profile-card-body" id="profileUsageList">
+            <!-- 由 JS 渲染 -->
+          </div>
+        </div>
+
+        <!-- 操作历史 -->
+        <div class="profile-card">
+          <div class="profile-card-header" style="background:var(--gray-50); color:var(--gray-700);">
+            <div class="profile-card-icon" style="background:var(--gray-200);">📋</div>
+            <div>
+              <div class="profile-card-title">操作记录</div>
+              <div class="profile-card-sub">最近使用 AI 工具的记录</div>
+            </div>
+          </div>
+          <div class="profile-card-body" id="profileHistoryList">
+            <!-- 由 JS 渲染 -->
+          </div>
         </div>
       </div>
     </section>

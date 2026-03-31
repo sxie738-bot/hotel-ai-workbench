@@ -112,6 +112,27 @@ const MemberStore = {
   clear() {
     localStorage.removeItem(this._key);
     localStorage.removeItem(this._usageKey);
+  },
+
+  // 获取操作日志
+  getHistory() {
+    try { return JSON.parse(localStorage.getItem('hotel_operation_history') || '[]'); } catch { return []; }
+  },
+
+  // 添加操作日志（记录用户的 AI 操作）
+  addHistory(action, moduleKey, result) {
+    const history = this.getHistory();
+    const log = {
+      id: Date.now(),
+      action,           // 'generate_ctrip', 'generate_multi', 'send_message', 'analyze_data'
+      moduleKey,        // 'content', 'training', 'analysis'
+      resultLength: result ? (typeof result === 'string' ? result.length : 0) : 0,
+      timestamp: new Date().toISOString()
+    };
+    history.unshift(log);
+    // 只保留最近 100 条
+    if (history.length > 100) history.splice(100);
+    localStorage.setItem('hotel_operation_history', JSON.stringify(history));
   }
 };
 
@@ -440,6 +461,225 @@ function updateSidebarByPermissions() {
   });
 }
 
+// ==================== 会员中心渲染 ====================
+function renderProfilePage() {
+  const member = MemberStore.get();
+
+  // 如果没有会员信息，显示提示
+  if (!member) {
+    document.getElementById('profileCardHeader').style.background = 'var(--gray-100)';
+    document.getElementById('profileCardIcon').textContent = '👤';
+    document.getElementById('profilePlanName').textContent = '未登录';
+    document.getElementById('profilePlanSub').textContent = '请先完成注册以查看会员信息';
+    document.getElementById('profileName').textContent = '-';
+    document.getElementById('profileHotel').textContent = '-';
+    document.getElementById('profileActivateDate').textContent = '-';
+    document.getElementById('profileExpireDate').textContent = '永久';
+    document.getElementById('profileStatusBar').style.display = 'none';
+    document.getElementById('profileRenewBtn').textContent = '🔄 立即注册';
+    document.getElementById('profileRenewBtn').onclick = function() { showEntryPage(); };
+    document.getElementById('profileLogoutBtn').style.display = 'none';
+    return;
+  }
+
+  const plan = member.plan || 'free';
+  const planInfo = PLANS[plan] || PLANS.free;
+  const daysLeft = MemberStore.getDaysLeft();
+  const isExpired = daysLeft <= 0 && plan !== 'free';
+  const isExpiring = daysLeft <= 7 && daysLeft > 0;
+
+  // 头部样式
+  const headerEl = document.getElementById('profileCardHeader');
+  if (plan === 'free') {
+    headerEl.style.background = 'var(--gray-100)';
+    headerEl.style.color = 'var(--gray-700)';
+    document.getElementById('profileCardIcon').textContent = '🆓';
+    document.getElementById('profilePlanName').textContent = '免费体验';
+    document.getElementById('profilePlanSub').textContent = '每模块限3次体验';
+  } else if (isExpired) {
+    headerEl.style.background = 'var(--danger-bg)';
+    headerEl.style.color = 'var(--danger)';
+    document.getElementById('profileCardIcon').textContent = '⏰';
+    document.getElementById('profilePlanName').textContent = planInfo.label + '（已过期）';
+    document.getElementById('profilePlanSub').textContent = '已自动降级为免费体验';
+  } else if (isExpiring) {
+    headerEl.style.background = 'var(--warning-bg)';
+    headerEl.style.color = 'var(--warning)';
+    document.getElementById('profileCardIcon').textContent = '🔔';
+    document.getElementById('profilePlanName').textContent = planInfo.label;
+    document.getElementById('profilePlanSub').textContent = `还剩 ${daysLeft} 天，建议尽快续费`;
+  } else {
+    headerEl.style.background = 'linear-gradient(135deg, var(--primary), var(--primary-dark))';
+    headerEl.style.color = '#fff';
+    document.getElementById('profileCardIcon').textContent = '🏆';
+    document.getElementById('profilePlanName').textContent = planInfo.label;
+    document.getElementById('profilePlanSub').textContent = plan === 'yearly' ? '全功能 · 优先体验新功能' : '全功能不限次使用';
+  }
+
+  // 信息
+  document.getElementById('profileName').textContent = member.name || '-';
+  document.getElementById('profileHotel').textContent = member.hotel || '-';
+  document.getElementById('profileActivateDate').textContent = member.activateDate || '-';
+  document.getElementById('profileExpireDate').textContent = plan === 'free' ? '永久' : (member.expireDate || '-');
+
+  // 天数进度条
+  const statusBar = document.getElementById('profileStatusBar');
+  if (plan === 'free') {
+    statusBar.style.display = 'none';
+  } else {
+    statusBar.style.display = '';
+    const totalDays = planInfo.days;
+    const percent = isExpired ? 0 : Math.min(100, (daysLeft / totalDays) * 100);
+    const barColor = isExpired ? 'var(--danger)' : isExpiring ? 'var(--warning)' : 'var(--success)';
+    document.getElementById('profileDaysBar').style.width = percent + '%';
+    document.getElementById('profileDaysBar').style.background = barColor;
+    document.getElementById('profileDaysLeft').textContent = isExpired ? '已过期' : daysLeft + '天';
+    document.getElementById('profileDaysLeft').style.color = barColor;
+  }
+
+  // 侧边栏 badge
+  const badge = document.getElementById('profileBadge');
+  if (badge) {
+    if (plan !== 'free' && !isExpired) {
+      badge.style.display = '';
+      badge.textContent = daysLeft + '天';
+      if (isExpiring) {
+        badge.style.background = 'var(--warning)';
+      } else {
+        badge.style.background = 'var(--success)';
+      }
+    } else {
+      badge.style.display = 'none';
+    }
+  }
+
+  // 续费按钮
+  const renewBtn = document.getElementById('profileRenewBtn');
+  renewBtn.textContent = plan === 'free' ? '🔥 升级套餐' : '🔄 续费/升级';
+  renewBtn.onclick = showRenewModal;
+  document.getElementById('profileLogoutBtn').style.display = '';
+
+  // 渲染使用情况
+  renderProfileUsage();
+
+  // 渲染操作历史
+  renderProfileHistory();
+}
+
+function renderProfileUsage() {
+  const perms = MemberStore.getPermissions();
+  const usage = MemberStore.getUsage();
+  const plan = MemberStore.getPlan();
+  const container = document.getElementById('profileUsageList');
+
+  const modules = [
+    { key: 'content', label: '内容创作', icon: '✍️' },
+    { key: 'training', label: '前台培训', icon: '📖' },
+    { key: 'analysis', label: '数据分析', icon: '📈' },
+    { key: 'image', label: 'AI配图', icon: '🎨' },
+    { key: 'feishu', label: '飞书表格', icon: '📋' },
+  ];
+
+  container.innerHTML = modules.map(m => {
+    const config = perms[m.key];
+    if (!config) return '';
+    const limit = config[plan];
+    const used = usage[m.key] || 0;
+
+    let statusText = '', statusColor = '';
+    if (limit === -1) {
+      statusText = '不限次';
+      statusColor = 'var(--success)';
+    } else if (limit === 0) {
+      statusText = '未开放';
+      statusColor = 'var(--text-muted)';
+    } else {
+      const remaining = Math.max(0, limit - used);
+      statusText = remaining > 0 ? `剩余 ${remaining} 次` : '已用完';
+      statusColor = remaining > 0 ? (remaining <= 2 ? 'var(--warning)' : 'var(--text-secondary)') : 'var(--danger)';
+    }
+
+    return `
+      <div style="display:flex; justify-content:space-between; align-items:center; padding:10px 0; border-bottom:1px solid var(--border-light);">
+        <div style="display:flex; align-items:center; gap:10px;">
+          <span style="font-size:18px;">${m.icon}</span>
+          <div>
+            <div style="font-size:14px; font-weight:500;">${m.label}</div>
+            <div style="font-size:12px; color:var(--text-muted);">${config.name}</div>
+          </div>
+        </div>
+        <div style="text-align:right;">
+          <div style="font-size:13px; font-weight:600; color:${statusColor};">${statusText}</div>
+          ${limit > 0 ? `<div style="font-size:11px; color:var(--text-muted);">已使用 ${used} / ${limit} 次</div>` : ''}
+        </div>
+      </div>
+    `;
+  }).join('');
+}
+
+function renderProfileHistory() {
+  const history = MemberStore.getHistory();
+  const container = document.getElementById('profileHistoryList');
+
+  if (history.length === 0) {
+    container.innerHTML = '<div style="text-align:center; padding:24px; color:var(--text-muted); font-size:13px;">暂无操作记录<br><span style="font-size:11px;">使用 AI 工具后会自动记录</span></div>';
+    return;
+  }
+
+  const actionNames = {
+    generate_ctrip: '生成携程内容',
+    generate_multi: '多平台复用',
+    send_message: '前台问答',
+    analyze_data: '数据分析',
+    generate_image: 'AI配图'
+  };
+  const moduleNames = {
+    content: '✍️ 内容创作',
+    training: '📖 前台培训',
+    analysis: '📈 数据分析',
+    image: '🎨 AI配图'
+  };
+
+  container.innerHTML = history.slice(0, 20).map(h => {
+    const actionName = actionNames[h.action] || h.action;
+    const moduleName = moduleNames[h.moduleKey] || '';
+    const time = formatTime(h.timestamp);
+    const dateStr = h.timestamp ? new Date(h.timestamp).toLocaleDateString('zh-CN', { month: 'short', day: 'numeric' }) : '';
+    return `
+      <div style="display:flex; justify-content:space-between; align-items:center; padding:10px 0; border-bottom:1px solid var(--border-light);">
+        <div style="display:flex; align-items:center; gap:8px;">
+          <span style="font-size:14px;">${moduleName.split(' ')[0]}</span>
+          <div>
+            <div style="font-size:13px; font-weight:500;">${actionName}</div>
+            <div style="font-size:11px; color:var(--text-muted);">${dateStr}</div>
+          </div>
+        </div>
+        <div style="font-size:11px; color:var(--text-muted);">${time}</div>
+      </div>
+    `;
+  }).join('');
+}
+
+function showRenewModal() {
+  document.getElementById('entryPage').style.display = '';
+  showStep(0);
+}
+
+function showLogoutConfirm() {
+  if (!confirm('确认退出登录？\n\n退出后需要重新输入姓名和手机号登录。')) return;
+  MemberStore.clear();
+  localStorage.removeItem('hotel_operation_history');
+  localStorage.removeItem('current_hotel');
+  document.getElementById('entryPage').style.display = '';
+  showStep(0);
+  showToast('已退出登录');
+}
+
+function showEntryPage() {
+  document.getElementById('entryPage').style.display = '';
+  showStep(0);
+}
+
 // ==================== AI API 配置 ====================
 const AI_CONFIG = {
   qwen: {
@@ -629,7 +869,7 @@ const PROMPTS_API_URL = 'https://api.github.com/repos/sxie738-bot/hotel-ai-workb
 let cloudPrompts = null; // 云端 Prompt 缓存
 
 // ==================== 应用版本更新检测 ====================
-const APP_VERSION = '1.0.0'; // 当前代码版本号（每次发布新功能时手动递增）
+const APP_VERSION = '1.1.0'; // 当前代码版本号（每次发布新功能时手动递增）
 
 // 检查是否有新版本可用
 async function checkForUpdate(showToastIfLatest = false) {
@@ -1221,10 +1461,16 @@ function navigateTo(page) {
       content: '内容创作中心',
       training: '前台培训管家',
       analysis: '数据分析助手',
+      profile: '我的会员',
       settings: '系统设置'
     };
     document.getElementById('pageTitle').textContent = titles[page] || '';
     document.getElementById('sidebar').classList.remove('open');
+
+    // 切换到会员中心时刷新数据
+    if (page === 'profile') {
+      renderProfilePage();
+    }
 
     // 刷新知识库
     if (page === 'training') {
@@ -1353,6 +1599,8 @@ async function generateCtrip() {
     ]);
 
     output.innerHTML = `<div style="line-height:1.8; white-space:pre-wrap;">${escapeHtml(result)}</div>`;
+    MemberStore.addUsage('content');
+    MemberStore.addHistory('generate_ctrip', 'content', result);
   } catch (err) {
     output.innerHTML = `
       <div style="text-align:center; padding:40px 20px; color:#dc2626;">
@@ -1408,6 +1656,8 @@ async function generateMulti() {
     ]);
 
     outputContainer.innerHTML = `<div style="line-height:1.8; white-space:pre-wrap;">${escapeHtml(result)}</div>`;
+    MemberStore.addUsage('content');
+    MemberStore.addHistory('generate_multi', 'content', result);
   } catch (err) {
     outputContainer.innerHTML = `
       <div style="text-align:center; padding:40px 20px; color:#dc2626;">
@@ -1479,6 +1729,8 @@ async function sendMessage() {
     if (loadingMsg) {
       loadingMsg.querySelector('.chat-bubble').innerHTML = result.replace(/\n/g, '<br>');
     }
+    MemberStore.addUsage('training');
+    MemberStore.addHistory('send_message', 'training', result);
   } catch (err) {
     const loadingMsg = document.getElementById('loading-msg');
     if (loadingMsg) {
@@ -1584,6 +1836,8 @@ async function startAnalysis() {
         此报告由 DeepSeek AI 自动生成 · ${new Date().toLocaleString('zh-CN')}
       </p>
     `;
+    MemberStore.addUsage('analysis');
+    MemberStore.addHistory('analyze_data', 'analysis', result);
   } catch (err) {
     container.innerHTML = `
       <div style="text-align:center; padding:40px 20px; color:#dc2626;">
@@ -2318,6 +2572,8 @@ async function generateImage() {
     downloadBtn.style.display = 'inline-flex';
     loadingEl.style.display = 'none';
     showToast('✅ 配图生成成功');
+    MemberStore.addUsage('image');
+    MemberStore.addHistory('generate_image', 'image', generatedImageUrl);
 
   } catch (e) {
     loadingEl.style.display = 'none';
@@ -2612,6 +2868,9 @@ function initApp() {
 
   // 更新侧边栏权限显示
   updateSidebarByPermissions();
+
+  // 渲染会员中心初始数据（侧边栏badge等）
+  renderProfilePage();
 
   // 渲染反馈历史
   renderFeedbackHistory();
