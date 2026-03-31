@@ -1228,7 +1228,7 @@ const PROMPTS_API_URL = 'https://api.github.com/repos/sxie738-bot/hotel-ai-workb
 let cloudPrompts = null; // 云端 Prompt 缓存
 
 // ==================== 应用版本更新检测 ====================
-const APP_VERSION = '1.7.3'; // 当前代码版本号（每次发布新功能时手动递增）
+const APP_VERSION = '1.7.4'; // 当前代码版本号（每次发布新功能时手动递增）
 
 // 检查是否有新版本可用
 async function checkForUpdate(showToastIfLatest = false) {
@@ -1308,6 +1308,25 @@ async function fetchCloudPrompts() {
         if (cloudPrompts.hotels && Object.keys(cloudPrompts.hotels).length > 0) {
           hotelsData = cloudPrompts.hotels;
           localStorage.setItem('hotels_data', JSON.stringify(hotelsData));
+        }
+        return;
+      }
+      if (key === 'members') {
+        // 同步会员数据到本地（管理员端刷新时读到最新）
+        if (cloudPrompts.members && cloudPrompts.members.length > 0) {
+          // 合并：以云端为主，保留本地独有的新 pending 记录（避免覆盖刚提交的续费）
+          const local = getMembersData();
+          const cloudIds = new Set(cloudPrompts.members.map(m => m.phone + '_' + m.submitTime));
+          const localOnly = local.filter(m => !cloudIds.has(m.phone + '_' + m.submitTime));
+          const merged = [...cloudPrompts.members, ...localOnly];
+          localStorage.setItem('hotel_members_data', JSON.stringify(merged));
+        }
+        return;
+      }
+      if (key === '_write_token') {
+        // 管理员下发的写权限 token，用于用户端续费同步
+        if (cloudPrompts._write_token) {
+          localStorage.setItem('github_write_token', cloudPrompts._write_token);
         }
         return;
       }
@@ -3078,7 +3097,9 @@ function getMembersData() {
 
 function saveMembersData(data) {
   localStorage.setItem('hotel_members_data', JSON.stringify(data));
-  if (isAdmin) syncMembersToCloud();
+  // 有 token（管理员或用户端写 token）时同步到云端
+  const token = localStorage.getItem('github_token') || localStorage.getItem('github_write_token');
+  if (token) syncMembersToCloud();
 }
 
 function renderMemberList() {
@@ -3126,15 +3147,18 @@ function renderMemberList() {
   } else {
     memberContainer.innerHTML = active.sort((a,b) => new Date(a.expireDate) - new Date(b.expireDate)).map((m, i) => {
       const daysLeft = getDaysLeftFor(m);
-      const isExpiring = daysLeft <= 7 && daysLeft > 0;
-      const isExpired = daysLeft <= 0;
+      const isExpiring = daysLeft <= 7 && daysLeft > 0 && m.plan !== 'free' && m.plan !== 'freeyear';
+      const isExpired = daysLeft <= 0 && m.plan !== 'free' && m.plan !== 'freeyear';
+      const expireText = (m.plan === 'free' || m.plan === 'freeyear')
+        ? (m.expireDate ? `到期：${m.expireDate}` : '长期有效')
+        : `到期：${m.expireDate}${isExpired ? ' (已过期)' : isExpiring ? ` (还剩${daysLeft}天)` : ` (${daysLeft}天后到期)`}`;
       return `
       <div style="display:flex; justify-content:space-between; align-items:center; padding:12px; background:${isExpired ? 'var(--danger-bg)' : isExpiring ? 'var(--warning-bg)' : 'var(--bg-tertiary)'}; border-radius:8px; margin-bottom:8px; ${isExpiring ? 'border:1px solid #fde68a;' : ''}">
         <div>
           <div style="font-weight:600; font-size:14px;">${m.name} · ${m.hotel}</div>
           <div style="font-size:12px; color:var(--text-secondary); margin-top:2px;">${m.phone} · ${PLANS[m.plan]?.label || m.plan}</div>
           <div style="font-size:11px; margin-top:2px; color:${isExpired ? 'var(--danger)' : isExpiring ? 'var(--warning)' : 'var(--text-muted)'};">
-            到期：${m.expireDate}${isExpired ? ' (已过期)' : isExpiring ? ` (还剩${daysLeft}天)` : ` (${daysLeft}天后到期)`}
+            ${expireText}
           </div>
         </div>
         <div style="display:flex; gap:6px; flex-shrink:0;">
@@ -3452,8 +3476,8 @@ function savePermissions() {
 
 // 同步会员数据到云端
 async function syncMembersToCloud() {
-  const token = localStorage.getItem('github_token');
-  if (!token) { showToast('⚠️ 未配置同步Token，请先在Prompt调教页设置'); return; }
+  const token = localStorage.getItem('github_token') || localStorage.getItem('github_write_token');
+  if (!token) { console.log('无可用写 token，跳过云端同步'); return; }
   try {
     showToast('⏳ 正在同步到云端...');
     // 先拉取最新
@@ -4140,7 +4164,7 @@ function renderRecentPage() {
 
 // ==================== 后台统计面板 ====================
 function refreshAdminStats() {
-  const members = loadMembersData();
+  const members = getMembersData();
   const today = new Date().toISOString().split('T')[0];
   const thisMonth = today.slice(0, 7);
 
@@ -4291,7 +4315,7 @@ function setFeedbackStatus(feedbackId, status) {
     const targetHotel = feedbacks[idx].hotel;
     const targetName = feedbacks[idx].author;
     if (targetHotel || targetName) {
-      const members = loadMembersData();
+      const members = getMembersData();
       const memberIdx = members.findIndex(m =>
         (targetHotel && m.hotel === targetHotel) ||
         (targetName && targetName !== '匿名' && m.name === targetName)
