@@ -1228,7 +1228,7 @@ const PROMPTS_API_URL = 'https://api.github.com/repos/sxie738-bot/hotel-ai-workb
 let cloudPrompts = null; // 云端 Prompt 缓存
 
 // ==================== 应用版本更新检测 ====================
-const APP_VERSION = '1.7.4'; // 当前代码版本号（每次发布新功能时手动递增）
+const APP_VERSION = '1.7.5'; // 当前代码版本号（每次发布新功能时手动递增）
 
 // 检查是否有新版本可用
 async function checkForUpdate(showToastIfLatest = false) {
@@ -1820,7 +1820,7 @@ const MODULE_DESCRIPTIONS = {
   video:      'AI脚本+分镜生成，一键创作短视频',
   geo:        '关键词矩阵+SEO标题+4周内容日历',
   quicklink:  '小红书/抖音/携程/美团等8大平台直达',
-  review:     '上传Excel → AI统计+逐条回复点评',
+  review:     '上传截图 → AI专业回复 → 一键复制粘贴',
   competitor: '高德地图POI搜索附近酒店竞对',
   diagnosis:  '输入经营数据 → AI诊断+改进建议',
   bizdev:     '企业信息 → 合作协议+销售话术',
@@ -4548,95 +4548,198 @@ async function generateGeoPlan() {
   }
 }
 
-// --- 点评回复 ---
-let reviewFileData = null;
-let reviewImageBase64 = null; // 图片上传时存储base64
+// ==================== 点评回复（图片逐条模式）====================
+let reviewItems = []; // [{ id, file, base64, status: 'pending'|'loading'|'done'|'error', reply }]
 
 function handleReviewUpload(e) {
-  const file = e.target.files[0];
-  if (!file) return;
+  const files = Array.from(e.target.files);
+  if (!files.length) return;
+  e.target.value = ''; // 允许重复上传同名文件
 
-  // 判断文件类型
-  const isImage = file.type.startsWith('image/');
+  let loaded = 0;
+  files.forEach(file => {
+    if (!file.type.startsWith('image/')) {
+      showToast(`跳过非图片文件：${file.name}`, 'warning');
+      return;
+    }
+    const id = 'rv_' + Date.now() + '_' + Math.random().toString(36).slice(2, 6);
+    const item = { id, file, base64: null, status: 'pending', reply: '' };
+    reviewItems.push(item);
+    renderReviewCard(item); // 先渲染占位卡片
 
-  if (isImage) {
-    // 图片上传：转为base64
     const reader = new FileReader();
-    reader.onload = function(ev) {
-      reviewImageBase64 = ev.target.result;
-      reviewFileData = [{ type: 'image', name: file.name }];
-      document.getElementById('reviewFileName').textContent = '📸 ' + file.name;
-      document.getElementById('reviewUploadArea').style.display = 'none';
-      document.getElementById('reviewPreview').style.display = '';
-      showToast('✅ 截图已加载，AI将识别点评内容并生成回复');
-    };
-    reader.readAsDataURL(file);
-  } else {
-    // Excel/CSV上传
-    const reader = new FileReader();
-    reader.onload = async function(ev) {
-      try {
-        const data = ev.target.result;
-        const workbook = XLSX.read(data, { type: 'array' });
-        reviewFileData = XLSX.utils.sheet_to_json(workbook.Sheets[workbook.SheetNames[0]]);
-        reviewImageBase64 = null;
-        document.getElementById('reviewFileName').textContent = '📊 ' + file.name;
-        document.getElementById('reviewUploadArea').style.display = 'none';
-        document.getElementById('reviewPreview').style.display = '';
-        showToast(`✅ 已加载 ${reviewFileData.length} 条点评数据`);
-      } catch (err) {
-        showToast('文件解析失败，请检查格式', 'error');
+    reader.onload = ev => {
+      item.base64 = ev.target.result;
+      loaded++;
+      // 更新缩略图
+      const thumb = document.getElementById('thumb_' + id);
+      if (thumb) thumb.src = item.base64;
+      if (loaded === files.length) {
+        showToast(`✅ 已上传 ${loaded} 张截图，点击「AI回复」开始处理`);
       }
     };
-    reader.readAsArrayBuffer(file);
-  }
+    reader.readAsDataURL(file);
+  });
+
+  _reviewUpdateToolbar();
 }
 
-function removeReviewFile() {
-  reviewFileData = null;
-  reviewImageBase64 = null;
-  document.getElementById('reviewFileInput').value = '';
-  document.getElementById('reviewUploadArea').style.display = '';
-  document.getElementById('reviewPreview').style.display = 'none';
+function renderReviewCard(item) {
+  // 隐藏空状态
+  const empty = document.getElementById('reviewEmpty');
+  if (empty) empty.style.display = 'none';
+
+  const list = document.getElementById('reviewList');
+  const card = document.createElement('div');
+  card.id = 'card_' + item.id;
+  card.style.cssText = 'background:var(--bg-card); border:1px solid var(--border); border-radius:var(--radius); overflow:hidden;';
+  card.innerHTML = `
+    <div style="display:flex; gap:0; min-height:140px;">
+      <!-- 左：缩略图 -->
+      <div style="width:140px; min-width:140px; background:#f3f4f6; display:flex; align-items:center; justify-content:center; position:relative; overflow:hidden;">
+        <img id="thumb_${item.id}" src="" alt="截图" style="width:100%; height:140px; object-fit:cover; display:block;">
+        <div style="position:absolute; bottom:0; left:0; right:0; background:rgba(0,0,0,0.45); color:#fff; font-size:11px; padding:3px 6px; text-align:center; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">
+          ${escapeHtml(item.file.name)}
+        </div>
+      </div>
+      <!-- 右：回复内容区 -->
+      <div style="flex:1; padding:14px 16px; display:flex; flex-direction:column; gap:10px;">
+        <div id="reply_${item.id}" style="flex:1; font-size:13px; line-height:1.8; color:var(--text); white-space:pre-wrap;">
+          <span style="color:var(--text-muted); font-size:13px;">点击「AI回复」生成该条点评的专业回复</span>
+        </div>
+        <div style="display:flex; gap:8px; flex-shrink:0; flex-wrap:wrap;">
+          <button class="btn btn-primary" style="font-size:12px; padding:6px 14px;" onclick="analyzeSingleReview('${item.id}')">
+            ✨ AI回复
+          </button>
+          <button id="copyBtn_${item.id}" class="btn-sm" style="font-size:12px; display:none;" onclick="copyReviewReply('${item.id}')">
+            📋 复制回复
+          </button>
+          <button class="btn-sm" style="font-size:12px; color:var(--text-muted);" onclick="removeReviewItem('${item.id}')">
+            🗑️ 删除
+          </button>
+        </div>
+      </div>
+    </div>`;
+  list.appendChild(card);
 }
 
-async function analyzeReviews() {
+async function analyzeSingleReview(id) {
   if (!checkModuleAccess('review')) return;
-  if (!reviewFileData || reviewFileData.length === 0) { showToast('请先上传点评数据', 'warning'); return; }
+  const item = reviewItems.find(r => r.id === id);
+  if (!item || !item.base64) { showToast('截图尚未加载完成，请稍候', 'warning'); return; }
 
   const style = document.getElementById('reviewStyle')?.value || '专业诚恳';
-  const output = document.getElementById('review-output');
-  output.innerHTML = '<div style="text-align:center;padding:40px;color:var(--text-muted);"><div style="font-size:32px;animation:pulse 1.5s infinite;">💬</div><p style="margin-top:12px;">AI正在分析点评并生成回复...</p></div>';
+  const replyEl = document.getElementById('reply_' + id);
+  const copyBtn = document.getElementById('copyBtn_' + id);
+  const analyzeBtn = document.querySelector(`#card_${id} .btn-primary`);
+
+  item.status = 'loading';
+  if (analyzeBtn) { analyzeBtn.disabled = true; analyzeBtn.textContent = '⏳ 生成中...'; }
+  if (replyEl) replyEl.innerHTML = '<span style="color:var(--text-muted); font-size:13px; animation:pulse 1.5s infinite;">💬 AI正在识别点评并生成专业回复...</span>';
 
   try {
-    let messages;
+    const hotelName = localStorage.getItem('hotel_name') || '酒店';
+    const sysPrompt = getPrompt('review')
+      .replace('{{hotelName}}', hotelName)
+      .replace('{{reviews}}', '[由图片内容自动识别]');
 
-    if (reviewImageBase64) {
-      // 图片模式：使用视觉模型识别点评内容
-      messages = [
-        { role: 'system', content: `你是酒店点评管理专家。请识别这张点评截图中的内容，并分析点评数据，生成专业回复。\n\n输出格式：\n1.【截图识别结果】提取出的点评内容\n2.【数据概览】评分、评论重点\n3.【回复模板】生成3-5条专业回复模板\n4.【改进建议】根据点评内容，给出改进建议\n\n回复风格：${style}` },
-        { role: 'user', content: [
-          { type: 'text', text: '请识别和分析这张点评截图，然后生成专业回复' },
-          { type: 'image_url', image_url: { url: reviewImageBase64 } }
-        ]}
-      ];
-    } else {
-      // Excel/CSV模式：分析结构化数据
-      const sampleReviews = reviewFileData.slice(0, 50).map((r, i) => `第${i+1}条：${JSON.stringify(r).substring(0, 200)}`).join('\n');
-      messages = [
-        { role: 'system', content: `你是酒店点评管理专家。请分析以下点评数据并生成专业回复。\n\n输出格式：\n1.【数据概览】总条数、好评率、差评率、平均评分\n2.【好评TOP关键词】好评中出现频率最高的5个关键词\n3.【差评主要问题】归类差评的主要问题类型及占比\n4.【差评回复模板】针对每个主要问题类型，生成2-3条专业回复模板\n5.【改进建议】3-5条可落地的改进建议\n\n回复风格：${style}` },
-        { role: 'user', content: `以下是点评数据（共${reviewFileData.length}条，展示前50条）：\n\n${sampleReviews}` }
-      ];
-    }
+    const messages = [
+      { role: 'system', content: sysPrompt + `\n\n回复风格：${style}\n\n请按以下格式输出：\n【识别内容】：（简述截图中的点评原文要点）\n【专业回复】：（直接可复制使用的完整回复，50-150字）` },
+      { role: 'user', content: [
+        { type: 'text', text: '请识别这张点评截图，并生成一条专业的酒店回复。' },
+        { type: 'image_url', image_url: { url: item.base64 } }
+      ]}
+    ];
 
     const result = await callAIWithFallback('content', messages, { temperature: 0.5 });
-    output.innerHTML = `<div style="line-height:1.8;white-space:pre-wrap;">${escapeHtml(result)}</div>`;
+    item.status = 'done';
+    item.reply = result;
+
+    // 分离「识别内容」和「专业回复」高亮展示
+    const replyMatch = result.match(/【专业回复】[：:]\s*([\s\S]+?)(?:\n【|$)/);
+    const replyText = replyMatch ? replyMatch[1].trim() : result;
+    const recognizeMatch = result.match(/【识别内容】[：:]\s*([\s\S]+?)(?:\n【|$)/);
+    const recognizeText = recognizeMatch ? recognizeMatch[1].trim() : '';
+
+    replyEl.innerHTML = (recognizeText
+      ? `<div style="font-size:12px; color:var(--text-muted); margin-bottom:8px; padding:6px 10px; background:var(--bg); border-radius:6px;"><strong>识别：</strong>${escapeHtml(recognizeText)}</div>`
+      : '')
+      + `<div id="replyText_${id}" style="font-size:13px; line-height:1.8; color:var(--text); white-space:pre-wrap; padding:8px 10px; background:#f0f9ff; border-left:3px solid var(--primary); border-radius:0 6px 6px 0;">${escapeHtml(replyText)}</div>`;
+
+    if (copyBtn) copyBtn.style.display = '';
+    if (analyzeBtn) { analyzeBtn.disabled = false; analyzeBtn.textContent = '🔄 重新生成'; }
+
     MemberStore.addUsage('review');
-    MemberStore.addHistory('analyze_reviews', 'review', result);
+    MemberStore.addHistory('review_reply', 'review', replyText);
+
   } catch (err) {
-    output.innerHTML = `<div style="text-align:center;padding:40px;color:#dc2626;">❌ 分析失败：${escapeHtml(err.message)}</div>`;
+    item.status = 'error';
+    if (replyEl) replyEl.innerHTML = `<span style="color:#dc2626;">❌ 生成失败：${escapeHtml(err.message)}</span>`;
+    if (analyzeBtn) { analyzeBtn.disabled = false; analyzeBtn.textContent = '🔄 重试'; }
   }
 }
+
+async function analyzeAllReviews() {
+  if (!checkModuleAccess('review')) return;
+  const pending = reviewItems.filter(r => r.status === 'pending' || r.status === 'error');
+  if (!pending.length) { showToast('所有截图已处理完毕', 'warning'); return; }
+  showToast(`开始处理 ${pending.length} 张截图...`);
+  for (const item of pending) {
+    await analyzeSingleReview(item.id);
+    // 每条之间稍作间隔，避免API限流
+    await new Promise(r => setTimeout(r, 600));
+  }
+}
+
+function copyReviewReply(id) {
+  const item = reviewItems.find(r => r.id === id);
+  if (!item || !item.reply) return;
+  // 只复制「专业回复」部分
+  const replyMatch = item.reply.match(/【专业回复】[：:]\s*([\s\S]+?)(?:\n【|$)/);
+  const text = replyMatch ? replyMatch[1].trim() : item.reply;
+  copyToClipboard(text);
+  const btn = document.getElementById('copyBtn_' + id);
+  if (btn) { btn.textContent = '✅ 已复制'; setTimeout(() => { btn.textContent = '📋 复制回复'; }, 2000); }
+}
+
+function removeReviewItem(id) {
+  reviewItems = reviewItems.filter(r => r.id !== id);
+  const card = document.getElementById('card_' + id);
+  if (card) card.remove();
+  _reviewUpdateToolbar();
+  if (!reviewItems.length) {
+    const empty = document.getElementById('reviewEmpty');
+    if (empty) empty.style.display = '';
+  }
+}
+
+function clearAllReviews() {
+  reviewItems = [];
+  const list = document.getElementById('reviewList');
+  // 只保留空状态 div
+  list.innerHTML = `<div id="reviewEmpty" style="text-align:center; padding:60px 20px; color:var(--text-muted);
+       background:var(--bg-card); border:2px dashed var(--border); border-radius:var(--radius);">
+    <div style="font-size:48px; margin-bottom:12px;">📸</div>
+    <p style="font-size:15px; font-weight:500; margin-bottom:6px;">上传点评截图开始回复</p>
+    <p style="font-size:13px;">支持携程/美团/飞猪等平台截图，AI自动识别内容</p>
+    <p style="font-size:12px; margin-top:4px; opacity:0.7;">可一次上传多张，逐条生成专业回复</p>
+  </div>`;
+  _reviewUpdateToolbar();
+}
+
+function _reviewUpdateToolbar() {
+  const hasItems = reviewItems.length > 0;
+  const allBtn = document.getElementById('reviewAnalyzeAllBtn');
+  const clearBtn = document.getElementById('reviewClearBtn');
+  const hint = document.getElementById('reviewHint');
+  if (allBtn) allBtn.style.display = hasItems ? '' : 'none';
+  if (clearBtn) clearBtn.style.display = hasItems ? '' : 'none';
+  if (hint) hint.style.display = hasItems ? 'none' : '';
+}
+
+// 兼容旧代码调用（保留空函数避免报错）
+function removeReviewFile() { clearAllReviews(); }
+function analyzeReviews() { analyzeAllReviews(); }
 
 // --- 竞对情报站 ---
 async function searchCompetitors() {

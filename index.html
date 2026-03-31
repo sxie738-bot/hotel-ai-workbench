@@ -1016,56 +1016,48 @@
         <div style="display:flex; justify-content:space-between; align-items:flex-start;">
           <div>
             <h2>💬 点评回复</h2>
-            <p>上传点评截图，AI智能识别并生成专业回复</p>
+            <p>上传点评截图 → AI专业回复 → 复制粘贴，一条一条搞定</p>
           </div>
           <button class="btn-sm admin-only" onclick="openPromptTuning('review')" style="flex-shrink:0; margin-top:4px; font-size:12px; color:var(--primary); border-color:var(--primary);">⚙️ 调教Prompt</button>
         </div>
       </div>
-      <div class="tool-layout">
-        <div class="tool-input">
-          <div class="upload-area" id="reviewUploadArea" style="padding:24px;">
-            <div class="upload-icon">📸</div>
-            <h3 style="font-size:15px;">上传点评截图</h3>
-            <p style="font-size:13px;">支持 图片 (.jpg, .png) 格式</p>
-            <p class="upload-hint">截图点评内容，AI将自动识别文字并生成专业回复</p>
-            <input type="file" id="reviewFileInput" accept=".xlsx,.xls,.csv,image/jpeg,image/png,image/jpg" hidden onchange="handleReviewUpload(event)">
-            <button class="btn btn-primary" style="margin-top:12px;" onclick="document.getElementById('reviewFileInput').click()">选择文件</button>
-          </div>
-          <div id="reviewPreview" style="display:none;">
-            <div style="display:flex; align-items:center; justify-content:space-between; padding:12px; background:var(--bg-card); border:1px solid var(--border); border-radius:var(--radius-sm); margin-bottom:16px;">
-              <div style="display:flex; align-items:center; gap:8px;">
-                <span>📸</span>
-                <strong id="reviewFileName" style="font-size:13px;"></strong>
-              </div>
-              <button class="btn-sm" onclick="removeReviewFile()">✕</button>
-            </div>
-            <div class="form-group">
-              <label>回复风格</label>
-              <select class="form-select" id="reviewStyle">
-                <option value="专业诚恳">专业诚恳</option>
-                <option value="热情亲切">热情亲切</option>
-                <option value="简洁高效">简洁高效</option>
-              </select>
-            </div>
-            <button class="btn btn-primary btn-block" onclick="analyzeReviews()">
-              💬 开始AI分析并回复
-            </button>
-          </div>
-        </div>
-        <div class="tool-output">
-          <div class="output-header">
-            <span>分析结果</span>
-            <div class="output-actions">
-              <button class="btn-sm" onclick="copyOutput('review-output')">📋 复制</button>
-            </div>
-          </div>
-          <div class="output-area" id="review-output">
-            <div class="output-placeholder">
-              <span class="placeholder-icon">💬</span>
-              <p>上传点评截图后，AI将自动识别并回复</p>
-              <p class="placeholder-hint">支持截图/图片，AI自动识别点评内容生成专业回复</p>
-            </div>
-          </div>
+
+      <!-- 顶部操作栏 -->
+      <div style="display:flex; gap:12px; align-items:center; margin-bottom:16px; flex-wrap:wrap;">
+        <!-- 上传按钮 -->
+        <label style="display:flex; align-items:center; gap:8px; padding:10px 18px;
+               background:var(--primary); color:#fff; border-radius:var(--radius-sm);
+               cursor:pointer; font-size:14px; font-weight:500; flex-shrink:0;">
+          <span>📸 上传截图</span>
+          <input type="file" id="reviewFileInput" accept="image/jpeg,image/png,image/jpg,image/webp" multiple hidden onchange="handleReviewUpload(event)">
+        </label>
+        <!-- 回复风格 -->
+        <select class="form-select" id="reviewStyle" style="width:auto; min-width:120px; padding:8px 12px; font-size:13px;">
+          <option value="专业诚恳">专业诚恳</option>
+          <option value="热情亲切">热情亲切</option>
+          <option value="简洁高效">简洁高效</option>
+        </select>
+        <!-- 全部分析按钮（有图片时显示） -->
+        <button id="reviewAnalyzeAllBtn" class="btn btn-primary" onclick="analyzeAllReviews()" style="display:none; padding:9px 18px; font-size:13px;">
+          ✨ 一键全部回复
+        </button>
+        <!-- 清空按钮 -->
+        <button id="reviewClearBtn" class="btn-sm" onclick="clearAllReviews()" style="display:none; color:var(--text-muted);">
+          🗑️ 清空
+        </button>
+        <!-- 使用提示 -->
+        <span id="reviewHint" style="font-size:12px; color:var(--text-muted);">支持多张截图，AI逐条识别并生成专业回复</span>
+      </div>
+
+      <!-- 图片列表 + 回复结果区 -->
+      <div id="reviewList" style="display:flex; flex-direction:column; gap:16px;">
+        <!-- 空状态 -->
+        <div id="reviewEmpty" style="text-align:center; padding:60px 20px; color:var(--text-muted);
+             background:var(--bg-card); border:2px dashed var(--border); border-radius:var(--radius);">
+          <div style="font-size:48px; margin-bottom:12px;">📸</div>
+          <p style="font-size:15px; font-weight:500; margin-bottom:6px;">上传点评截图开始回复</p>
+          <p style="font-size:13px;">支持携程/美团/飞猪等平台截图，AI自动识别内容</p>
+          <p style="font-size:12px; margin-top:4px; opacity:0.7;">可一次上传多张，逐条生成专业回复</p>
         </div>
       </div>
     </section>
