@@ -462,41 +462,41 @@
           <div class="tool-input">
             <div class="form-group">
               <label>原始内容</label>
-              <textarea class="form-textarea" rows="6" placeholder="粘贴已有内容，或先在「携程社区」生成后自动带入..."></textarea>
+              <textarea class="form-textarea" id="multiSourceContent" rows="6" placeholder="粘贴已有内容，或先在「携程社区」生成后自动带入..."></textarea>
             </div>
             <div class="form-group">
-              <label>目标平台</label>
+              <label>内容格式</label>
               <div class="checkbox-group">
                 <label class="checkbox-item">
-                  <input type="checkbox" checked> 小红书
+                  <input type="checkbox" value="short" checked> 短图文
                 </label>
                 <label class="checkbox-item">
-                  <input type="checkbox" checked> 微信公众号
+                  <input type="checkbox" value="long" checked> 长图文
                 </label>
                 <label class="checkbox-item">
-                  <input type="checkbox"> 抖音文案
+                  <input type="checkbox" value="voiceover"> 口播文案
                 </label>
                 <label class="checkbox-item">
-                  <input type="checkbox"> 美团点评
+                  <input type="checkbox" value="script"> 视频脚本
                 </label>
               </div>
             </div>
             <button class="btn btn-primary btn-block" onclick="generateMulti()">
-              🔄 一键适配多平台
+              ✨ 一键生成多格式内容
             </button>
           </div>
           <div class="tool-output">
             <div class="output-header">
-              <span>多平台适配结果</span>
+              <span>内容格式适配结果</span>
               <div class="output-actions">
-                <button class="btn-sm">📋 全部复制</button>
+                <button class="btn-sm" onclick="copyOutput('multi-output')">📋 全部复制</button>
               </div>
             </div>
-            <div class="output-area">
+            <div class="output-area" id="multi-output">
               <div class="output-placeholder">
-                <span class="placeholder-icon">📱</span>
-                <p>选择目标平台后，AI将自动适配各平台风格</p>
-                <p class="placeholder-hint">小红书 → 笔记体 + Emoji / 公众号 → 深度长文</p>
+                <span class="placeholder-icon">✍️</span>
+                <p>选择内容格式后，AI将自动适配生成</p>
+                <p class="placeholder-hint">短图文 → 小红书风格 / 长图文 → 公众号深度 / 口播 → 张琦风格 / 脚本 → 分镜画面</p>
               </div>
             </div>
           </div>

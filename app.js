@@ -1097,18 +1097,55 @@ const PROMPTS = {
 - 卖点关键词：{{keywords}}
 - 补充信息：{{extra}}`,
 
-  multi: `你是多平台内容改编专家。将原始内容改编为指定平台的风格。
+  multi: `你是酒店内容创作专家，擅长将同一段原始信息，改编为不同内容格式，供不同场景使用。
 
-平台风格要求：
-- 小红书：笔记体，多用Emoji，分段短，标题吸睛，带话题标签
-- 微信公众号：深度长文，逻辑清晰，有观点有分析，专业但接地气
-- 抖音文案：口语化，有悬念有反转，适合配音，带话题
-- 美团点评：简洁实用，突出性价比和服务体验
+内容格式写作规范：
+
+【短图文】（小红书风格，400-600字）
+- 标题：10字以内，爆款格式，制造好奇或惊喜感，例如「在这家酒店，我睡了3年最香的一觉」
+- 开篇：用细节场景切入，第一句话就抓住读者
+- 内容：分段短，每段1-3句，有节奏感；多用具体感官描写，让人有画面感
+- 语气：像朋友分享，不像广告，去掉「强烈推荐」「性价比超高」等销售语气
+- 重体验，不讲参数；写住感、氛围、服务细节
+- Emoji点缀，结尾带2-3个话题标签（#城市+酒店类型）
+- 字数：400-600字
+
+【长图文】（微信公众号风格，1200-1500字）
+- 标题：吸睛标题，符合爆款格式，可用数字/对比/痛点，例如「出差2年，住了上百家酒店，这3点让我反复回住同一家」
+- 结构清晰：前言（100字内）+ 正文分3个小标题（每段200-400字）+ 结语（100字内）
+- 小标题加粗，逻辑递进，有观点有温度
+- 每段有具体场景描写，避免空洞
+- 语气：专业、有温度、有人格感，不官方不广告
+- 结尾引导读者互动或收藏
+- 字数：1200-1500字
+
+【口播文案】（参考张琦口播风格）
+- 口语化，像在和朋友聊天，节奏感强，断句自然
+- 结构：开场抛问题/痛点（5-10秒）→ 主体分3点（每点10-15秒）→ 结尾总结+行动指引（5-10秒）
+- 每句话不超过20个字，适合直接朗读不卡顿
+- 关键词重复出现，朗朗上口，有记忆点
+- 用「你」直接称呼听众，拉近距离
+- 总时长：1-1.5分钟左右（约300-400字），可直接用于短视频配音
+
+【视频脚本】（分镜格式，方便简单剪辑）
+- 开场Hook（0-3秒）：一句话/一个画面直接抓住观众，制造好奇或情绪冲击
+- 分镜脚本：每个镜头标明「镜头XX」「时长」「画面描述」「口播/字幕文案」
+  - 画面描述要具体：角度（俯拍/平拍/跟拍）+ 场景内容 + 氛围感形容
+  - 让用户光看文字就能有画面感，方便AI生图或自行拍摄
+- 全程口播文案：逐句列出，每句对应镜头
+- 配乐建议：风格描述（轻松/治愈/活泼/商务感）
+- 字幕关键词：标注需要重点展示的字幕
+- 结尾引导：关注/点赞/到店 三选一
+- 总脚本控制在15-30秒或60秒版本（用户可自选）
+
+---
 
 原始内容：
 {{content}}
 
-请改编为以下平台：{{platforms}}`,
+请改编为以下格式：{{formats}}
+
+要求：每种格式之间用"===【格式名称】==="分隔，内容饱满充实，直接可用。`,
 
   training: `你是酒店前台培训管家，拥有丰富的酒店服务经验和专业知识。
 
@@ -1228,7 +1265,7 @@ const PROMPTS_API_URL = 'https://api.github.com/repos/sxie738-bot/hotel-ai-workb
 let cloudPrompts = null; // 云端 Prompt 缓存
 
 // ==================== 应用版本更新检测 ====================
-const APP_VERSION = '1.7.5'; // 当前代码版本号（每次发布新功能时手动递增）
+const APP_VERSION = '1.7.6'; // 当前代码版本号（每次发布新功能时手动递增）
 
 // 检查是否有新版本可用
 async function checkForUpdate(showToastIfLatest = false) {
@@ -2404,44 +2441,70 @@ function regenerate() {
 }
 
 // ==================== 内容创作：多平台复用 ====================
+const MULTI_FORMAT_MAP = {
+  short:     { label: '📱 短图文',    hint: '小红书风格 · 400-600字' },
+  long:      { label: '📰 长图文',    hint: '公众号风格 · 1200-1500字' },
+  voiceover: { label: '🎙️ 口播文案', hint: '张琦风格 · 口语化结构化' },
+  script:    { label: '🎬 视频脚本',  hint: '分镜格式 · 方便剪辑' },
+};
+
 async function generateMulti() {
-  const content = document.querySelector('#tab-multi .form-textarea').value.trim();
-  if (!content) {
-    showToast('请输入原始内容', 'warning');
-    return;
-  }
+  const content = (document.getElementById('multiSourceContent') || document.querySelector('#tab-multi .form-textarea'))?.value.trim();
+  if (!content) { showToast('请输入原始内容', 'warning'); return; }
 
   const checkboxes = document.querySelectorAll('#tab-multi .checkbox-item input[type="checkbox"]');
-  const platforms = [];
+  const selectedFormats = [];
   checkboxes.forEach(cb => {
-    if (cb.checked) platforms.push(cb.parentElement.textContent.trim());
+    if (cb.checked) selectedFormats.push(cb.value || cb.parentElement.textContent.trim());
   });
 
-  if (platforms.length === 0) {
-    showToast('请至少选择一个目标平台', 'warning');
-    return;
-  }
+  if (selectedFormats.length === 0) { showToast('请至少选择一种内容格式', 'warning'); return; }
 
-  const outputContainer = document.querySelector('#tab-multi .output-area');
+  // 将 value（short/long/voiceover/script）映射为中文名
+  const formatNames = selectedFormats.map(v => {
+    const map = { short:'短图文', long:'长图文', voiceover:'口播文案', script:'视频脚本' };
+    return map[v] || v;
+  });
+
+  const outputContainer = document.getElementById('multi-output') || document.querySelector('#tab-multi .output-area');
   outputContainer.innerHTML = `
     <div style="text-align:center; padding:60px 20px; color:var(--text-muted);">
-      <div style="font-size:32px; margin-bottom:12px;">⏳</div>
-      <p>AI正在适配多平台内容...</p>
-      <p style="font-size:12px; margin-top:8px;">使用通义千问 · 适配 ${platforms.length} 个平台</p>
-    </div>
-  `;
+      <div style="font-size:32px; margin-bottom:12px; animation:pulse 1.5s infinite;">✨</div>
+      <p>AI正在生成 ${formatNames.length} 种内容格式...</p>
+      <p style="font-size:12px; margin-top:8px; opacity:0.7;">${formatNames.join(' · ')} · 请稍候</p>
+    </div>`;
 
   try {
     let prompt = getPrompt('multi');
     prompt = prompt.replace('{{content}}', content)
-                   .replace('{{platforms}}', platforms.join('、'));
+                   .replace('{{platforms}}', formatNames.join('、'))
+                   .replace('{{formats}}', formatNames.join('、'));
 
     const result = await callAIWithFallback('content', [
-      { role: 'system', content: '你是多平台内容改编专家。为每个平台分别输出内容，用平台名称作为标题分隔。输出纯文本，不用markdown。' },
+      { role: 'system', content: '你是酒店内容创作专家。请严格按用户要求的内容格式输出，每种格式用"===【格式名称】==="分隔，内容充实，直接可用，不用markdown加粗符号。' },
       { role: 'user', content: prompt }
-    ]);
+    ], { temperature: 0.7 });
 
-    outputContainer.innerHTML = `<div style="line-height:1.8; white-space:pre-wrap;">${escapeHtml(result)}</div>`;
+    // 解析分隔，每种格式独立卡片
+    const sections = _parseMultiResult(result, formatNames, selectedFormats);
+    if (sections.length > 0) {
+      outputContainer.innerHTML = sections.map((s, i) => `
+        <div style="background:var(--bg-card); border:1px solid var(--border); border-radius:var(--radius); margin-bottom:16px; overflow:hidden;">
+          <div style="display:flex; align-items:center; justify-content:space-between; padding:10px 14px; background:var(--bg); border-bottom:1px solid var(--border);">
+            <div>
+              <span style="font-weight:600; font-size:13px;">${escapeHtml(s.label)}</span>
+              <span style="font-size:11px; color:var(--text-muted); margin-left:8px;">${escapeHtml(s.hint)}</span>
+            </div>
+            <button class="btn-sm" style="font-size:12px;" onclick="copyMultiSection(${i})">📋 复制</button>
+          </div>
+          <div id="multiSection${i}" style="padding:14px 16px; font-size:13px; line-height:1.9; white-space:pre-wrap; color:var(--text);">${escapeHtml(s.content)}</div>
+        </div>`).join('');
+      // 将原始文本也存到隐藏元素，方便全部复制
+      outputContainer.dataset.rawResult = result;
+    } else {
+      outputContainer.innerHTML = `<div style="padding:16px; font-size:13px; line-height:1.9; white-space:pre-wrap;">${escapeHtml(result)}</div>`;
+    }
+
     MemberStore.addUsage('content');
     MemberStore.addHistory('generate_multi', 'content', result);
   } catch (err) {
@@ -2449,9 +2512,62 @@ async function generateMulti() {
       <div style="text-align:center; padding:40px 20px; color:#dc2626;">
         <div style="font-size:32px; margin-bottom:12px;">❌</div>
         <p>生成失败：${escapeHtml(err.message)}</p>
-      </div>
-    `;
+      </div>`;
   }
+}
+
+// 解析 AI 输出，按格式名分段
+function _parseMultiResult(raw, formatNames, formatValues) {
+  const sections = [];
+  // 尝试按 ===【格式名】=== 分割
+  for (let i = 0; i < formatNames.length; i++) {
+    const name = formatNames[i];
+    const val = formatValues[i];
+    const meta = MULTI_FORMAT_MAP[val] || { label: name, hint: '' };
+    // 找当前格式的内容起始位置
+    const startReg = new RegExp(`===【${name}】===|【${name}】`, 'i');
+    const nextNames = formatNames.slice(i + 1);
+    const endReg = nextNames.length
+      ? new RegExp(`===【(?:${nextNames.join('|')})】===|【(?:${nextNames.join('|')})】`, 'i')
+      : null;
+
+    const startMatch = raw.search(startReg);
+    if (startMatch === -1) {
+      // 没找到分隔符，整体当作该格式内容（仅当只选了一种时）
+      if (formatNames.length === 1) {
+        sections.push({ label: meta.label, hint: meta.hint, content: raw.trim() });
+      }
+      continue;
+    }
+    // 跳过分隔行
+    const afterStart = raw.slice(startMatch).replace(startReg, '').trimStart();
+    const endMatch = endReg ? afterStart.search(endReg) : -1;
+    const content = endMatch !== -1 ? afterStart.slice(0, endMatch).trim() : afterStart.trim();
+    sections.push({ label: meta.label, hint: meta.hint, content });
+  }
+  return sections;
+}
+
+function copyMultiSection(idx) {
+  const el = document.getElementById('multiSection' + idx);
+  if (!el) return;
+  copyToClipboard(el.textContent);
+  const btn = el.closest('[style]')?.querySelector('button');
+  if (btn) { btn.textContent = '✅ 已复制'; setTimeout(() => { btn.textContent = '📋 复制'; }, 2000); }
+}
+
+// 携程→多平台自动带入
+function sendCtripToMulti(text) {
+  const el = document.getElementById('multiSourceContent') || document.querySelector('#tab-multi .form-textarea');
+  if (el) el.value = text;
+  // 切换到多平台 Tab
+  document.querySelectorAll('#page-content .tab-btn').forEach(b => {
+    b.classList.toggle('active', b.dataset.tab === 'multi');
+  });
+  document.querySelectorAll('#page-content .tab-content').forEach(c => {
+    c.classList.toggle('active', c.id === 'tab-multi');
+  });
+  showToast('携程内容已带入，选择格式后一键生成');
 }
 
 // ==================== 前台培训管家：智能问答 ====================
