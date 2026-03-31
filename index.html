@@ -225,53 +225,11 @@
         <span class="nav-icon">🕐</span>
         <span class="nav-label">最近使用</span>
       </a>
-      <a href="#" class="nav-item" data-page="content">
-        <span class="nav-icon">✍️</span>
-        <span class="nav-label">内容创作中心</span>
-      </a>
-      <a href="#" class="nav-item" data-page="training">
-        <span class="nav-icon">📖</span>
-        <span class="nav-label">前台培训管家</span>
-      </a>
-      <a href="#" class="nav-item" data-page="analysis">
-        <span class="nav-icon">📈</span>
-        <span class="nav-label">数据分析助手</span>
-      </a>
       <div class="nav-divider"></div>
-      <a href="#" class="nav-item" data-page="video">
-        <span class="nav-icon">🎬</span>
-        <span class="nav-label">短视频生成</span>
+      <a href="#" class="nav-item" data-page="community">
+        <span class="nav-icon">🌸</span>
+        <span class="nav-label">交流社区</span>
       </a>
-      <a href="#" class="nav-item" data-page="geo">
-        <span class="nav-icon">🔍</span>
-        <span class="nav-label">GEO优化</span>
-      </a>
-      <a href="#" class="nav-item" data-page="quicklink" id="navQuicklink" style="display:none;">
-        <span class="nav-icon">🚀</span>
-        <span class="nav-label">一键直达</span>
-      </a>
-      <a href="#" class="nav-item" data-page="review">
-        <span class="nav-icon">💬</span>
-        <span class="nav-label">点评回复</span>
-      </a>
-      <div class="nav-divider"></div>
-      <a href="#" class="nav-item" data-page="competitor">
-        <span class="nav-icon">🕵️</span>
-        <span class="nav-label">竞对情报站</span>
-      </a>
-      <a href="#" class="nav-item" data-page="diagnosis">
-        <span class="nav-icon">🩺</span>
-        <span class="nav-label">经营诊断</span>
-      </a>
-      <a href="#" class="nav-item" data-page="bizdev">
-        <span class="nav-icon">🤝</span>
-        <span class="nav-label">大客户拓展</span>
-      </a>
-      <a href="#" class="nav-item" data-page="patrol">
-        <span class="nav-icon">📷</span>
-        <span class="nav-label">数字巡店</span>
-      </a>
-      <div class="nav-divider"></div>
       <a href="#" class="nav-item" data-page="feishu" id="navFeishu">
         <span class="nav-icon">📋</span>
         <span class="nav-label">飞书表格</span>
@@ -1422,6 +1380,112 @@
       </div>
     </section>
 
+    <!-- ==================== 页面：交流社区 ==================== -->
+    <section class="page" id="page-community">
+      <div class="page-header">
+        <h2>🌸 交流社区</h2>
+        <p>分享你的AI使用心得，与酒店伙伴互相激励</p>
+      </div>
+
+      <!-- 发布打卡区 -->
+      <div class="card" style="margin-bottom:20px;">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;">
+          <h3 style="font-size:16px;font-weight:600;color:#1a1a1a;margin:0;">📝 今日打卡</h3>
+          <!-- 匿名/实名切换 -->
+          <div style="display:flex;align-items:center;gap:8px;font-size:13px;color:#555;">
+            <span id="anonLabel">匿名发送</span>
+            <div id="anonToggle" onclick="toggleAnon()" style="width:40px;height:22px;background:#e0e0e0;border-radius:11px;cursor:pointer;position:relative;transition:background 0.25s;">
+              <div id="anonThumb" style="width:18px;height:18px;background:#fff;border-radius:50%;position:absolute;top:2px;left:2px;transition:left 0.25s;box-shadow:0 1px 3px rgba(0,0,0,0.2);"></div>
+            </div>
+            <span id="realLabel" style="color:#999;">实名</span>
+          </div>
+        </div>
+
+        <!-- 打卡模板 -->
+        <div style="background:#f8f9ff;border:1px dashed #c5cef5;border-radius:10px;padding:14px;margin-bottom:14px;">
+          <div style="font-size:12px;color:#888;margin-bottom:8px;">📋 打卡模板（点击填入，也可自由编辑）</div>
+          <div style="display:flex;flex-wrap:wrap;gap:6px;">
+            <button onclick="fillTemplate()" class="btn-secondary" style="font-size:12px;padding:4px 10px;">一键填入模板</button>
+          </div>
+        </div>
+
+        <!-- 日期 -->
+        <div style="margin-bottom:12px;">
+          <label style="font-size:13px;color:#555;font-weight:500;">📅 日期</label>
+          <input type="text" id="communityDate" class="form-input" style="margin-top:4px;" readonly>
+        </div>
+
+        <!-- 今日AI心得 -->
+        <div style="margin-bottom:12px;">
+          <label style="font-size:13px;color:#555;font-weight:500;">💡 今日使用AI心得</label>
+          <textarea id="communityInsight" class="form-input" rows="3" placeholder="例：今天用AI帮我回复了20条差评，原来1小时的工作10分钟搞定了…" style="margin-top:4px;resize:vertical;"></textarea>
+        </div>
+
+        <!-- 解决了什么问题 -->
+        <div style="margin-bottom:12px;">
+          <label style="font-size:13px;color:#555;font-weight:500;">🔧 解决了什么问题</label>
+          <textarea id="communityProblem" class="form-input" rows="2" placeholder="例：前台每天重复回答同款问题，现在有了知识库，转给AI处理了" style="margin-top:4px;resize:vertical;"></textarea>
+        </div>
+
+        <!-- 成就感评分 -->
+        <div style="margin-bottom:16px;">
+          <label style="font-size:13px;color:#555;font-weight:500;">⭐ 今天的成就感</label>
+          <div style="display:flex;align-items:center;gap:8px;margin-top:8px;">
+            <div id="starRating" style="display:flex;gap:4px;">
+              <span class="star" data-v="1" onclick="setStar(1)" style="font-size:28px;cursor:pointer;transition:transform 0.15s;">☆</span>
+              <span class="star" data-v="2" onclick="setStar(2)" style="font-size:28px;cursor:pointer;transition:transform 0.15s;">☆</span>
+              <span class="star" data-v="3" onclick="setStar(3)" style="font-size:28px;cursor:pointer;transition:transform 0.15s;">☆</span>
+              <span class="star" data-v="4" onclick="setStar(4)" style="font-size:28px;cursor:pointer;transition:transform 0.15s;">☆</span>
+              <span class="star" data-v="5" onclick="setStar(5)" style="font-size:28px;cursor:pointer;transition:transform 0.15s;">☆</span>
+            </div>
+            <span id="starHint" style="font-size:13px;color:#999;"></span>
+          </div>
+        </div>
+
+        <!-- 图片/语音上传 -->
+        <div style="margin-bottom:16px;">
+          <label style="font-size:13px;color:#555;font-weight:500;">📎 附件（图片/语音）</label>
+          <div style="display:flex;gap:10px;margin-top:8px;flex-wrap:wrap;">
+            <label style="display:flex;align-items:center;gap:6px;padding:8px 14px;background:#f0f4ff;border:1px dashed #aab7f5;border-radius:8px;cursor:pointer;font-size:13px;color:#4a67d6;">
+              <span>🖼️ 上传图片</span>
+              <input type="file" id="communityImage" accept="image/*" multiple style="display:none;" onchange="previewCommunityImages(this)">
+            </label>
+            <label id="voiceLabel" style="display:flex;align-items:center;gap:6px;padding:8px 14px;background:#f0f4ff;border:1px dashed #aab7f5;border-radius:8px;cursor:pointer;font-size:13px;color:#4a67d6;">
+              <span id="voiceBtnText">🎙️ 录制语音</span>
+              <input type="file" id="communityVoice" accept="audio/*" capture="microphone" style="display:none;" onchange="previewCommunityVoice(this)">
+            </label>
+          </div>
+          <!-- 图片预览 -->
+          <div id="imagePreviewBox" style="display:flex;flex-wrap:wrap;gap:8px;margin-top:10px;"></div>
+          <!-- 语音预览 -->
+          <div id="voicePreviewBox" style="margin-top:10px;"></div>
+        </div>
+
+        <button onclick="submitCommunityPost()" class="btn-primary" style="width:100%;">🌸 发布打卡</button>
+      </div>
+
+      <!-- 小红花彩蛋弹窗 -->
+      <div id="flowerModal" style="display:none;position:fixed;inset:0;z-index:9999;background:rgba(0,0,0,0.5);align-items:center;justify-content:center;backdrop-filter:blur(4px);">
+        <div style="background:#fff;border-radius:20px;padding:40px 32px;text-align:center;max-width:320px;width:90%;animation:flowerPop 0.5s cubic-bezier(0.34,1.56,0.64,1);">
+          <div id="flowerEmojis" style="font-size:56px;margin-bottom:12px;">🌸</div>
+          <div style="font-size:22px;font-weight:700;color:#e84393;margin-bottom:8px;">恭喜获得小红花！</div>
+          <div style="font-size:14px;color:#666;line-height:1.6;margin-bottom:24px;">你今天给自己打了5颗星⭐<br>这种成就感就是最好的动力！<br>继续保持，明天更棒 🎉</div>
+          <button onclick="closeFlowerModal()" class="btn-primary" style="padding:10px 32px;">太棒了，继续加油！</button>
+        </div>
+      </div>
+
+      <!-- 历史打卡 -->
+      <div class="card">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;">
+          <h3 style="font-size:16px;font-weight:600;color:#1a1a1a;margin:0;">📖 打卡记录</h3>
+          <span id="communityCount" style="font-size:12px;color:#999;"></span>
+        </div>
+        <div id="communityList" style="display:flex;flex-direction:column;gap:12px;">
+          <div style="text-align:center;color:#ccc;padding:32px 0;font-size:14px;">还没有打卡记录，发布第一条吧 🌱</div>
+        </div>
+      </div>
+    </section>
+
     <!-- ==================== 页面：共创中心 ==================== -->
     <section class="page" id="page-feedback">
       <div class="page-header">
@@ -2275,6 +2339,78 @@
       </div>
     </div>
   </div>
+
+  <!-- 交流社区 & 小红花动画 -->
+  <style>
+    @keyframes flowerPop {
+      0%   { transform: scale(0.5); opacity: 0; }
+      100% { transform: scale(1);   opacity: 1; }
+    }
+    @keyframes flowerFloat {
+      0%   { transform: translateY(0)   rotate(0deg);   opacity: 1; }
+      100% { transform: translateY(-80px) rotate(20deg); opacity: 0; }
+    }
+    .flower-particle {
+      position: fixed;
+      font-size: 28px;
+      pointer-events: none;
+      animation: flowerFloat 1.2s ease-out forwards;
+      z-index: 10000;
+    }
+    .star:hover { transform: scale(1.2); }
+    .community-post {
+      background: #f8f9ff;
+      border: 1px solid #e8ecf8;
+      border-radius: 12px;
+      padding: 14px 16px;
+    }
+    .community-post .post-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 10px;
+    }
+    .community-post .post-author {
+      font-size: 13px;
+      font-weight: 600;
+      color: #333;
+    }
+    .community-post .post-date {
+      font-size: 12px;
+      color: #aaa;
+    }
+    .community-post .post-stars {
+      font-size: 14px;
+      margin-bottom: 8px;
+    }
+    .community-post .post-section {
+      font-size: 13px;
+      color: #444;
+      line-height: 1.7;
+      margin-bottom: 6px;
+    }
+    .community-post .post-section strong {
+      color: #5a6ad6;
+    }
+    .community-post .post-images {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+      margin-top: 8px;
+    }
+    .community-post .post-images img {
+      width: 72px;
+      height: 72px;
+      object-fit: cover;
+      border-radius: 8px;
+      cursor: pointer;
+    }
+    .community-post audio {
+      width: 100%;
+      margin-top: 8px;
+      border-radius: 8px;
+    }
+  </style>
 
   <script src="app.js"></script>
 </body>

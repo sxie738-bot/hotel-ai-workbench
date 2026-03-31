@@ -24,7 +24,8 @@ const DEFAULT_MODULE_PERMISSIONS = {
   bizdev:        { free: 0,  freeyear: 0,  trial: 0,  monthly: -1, yearly: -1, name: '大客户拓展',   icon: '🤝' },
   patrol:        { free: 0,  freeyear: 0,  trial: 0,  monthly: -1, yearly: -1, name: '数字巡店',     icon: '📷' },
   feedback:      { free: -1, freeyear: -1, trial: -1, monthly: -1, yearly: -1, name: '共创中心',     icon: '🎯' },
-  aitask:        { free: 3,  freeyear: 5,  trial: -1, monthly: -1, yearly: -1, name: 'AI任务拆解',  icon: '🧩' }
+  aitask:        { free: 3,  freeyear: 5,  trial: -1, monthly: -1, yearly: -1, name: 'AI任务拆解',  icon: '🧩' },
+  community:     { free: -1, freeyear: -1, trial: -1, monthly: -1, yearly: -1, name: '交流社区',     icon: '🌸' }
 };
 
 // -1 = 不限次, 0 = 关闭, >0 = 限次数
@@ -1805,7 +1806,8 @@ const MODULE_DESCRIPTIONS = {
   diagnosis:  '输入经营数据 → AI诊断+改进建议',
   bizdev:     '企业信息 → 合作协议+销售话术',
   patrol:     '调用摄像头 → AI巡检报告',
-  feedback:   '提交需求建议，被采纳赠1个月会员'
+  feedback:   '提交需求建议，被采纳赠1个月会员',
+  community:  '每日打卡心得，分享AI使用成就感'
 };
 
 // 飞书风格分类定义：一级分类包含二级模块
@@ -1841,9 +1843,9 @@ const DASHBOARD_CATEGORIES = [
   {
     id: 'tools',
     name: '更多',
-    desc: 'AI任务拆解、共创中心',
+    desc: 'AI任务拆解、共创中心、交流社区',
     icon: '⚙️',
-    modules: ['aitask', 'feedback']
+    modules: ['aitask', 'feedback', 'community']
   }
 ];
 
@@ -2204,8 +2206,11 @@ function navigateTo(page) {
     }
 
     // 记录最近使用（非工具性页面不记录）
-    const trackable = ['content','training','analysis','video','geo','review','competitor','diagnosis','bizdev','patrol','feedback','aitask'];
+    const trackable = ['content','training','analysis','video','geo','review','competitor','diagnosis','bizdev','patrol','feedback','aitask','community'];
     if (trackable.includes(page)) recordRecentModule(page);
+
+    // 社区页面初始化
+    if (page === 'community') setTimeout(initCommunity, 50);
   });
 }
 
@@ -3964,7 +3969,8 @@ function recordRecentModule(moduleId) {
       bizdev:   { name: '大客户拓展', icon: '🤝' },
       patrol:   { name: '数字巡店', icon: '📷' },
       feedback:  { name: '共创中心', icon: '🎯' },
-      aitask:   { name: 'AI任务拆解', icon: '🧩' }
+      aitask:   { name: 'AI任务拆解', icon: '🧩' },
+      community: { name: '交流社区', icon: '🌸' }
     };
     const info = MODULE_NAMES[moduleId];
     if (!info) return;
@@ -4665,4 +4671,224 @@ function copyOutput(elementId) {
     document.body.removeChild(ta);
     showToast('✅ 已复制到剪贴板');
   });
+}
+
+// ==================== 交流社区 ====================
+let communityAnon = true; // 默认匿名
+let communityStars = 0;   // 当前星级
+let communityImageFiles = [];
+let communityAudioBlob = null;
+
+// 初始化交流社区
+function initCommunity() {
+  // 设置今日日期
+  const dateEl = document.getElementById('communityDate');
+  if (dateEl) {
+    const now = new Date();
+    const pad = n => String(n).padStart(2, '0');
+    dateEl.value = `${now.getFullYear()}-${pad(now.getMonth()+1)}-${pad(now.getDate())}`;
+  }
+  renderCommunityPosts();
+}
+
+// 匿名/实名切换
+function toggleAnon() {
+  communityAnon = !communityAnon;
+  const toggle = document.getElementById('anonToggle');
+  const thumb  = document.getElementById('anonThumb');
+  const anonLabel = document.getElementById('anonLabel');
+  const realLabel = document.getElementById('realLabel');
+  if (communityAnon) {
+    toggle.style.background = '#e0e0e0';
+    thumb.style.left = '2px';
+    anonLabel.style.color = '#333';
+    realLabel.style.color = '#999';
+  } else {
+    toggle.style.background = '#5a6ad6';
+    thumb.style.left = '20px';
+    anonLabel.style.color = '#999';
+    realLabel.style.color = '#333';
+  }
+}
+
+// 填入模板
+function fillTemplate() {
+  const dateEl   = document.getElementById('communityDate');
+  const now = new Date();
+  const pad = n => String(n).padStart(2, '0');
+  if (dateEl) dateEl.value = `${now.getFullYear()}-${pad(now.getMonth()+1)}-${pad(now.getDate())}`;
+  const insightEl = document.getElementById('communityInsight');
+  const problemEl = document.getElementById('communityProblem');
+  if (insightEl && !insightEl.value) insightEl.value = '今天用AI帮我完成了……感觉比以前快了很多，效率提升明显。';
+  if (problemEl && !problemEl.value) problemEl.value = '以前每天要花很多时间在……现在用AI解决了，把时间腾出来做更重要的事。';
+  setStar(communityStars || 4);
+  showToast('✅ 模板已填入，可自由修改');
+}
+
+// 星级评分
+function setStar(n) {
+  communityStars = n;
+  const stars = document.querySelectorAll('#starRating .star');
+  stars.forEach((s, i) => {
+    s.textContent = i < n ? '⭐' : '☆';
+    s.style.transform = i < n ? 'scale(1.1)' : 'scale(1)';
+  });
+  const hints = ['', '加油，明天会更好 💪', '不错，继续保持 👍', '很棒，状态不错 🎯', '非常棒！超出预期 🚀', '完美！今天的你最厉害 🌟'];
+  const hintEl = document.getElementById('starHint');
+  if (hintEl) hintEl.textContent = hints[n] || '';
+}
+
+// 图片上传预览
+function previewCommunityImages(input) {
+  communityImageFiles = Array.from(input.files);
+  const box = document.getElementById('imagePreviewBox');
+  if (!box) return;
+  box.innerHTML = '';
+  communityImageFiles.forEach(file => {
+    const reader = new FileReader();
+    reader.onload = e => {
+      const img = document.createElement('img');
+      img.src = e.target.result;
+      img.style.cssText = 'width:72px;height:72px;object-fit:cover;border-radius:8px;cursor:pointer;border:2px solid #e8ecf8;';
+      img.onclick = () => window.open(e.target.result, '_blank');
+      box.appendChild(img);
+    };
+    reader.readAsDataURL(file);
+  });
+}
+
+// 语音上传预览
+function previewCommunityVoice(input) {
+  const file = input.files[0];
+  if (!file) return;
+  communityAudioBlob = file;
+  const box = document.getElementById('voicePreviewBox');
+  if (!box) return;
+  const url = URL.createObjectURL(file);
+  box.innerHTML = `<audio controls src="${url}" style="width:100%;border-radius:8px;"></audio>`;
+  document.getElementById('voiceBtnText').textContent = '🎙️ 重新录制';
+}
+
+// 发布打卡
+function submitCommunityPost() {
+  const insight = document.getElementById('communityInsight')?.value.trim();
+  const problem = document.getElementById('communityProblem')?.value.trim();
+  const date    = document.getElementById('communityDate')?.value || '';
+  if (!insight && !problem) {
+    showToast('请填写一点内容再发布哦 ✍️', 'warning');
+    return;
+  }
+
+  // 获取作者名
+  let author = '匿名酒店人';
+  if (!communityAnon) {
+    const member = MemberStore.get();
+    author = (member?.name || '用户') + (member?.hotel ? '·' + member.hotel : '');
+  }
+
+  // 读取图片 base64（本地存储）
+  const imageData = [];
+  const box = document.getElementById('imagePreviewBox');
+  if (box) {
+    box.querySelectorAll('img').forEach(img => imageData.push(img.src));
+  }
+
+  // 组装帖子
+  const post = {
+    id: Date.now(),
+    date,
+    author,
+    anon: communityAnon,
+    insight,
+    problem,
+    stars: communityStars,
+    images: imageData,
+    hasAudio: !!communityAudioBlob,
+    ts: new Date().toISOString(),
+  };
+
+  // 存入 localStorage
+  const KEY = 'community_posts';
+  const posts = JSON.parse(localStorage.getItem(KEY) || '[]');
+  posts.unshift(post);
+  if (posts.length > 100) posts.splice(100);
+  localStorage.setItem(KEY, JSON.stringify(posts));
+
+  // 5星小红花彩蛋
+  if (communityStars === 5) {
+    showFlowerModal();
+    spawnFlowerParticles();
+  } else {
+    showToast('🌸 打卡成功！继续加油');
+  }
+
+  // 重置表单
+  document.getElementById('communityInsight').value = '';
+  document.getElementById('communityProblem').value = '';
+  document.getElementById('imagePreviewBox').innerHTML = '';
+  document.getElementById('voicePreviewBox').innerHTML = '';
+  communityImageFiles = [];
+  communityAudioBlob = null;
+  setStar(0);
+
+  renderCommunityPosts();
+}
+
+// 渲染打卡列表
+function renderCommunityPosts() {
+  const KEY = 'community_posts';
+  const posts = JSON.parse(localStorage.getItem(KEY) || '[]');
+  const listEl = document.getElementById('communityList');
+  const countEl = document.getElementById('communityCount');
+  if (!listEl) return;
+  if (countEl) countEl.textContent = `共 ${posts.length} 条打卡`;
+  if (posts.length === 0) {
+    listEl.innerHTML = '<div style="text-align:center;color:#ccc;padding:32px 0;font-size:14px;">还没有打卡记录，发布第一条吧 🌱</div>';
+    return;
+  }
+  listEl.innerHTML = posts.map(p => {
+    const starsHtml = p.stars ? '⭐'.repeat(p.stars) + (p.stars === 5 ? ' 🌸' : '') : '';
+    const imagesHtml = (p.images && p.images.length > 0)
+      ? `<div class="post-images">${p.images.map(src => `<img src="${src}" onclick="window.open(this.src,'_blank')">`).join('')}</div>` : '';
+    const audioHtml = p.hasAudio ? `<div style="font-size:12px;color:#aaa;margin-top:6px;">🎙️ 含语音记录（本地）</div>` : '';
+    return `<div class="community-post">
+      <div class="post-header">
+        <span class="post-author">${p.anon ? '🎭 匿名酒店人' : '👤 ' + p.author}</span>
+        <span class="post-date">${p.date || p.ts?.slice(0,10) || ''}</span>
+      </div>
+      ${starsHtml ? `<div class="post-stars">${starsHtml}</div>` : ''}
+      ${p.insight ? `<div class="post-section"><strong>💡 心得：</strong>${p.insight}</div>` : ''}
+      ${p.problem ? `<div class="post-section"><strong>🔧 解决了：</strong>${p.problem}</div>` : ''}
+      ${imagesHtml}
+      ${audioHtml}
+    </div>`;
+  }).join('');
+}
+
+// 小红花弹窗
+function showFlowerModal() {
+  const modal = document.getElementById('flowerModal');
+  if (modal) modal.style.display = 'flex';
+}
+function closeFlowerModal() {
+  const modal = document.getElementById('flowerModal');
+  if (modal) modal.style.display = 'none';
+  showToast('🌸 小红花 +1，今天你最棒！');
+}
+
+// 撒花粒子动画
+function spawnFlowerParticles() {
+  const emojis = ['🌸', '🌺', '✨', '⭐', '🌼', '💐'];
+  for (let i = 0; i < 12; i++) {
+    setTimeout(() => {
+      const el = document.createElement('div');
+      el.className = 'flower-particle';
+      el.textContent = emojis[Math.floor(Math.random() * emojis.length)];
+      el.style.left = Math.random() * 90 + 5 + 'vw';
+      el.style.bottom = '20vh';
+      el.style.animationDuration = (0.8 + Math.random() * 0.8) + 's';
+      document.body.appendChild(el);
+      setTimeout(() => el.remove(), 2000);
+    }, i * 80);
+  }
 }
