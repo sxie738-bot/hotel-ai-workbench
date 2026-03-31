@@ -426,10 +426,21 @@ function checkModuleAccess(moduleKey, onAllowed) {
     actionBtnText = '📝 去注册';
     actionBtnFn = 'closeModalLock(); showHotelWelcome();';
   } else if (hotelName) {
-    // 已注册但该酒店未配置权限
-    lockMsg = `<strong>${config ? config.name : moduleKey}</strong> 当前暂未开放。<br><br>` +
-      `您的酒店「${escapeHtml(hotelName)}」可能还未开通此功能。<br>` +
-      `请联系管理员（谢瑷瞳）为您开通。`;
+    // 已注册有酒店：判断是免费用户还是酒店未配置
+    const hotelPlan = MemberStore.getHotelPlan();
+    if (hotelPlan === 'free' || (!hotelPlan && plan === 'free')) {
+      // 免费用户 → 引导升级
+      lockMsg = `<strong>${config ? config.name : moduleKey}</strong> 需要付费会员才能使用。<br><br>` +
+        `当前为免费体验版，升级后可解锁全部功能。<br>` +
+        `包月 <strong>¥39</strong> / 包年 <strong>¥428</strong>`;
+      actionBtnText = '💎 升级套餐';
+      actionBtnFn = 'closeModalLock(); showRenewModal();';
+    } else {
+      // 酒店未配置权限 → 联系管理员
+      lockMsg = `<strong>${config ? config.name : moduleKey}</strong> 当前暂未开放。<br><br>` +
+        `您的酒店「${escapeHtml(hotelName)}」可能还未开通此功能。<br>` +
+        `请联系管理员（谢瑷瞳）为您开通。`;
+    }
   } else {
     // 未设置酒店名
     lockMsg = `<strong>${config ? config.name : moduleKey}</strong> 仅对正式学员开放。<br><br>` +
@@ -467,8 +478,7 @@ function closeModalLock() {
 
 function upgradeFromLock() {
   document.getElementById('moduleLockModal').style.display = 'none';
-  document.getElementById('entryPage').style.display = '';
-  showStep(0);
+  showRenewModal();
 }
 
 // 初始化侧边栏模块显示（根据权限）
@@ -706,19 +716,112 @@ function renderProfileHistory() {
 }
 
 function showRenewModal() {
-  // 显示收款码弹窗供用户扫码续费
+  // 打开升级套餐弹窗（从套餐选择开始）
+  showUpgradePlanSelect();
+}
+
+// ==================== 升级套餐弹窗 ====================
+let _selectedUpgradePlan = null;
+
+function showUpgradePlanSelect() {
+  _selectedUpgradePlan = null;
+  document.getElementById('upgradeModal').style.display = 'flex';
+  document.getElementById('upgradeStep1').style.display = '';
+  document.getElementById('upgradeStep2').style.display = 'none';
+  document.getElementById('upgradeStep3').style.display = 'none';
+  document.getElementById('upgradeFooter1').style.display = '';
+  document.getElementById('upgradeFooter2').style.display = 'none';
+  document.getElementById('upgradeFooter3').style.display = 'none';
+  // 重置选中状态
+  document.querySelectorAll('.plan-card').forEach(c => c.style.borderColor = 'var(--border)');
+}
+
+function selectPlan(plan) {
+  _selectedUpgradePlan = plan;
+  const planInfo = PLANS[plan];
+  if (!planInfo) return;
+
+  // 高亮选中
+  document.querySelectorAll('.plan-card').forEach(c => c.style.borderColor = 'var(--border)');
+  document.getElementById('planCard' + plan.charAt(0).toUpperCase() + plan.slice(1)).style.borderColor = 'var(--primary)';
+
+  // 切换到付款步骤
+  document.getElementById('upgradeStep1').style.display = 'none';
+  document.getElementById('upgradeStep2').style.display = '';
+  document.getElementById('upgradeStep3').style.display = 'none';
+  document.getElementById('upgradeFooter1').style.display = 'none';
+  document.getElementById('upgradeFooter2').style.display = '';
+  document.getElementById('upgradeFooter3').style.display = 'none';
+
+  document.getElementById('upgradePlanLabel').textContent = planInfo.label;
+  document.getElementById('upgradePlanPrice').textContent = '¥' + planInfo.price;
+
   const savedQR = localStorage.getItem('hotel_pay_qrcode');
-  if (!savedQR) {
-    showToast('请联系管理员（谢瑷瞳）办理续费', 'warning');
+  if (savedQR) {
+    document.getElementById('upgradeQRImg').src = savedQR;
+    document.getElementById('upgradeQRImg').style.display = '';
+    document.getElementById('upgradeNoQR').style.display = 'none';
+  } else {
+    document.getElementById('upgradeQRImg').style.display = 'none';
+    document.getElementById('upgradeNoQR').style.display = '';
+  }
+}
+
+function backToPlanSelect() {
+  document.getElementById('upgradeStep1').style.display = '';
+  document.getElementById('upgradeStep2').style.display = 'none';
+  document.getElementById('upgradeStep3').style.display = 'none';
+  document.getElementById('upgradeFooter1').style.display = '';
+  document.getElementById('upgradeFooter2').style.display = 'none';
+  document.getElementById('upgradeFooter3').style.display = 'none';
+}
+
+function confirmPaidUpgrade() {
+  const member = MemberStore.get();
+  if (!member || !member.name || !_selectedUpgradePlan) {
+    showToast('信息不完整，请重新操作', 'error');
     return;
   }
-  // 复用模块锁定弹窗展示收款码
-  document.getElementById('moduleLockMessage').innerHTML =
-    `<strong>扫码续费</strong><br><br>` +
-    `请使用微信扫描下方收款码完成支付，支付后联系管理员（谢瑷瞳）确认开通。` +
-    `<br><br><img src="${savedQR}" style="width:180px; height:180px; object-fit:contain; border-radius:8px;">`;
-  document.getElementById('moduleLockUsage').style.display = 'none';
-  document.getElementById('moduleLockModal').style.display = 'flex';
+  const planInfo = PLANS[_selectedUpgradePlan];
+  if (!planInfo) return;
+
+  // 禁用按钮防重复提交
+  const btn = document.getElementById('upgradePaidBtn');
+  btn.disabled = true;
+  btn.textContent = '提交中...';
+
+  // 提交到待确认队列（写入 localStorage + 同步云端）
+  const orderData = {
+    name: member.name,
+    phone: member.phone,
+    hotel: member.hotel,
+    plan: _selectedUpgradePlan,
+    price: planInfo.price,
+    planLabel: planInfo.label,
+    submitTime: new Date().toISOString(),
+    status: 'pending'
+  };
+
+  const members = getMembersData();
+  members.push(orderData);
+  saveMembersData(members);
+
+  // 切换到成功步骤
+  document.getElementById('upgradeStep1').style.display = 'none';
+  document.getElementById('upgradeStep2').style.display = 'none';
+  document.getElementById('upgradeStep3').style.display = '';
+  document.getElementById('upgradeFooter1').style.display = 'none';
+  document.getElementById('upgradeFooter2').style.display = 'none';
+  document.getElementById('upgradeFooter3').style.display = '';
+
+  showToast('✅ 付款申请已提交，请等待管理员确认');
+}
+
+function closeUpgradeModal() {
+  document.getElementById('upgradeModal').style.display = 'none';
+  _selectedUpgradePlan = null;
+  const btn = document.getElementById('upgradePaidBtn');
+  if (btn) { btn.disabled = false; btn.textContent = '我已付款，提交确认'; }
 }
 
 function showLogoutConfirm() {
@@ -2277,16 +2380,26 @@ function renderMemberList() {
   if (pending.length === 0) {
     pendingContainer.innerHTML = '<div style="padding:20px; text-align:center; color:var(--text-muted); font-size:13px;">暂无待确认付款 ✅</div>';
   } else {
-    pendingContainer.innerHTML = pending.map((m, i) => `
-      <div style="display:flex; justify-content:space-between; align-items:center; padding:12px; background:var(--warning-bg); border-radius:8px; margin-bottom:8px; border:1px solid #fde68a;">
-        <div>
-          <div style="font-weight:600; font-size:14px;">${m.name} · ${m.hotel}</div>
-          <div style="font-size:12px; color:var(--text-secondary); margin-top:2px;">${m.phone} · ${PLANS[m.plan]?.label || m.plan} · ¥${m.price}</div>
-          <div style="font-size:11px; color:var(--text-muted); margin-top:2px;">${formatTime(m.submitTime)}</div>
-        </div>
-        <div style="display:flex; gap:8px;">
-          <button class="btn-sm" style="background:var(--success); color:#fff;" onclick="approveMember(${members.indexOf(m)})">✓ 确认开通</button>
-          <button class="btn-sm" style="background:var(--danger); color:#fff;" onclick="rejectMember(${members.indexOf(m)})">✕ 拒绝</button>
+    pendingContainer.innerHTML = pending.sort((a,b) => new Date(b.submitTime) - new Date(a.submitTime)).map((m, i) => `
+      <div style="padding:14px; background:var(--warning-bg); border-radius:10px; margin-bottom:10px; border:1px solid #fde68a;">
+        <div style="display:flex; justify-content:space-between; align-items:flex-start;">
+          <div style="flex:1;">
+            <div style="display:flex; align-items:center; gap:6px; margin-bottom:6px;">
+              <strong style="font-size:15px;">${escapeHtml(m.name)}</strong>
+              <span style="font-size:11px; background:var(--primary-bg); color:var(--primary); padding:2px 8px; border-radius:10px;">${m.planLabel || PLANS[m.plan]?.label || m.plan}</span>
+            </div>
+            <div style="font-size:13px; color:var(--text-secondary); margin-bottom:4px;">
+              🏨 ${escapeHtml(m.hotel || '未设酒店')} &nbsp;·&nbsp; 📱 ${m.phone || '-'}
+            </div>
+            <div style="display:flex; align-items:center; gap:12px; font-size:12px; color:var(--text-muted);">
+              <span style="font-size:18px; font-weight:700; color:var(--primary);">¥${m.price || PLANS[m.plan]?.price || '-'}</span>
+              <span>提交于 ${formatTime(m.submitTime)}</span>
+            </div>
+          </div>
+          <div style="display:flex; flex-direction:column; gap:6px; flex-shrink:0; margin-left:12px;">
+            <button class="btn-sm" style="background:var(--success); color:#fff; padding:6px 16px;" onclick="approveMember(${members.indexOf(m)})">✓ 确认开通</button>
+            <button class="btn-sm" style="background:var(--danger); color:#fff; padding:6px 16px;" onclick="rejectMember(${members.indexOf(m)})">✕ 拒绝</button>
+          </div>
         </div>
       </div>
     `).join('');
@@ -2352,6 +2465,17 @@ function approveMember(index) {
   members[index] = m;
   saveMembersData(members);
 
+  // 如果该用户有酒店名，同时更新酒店配置的套餐（这样酒店下所有用户都生效）
+  if (m.hotel && m.plan && m.plan !== 'free') {
+    if (hotelsData[m.hotel]) {
+      hotelsData[m.hotel].plan = m.plan;
+      localStorage.setItem('hotels_data', JSON.stringify(hotelsData));
+      renderStudentList();
+      // 同步酒店配置到云端
+      if (isAdmin) syncHotelsToCloud();
+    }
+  }
+
   // 如果当前用户是这个人，也更新本地
   const currentMember = MemberStore.get();
   if (currentMember && currentMember.phone === m.phone && currentMember.name === m.name) {
@@ -2360,10 +2484,11 @@ function approveMember(index) {
     currentMember.activateDate = m.activateDate;
     currentMember.expireDate = m.expireDate;
     MemberStore.set(currentMember);
+    renderProfilePage();
   }
 
   renderMemberList();
-  showToast(`✅ 已开通 ${m.name} 的 ${plan?.label || m.plan}`);
+  showToast(`✅ 已开通 ${m.name} 的 ${plan?.label || m.plan}，有效期至 ${m.expireDate}`);
 }
 
 function rejectMember(index) {

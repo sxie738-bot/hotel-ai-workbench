@@ -1291,6 +1291,83 @@
     </div>
   </div>
 
+  <!-- ==================== 升级套餐弹窗 ==================== -->
+  <div class="modal-overlay" id="upgradeModal" style="display:none;">
+    <div class="modal" style="max-width:440px;">
+      <div class="modal-header">
+        <h3>💎 升级套餐</h3>
+        <button class="modal-close" onclick="closeUpgradeModal()">✕</button>
+      </div>
+      <div class="modal-body">
+        <!-- 套餐选择步骤 -->
+        <div id="upgradeStep1">
+          <p style="font-size:14px; color:var(--text-secondary); margin-bottom:16px; text-align:center;">选择适合你的套餐，付款后管理员会尽快确认开通</p>
+          <div style="display:flex; flex-direction:column; gap:12px;">
+            <div class="plan-card" onclick="selectPlan('monthly')" id="planCardMonthly" style="cursor:pointer; padding:16px; border:2px solid var(--border); border-radius:12px; transition:all 0.2s;">
+              <div style="display:flex; justify-content:space-between; align-items:center;">
+                <div>
+                  <div style="font-size:16px; font-weight:600;">🔥 包月会员</div>
+                  <div style="font-size:12px; color:var(--text-secondary); margin-top:2px;">全功能不限次 · 30天</div>
+                </div>
+                <div style="text-align:right;">
+                  <div style="font-size:24px; font-weight:700; color:var(--primary);">¥39</div>
+                  <div style="font-size:11px; color:var(--text-muted);">/月</div>
+                </div>
+              </div>
+            </div>
+            <div class="plan-card" onclick="selectPlan('yearly')" id="planCardYearly" style="cursor:pointer; padding:16px; border:2px solid var(--border); border-radius:12px; transition:all 0.2s; position:relative;">
+              <div style="position:absolute; top:-1px; right:16px; background:var(--primary); color:#fff; font-size:10px; padding:2px 8px; border-radius:0 0 6px 6px; font-weight:600;">推荐</div>
+              <div style="display:flex; justify-content:space-between; align-items:center;">
+                <div>
+                  <div style="font-size:16px; font-weight:600;">💎 包年会员</div>
+                  <div style="font-size:12px; color:var(--text-secondary); margin-top:2px;">全功能不限次 + 优先体验 · 365天</div>
+                </div>
+                <div style="text-align:right;">
+                  <div style="font-size:24px; font-weight:700; color:var(--primary);">¥428</div>
+                  <div style="font-size:11px; color:var(--text-muted);">/年 (省¥40)</div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+        <!-- 付款步骤 -->
+        <div id="upgradeStep2" style="display:none; text-align:center;">
+          <div style="margin-bottom:12px;">
+            <span style="background:var(--primary-bg); color:var(--primary); padding:4px 12px; border-radius:20px; font-size:13px; font-weight:600;" id="upgradePlanLabel">包月会员</span>
+            <span style="font-size:20px; font-weight:700; color:var(--primary); margin-left:8px;" id="upgradePlanPrice">¥39</span>
+          </div>
+          <p style="font-size:13px; color:var(--text-secondary); margin-bottom:16px;">请使用微信扫描下方收款码完成支付</p>
+          <div style="display:inline-block; padding:12px; background:#fff; border-radius:12px; box-shadow:0 2px 8px rgba(0,0,0,0.08);">
+            <img id="upgradeQRImg" src="" alt="收款码" style="width:200px; height:200px; object-fit:contain;">
+          </div>
+          <div id="upgradeNoQR" style="display:none; padding:40px 20px; background:var(--bg-tertiary); border-radius:12px;">
+            <div style="font-size:36px; margin-bottom:8px;">💳</div>
+            <p style="font-size:14px; color:var(--text-secondary);">收款码尚未配置</p>
+            <p style="font-size:12px; color:var(--text-muted); margin-top:4px;">请联系管理员（谢瑷瞳）获取付款方式</p>
+          </div>
+          <p style="font-size:12px; color:var(--warning); margin-top:12px;">⚠️ 付款完成后请点击下方「我已付款」按钮</p>
+        </div>
+        <!-- 提交成功步骤 -->
+        <div id="upgradeStep3" style="display:none; text-align:center;">
+          <div style="font-size:48px; margin-bottom:12px;">✅</div>
+          <h4 style="font-size:18px; margin:0 0 8px;">付款申请已提交</h4>
+          <p style="font-size:14px; color:var(--text-secondary); margin-bottom:4px;">管理员（谢瑷瞳）确认后会自动开通</p>
+          <p style="font-size:13px; color:var(--text-muted);">预计 1-24 小时内确认，届时刷新页面即可使用</p>
+        </div>
+      </div>
+      <div class="modal-footer" style="justify-content:center;" id="upgradeFooter1">
+        <button class="btn" onclick="closeUpgradeModal()">取消</button>
+      </div>
+      <div class="modal-footer" style="justify-content:center; display:none;" id="upgradeFooter2">
+        <button class="btn" onclick="backToPlanSelect()">← 返回选套餐</button>
+        <button class="btn btn-primary" onclick="confirmPaidUpgrade()" id="upgradePaidBtn" style="padding:10px 32px;">我已付款，提交确认</button>
+      </div>
+      <div class="modal-footer" style="justify-content:center; display:none;" id="upgradeFooter3">
+        <button class="btn btn-primary" onclick="closeUpgradeModal()">我知道了</button>
+      </div>
+    </div>
+  </div>
+
   <!-- ==================== 版本更新弹窗 ==================== -->
   <div class="modal-overlay" id="updateModal" style="display:none; z-index:300;">
     <div class="modal" style="max-width:400px; text-align:center;">
