@@ -2285,6 +2285,8 @@ function initSettingsNav() {
       if (setting === 'members') setTimeout(() => refreshAdminStats(), 50);
       // 切换到共创反馈时加载数据
       if (setting === 'feedback_admin') setTimeout(() => loadFeedbackAdmin(), 50);
+      // 切换到权限配置时刷新表格
+      if (setting === 'permissions') setTimeout(() => renderPermissionTable(), 50);
     });
   });
 }
@@ -3266,39 +3268,45 @@ function saveQRCode() {
 function renderPermissionTable() {
   const perms = MemberStore.getPermissions();
   const body = document.getElementById('permissionBody');
+  if (!body) return;
+
+  // 生成单个 select 的 HTML
+  function makeSelect(key, plan, currentVal, options) {
+    const opts = options.map(o => {
+      const label = o === -1 ? '不限' : o === 0 ? '关闭' : `${o}次`;
+      const selected = currentVal === o ? 'selected' : '';
+      return `<option value="${o}" ${selected}>${label}</option>`;
+    }).join('');
+    return `<select class="form-select" style="width:72px; padding:4px 2px; font-size:12px;" data-module="${key}" data-plan="${plan}">${opts}</select>`;
+  }
+
   body.innerHTML = Object.entries(perms).map(([key, config]) => `
     <tr style="border-bottom:1px solid var(--gray-100);">
-      <td style="padding:10px;">${config.icon} ${config.name}</td>
-      <td style="padding:10px; text-align:center;">
-        <select class="form-select" style="width:80px; padding:4px;" data-module="${key}" data-plan="free">
-          <option value="0" ${config.free === 0 ? 'selected' : ''}>关闭</option>
-          <option value="3" ${config.free === 3 ? 'selected' : ''}>3次</option>
-          <option value="5" ${config.free === 5 ? 'selected' : ''}>5次</option>
-          <option value="-1" ${config.free === -1 ? 'selected' : ''}>不限</option>
-        </select>
+      <td style="padding:10px; white-space:nowrap;">${config.icon || ''} ${config.name || key}</td>
+      <td style="padding:8px; text-align:center;">
+        ${makeSelect(key, 'free',     config.free     ?? 0,  [0, 1, 3, 5, 10, -1])}
       </td>
-      <td style="padding:10px; text-align:center;">
-        <select class="form-select" style="width:80px; padding:4px;" data-module="${key}" data-plan="trial">
-          <option value="0" ${config.trial === 0 ? 'selected' : ''}>关闭</option>
-          <option value="3" ${config.trial === 3 ? 'selected' : ''}>3次</option>
-          <option value="5" ${config.trial === 5 ? 'selected' : ''}>5次</option>
-          <option value="-1" ${config.trial === -1 ? 'selected' : ''}>不限</option>
-        </select>
+      <td style="padding:8px; text-align:center;">
+        ${makeSelect(key, 'freeyear', config.freeyear ?? 0,  [0, 1, 3, 5, 10, -1])}
       </td>
-      <td style="padding:10px; text-align:center;">
-        <select class="form-select" style="width:80px; padding:4px;" data-module="${key}" data-plan="monthly">
-          <option value="0" ${config.monthly === 0 ? 'selected' : ''}>关闭</option>
-          <option value="-1" ${config.monthly === -1 ? 'selected' : ''}>不限</option>
-        </select>
+      <td style="padding:8px; text-align:center;">
+        ${makeSelect(key, 'trial',    config.trial    ?? 0,  [0, 1, 3, 5, 10, -1])}
       </td>
-      <td style="padding:10px; text-align:center;">
-        <select class="form-select" style="width:80px; padding:4px;" data-module="${key}" data-plan="yearly">
-          <option value="0" ${config.yearly === 0 ? 'selected' : ''}>关闭</option>
-          <option value="-1" ${config.yearly === -1 ? 'selected' : ''}>不限</option>
-        </select>
+      <td style="padding:8px; text-align:center;">
+        ${makeSelect(key, 'monthly',  config.monthly  ?? -1, [0, -1])}
+      </td>
+      <td style="padding:8px; text-align:center;">
+        ${makeSelect(key, 'yearly',   config.yearly   ?? -1, [0, -1])}
       </td>
     </tr>
   `).join('');
+}
+
+function resetPermissions() {
+  if (!confirm('确认重置所有模块权限为代码默认值？此操作不可撤销。')) return;
+  localStorage.removeItem('hotel_module_permissions');
+  renderPermissionTable();
+  showToast('✅ 已重置为默认权限配置');
 }
 
 function savePermissions() {

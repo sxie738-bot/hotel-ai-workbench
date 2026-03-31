@@ -1909,26 +1909,28 @@
                 <thead>
                   <tr style="background:var(--bg-tertiary);">
                     <th style="padding:10px; text-align:left; border-bottom:2px solid var(--gray-200);">模块</th>
-                    <th style="padding:10px; text-align:center; border-bottom:2px solid var(--gray-200);">免费体验</th>
-                    <th style="padding:10px; text-align:center; border-bottom:2px solid var(--gray-200);">体验版(¥9.9)</th>
-                    <th style="padding:10px; text-align:center; border-bottom:2px solid var(--gray-200);">包月(¥39)</th>
-                    <th style="padding:10px; text-align:center; border-bottom:2px solid var(--gray-200);">包年(¥428)</th>
+                    <th style="padding:10px; text-align:center; border-bottom:2px solid var(--gray-200);">免费体验<br><span style="font-weight:400;color:var(--text-muted);font-size:11px;">3天</span></th>
+                    <th style="padding:10px; text-align:center; border-bottom:2px solid var(--gray-200);">免费年卡<br><span style="font-weight:400;color:var(--text-muted);font-size:11px;">1年限次</span></th>
+                    <th style="padding:10px; text-align:center; border-bottom:2px solid var(--gray-200);">体验版<br><span style="font-weight:400;color:var(--text-muted);font-size:11px;">¥9.9</span></th>
+                    <th style="padding:10px; text-align:center; border-bottom:2px solid var(--gray-200);">包月<br><span style="font-weight:400;color:var(--text-muted);font-size:11px;">¥39</span></th>
+                    <th style="padding:10px; text-align:center; border-bottom:2px solid var(--gray-200);">包年<br><span style="font-weight:400;color:var(--text-muted);font-size:11px;">¥428</span></th>
                   </tr>
                 </thead>
                 <tbody id="permissionBody"></tbody>
               </table>
             </div>
 
-            <div style="margin-top:16px;">
+            <div style="margin-top:16px; display:flex; gap:10px; flex-wrap:wrap;">
               <button class="btn btn-primary" onclick="savePermissions()">💾 保存权限配置</button>
+              <button class="btn" style="background:var(--bg-tertiary); color:var(--text-secondary);" onclick="resetPermissions()">🔄 重置为默认值</button>
             </div>
 
             <div class="setting-tip" style="margin-top:16px;">
               <span>💡 权限说明</span>
               <p>
                 <strong>关闭</strong> = 用户不可见该模块<br>
-                <strong>限X次</strong> = 体验用户可使用X次，用完后引导升级<br>
-                <strong>不限次</strong> = 付费用户可无限制使用
+                <strong>限X次</strong> = 该套餐用户可使用X次，用完后引导升级<br>
+                <strong>不限次</strong> = 该套餐用户可无限制使用
               </p>
             </div>
           </div>
