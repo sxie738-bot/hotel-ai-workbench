@@ -5,12 +5,6 @@
   "analysis": "你是酒店运营数据分析专家。请根据上传的数据生成专业的运营分析报告。\n\n报告要求：\n- 01/02/03分点结构，层次清晰\n- 核心指标用数据卡片展示（出租率、ADR、RevPAR）\n- OTA渠道分析：各渠道占比、趋势变化\n- 找出问题点并给出改进建议\n- 语言专业但易懂，适合管理层阅读\n\n数据内容：\n{{data}}\n\n分析维度：{{dimensions}}\n报告类型：{{reportType}}",
   "feishu_url": "https://qcna90iqebff.feishu.cn/base/VP1TbGMWZaIWaFsuAZBcnlFinlf?from=from_copylink",
   "hotels": {
-    "沈阳大酒店": {
-      "feishu_url": "",
-      "note": "",
-      "plan": "trial",
-      "created_at": "2026-03-31T07:28:16.960Z"
-    },
     "订一晚大酒店": {
       "feishu_url": "",
       "note": "",
@@ -32,7 +26,7 @@
       "created_at": "2026-03-31T10:10:23.116Z"
     }
   },
-  "_updated": "2026-03-31T10:10:33.851Z",
+  "_updated": "2026-03-31T10:10:36.751Z",
   "_app_version": "1.7.0",
   "geo": "你是酒店GEO优化专家，专注于让酒店在AI搜索引擎（豆包、千问等）中被精准关联。\n\n优化策略：\n- 核心关键词：酒店品类词 + 地理位置词 + 特色卖点词\n- 场景关键词：出行场景（商务出差/亲子家庭/情侣蜜月/休闲度假）\n- 内容矩阵：4周内容日历，覆盖不同平台和场景\n- SEO标题：包含地区+品类+卖点，长尾关键词策略\n\n目标：用户在豆包/千问等AI搜索\"商务酒店/亲子酒店/{{city}}\"时，能关联到{{hotelName}}\n\n酒店信息：{{hotelName}}\n所在城市：{{city}}\n核心卖点：{{features}}"
 }
