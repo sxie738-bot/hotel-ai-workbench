@@ -1219,6 +1219,7 @@
           <label>会员套餐</label>
           <select class="form-select" id="studentPlan">
             <option value="free">🆓 免费体验（每模块3次）</option>
+            <option value="trial">🎫 体验版（¥9.9/3天，全功能不限次）</option>
             <option value="monthly">🔥 包月会员（¥39/月，全功能不限次）</option>
             <option value="yearly">💎 包年会员（¥428/年，全功能+优先体验）</option>
           </select>
@@ -1303,6 +1304,18 @@
         <div id="upgradeStep1">
           <p style="font-size:14px; color:var(--text-secondary); margin-bottom:16px; text-align:center;">选择适合你的套餐，付款后管理员会尽快确认开通</p>
           <div style="display:flex; flex-direction:column; gap:12px;">
+            <div class="plan-card" onclick="selectPlan('trial')" id="planCardTrial" style="cursor:pointer; padding:16px; border:2px solid var(--border); border-radius:12px; transition:all 0.2s;">
+              <div style="display:flex; justify-content:space-between; align-items:center;">
+                <div>
+                  <div style="font-size:16px; font-weight:600;">🎫 体验版</div>
+                  <div style="font-size:12px; color:var(--text-secondary); margin-top:2px;">全功能不限次 · 3天</div>
+                </div>
+                <div style="text-align:right;">
+                  <div style="font-size:24px; font-weight:700; color:var(--primary);">¥9.9</div>
+                  <div style="font-size:11px; color:var(--text-muted);">/3天</div>
+                </div>
+              </div>
+            </div>
             <div class="plan-card" onclick="selectPlan('monthly')" id="planCardMonthly" style="cursor:pointer; padding:16px; border:2px solid var(--border); border-radius:12px; transition:all 0.2s;">
               <div style="display:flex; justify-content:space-between; align-items:center;">
                 <div>

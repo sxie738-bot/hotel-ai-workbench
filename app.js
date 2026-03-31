@@ -2657,7 +2657,7 @@ function renderStudentList() {
   container.innerHTML = keys.map((name, i) => {
     const config = hotelsData[name];
     const planLabel = config.plan && PLANS[config.plan] ? PLANS[config.plan].label : '免费';
-    const planColor = config.plan === 'yearly' ? 'var(--primary)' : config.plan === 'monthly' ? 'var(--success)' : 'var(--text-muted)';
+    const planColor = config.plan === 'yearly' ? 'var(--primary)' : config.plan === 'monthly' ? 'var(--success)' : config.plan === 'trial' ? '#f59e0b' : 'var(--text-muted)';
     return `
       <div style="background:var(--bg-card); border:1px solid var(--border); border-radius:var(--radius-md); padding:var(--space-4); margin-bottom:var(--space-3); display:flex; justify-content:space-between; align-items:center;">
         <div style="flex:1; min-width:0;">
