@@ -10,8 +10,14 @@
       "note": "吴",
       "plan": "monthly",
       "created_at": "2026-03-30T17:44:11.349Z"
+    },
+    "订一晚大酒店": {
+      "feishu_url": "",
+      "note": "订一晚",
+      "plan": "yearly",
+      "created_at": "2026-03-31T05:39:46.065Z"
     }
   },
-  "_updated": "2026-03-31T04:10:51.398Z",
+  "_updated": "2026-03-31T05:39:47.731Z",
   "_app_version": "1.5.0"
 }
