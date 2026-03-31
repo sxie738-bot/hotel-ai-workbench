@@ -628,6 +628,53 @@ const PROMPTS_CLOUD_URL = 'https://raw.githubusercontent.com/sxie738-bot/hotel-a
 const PROMPTS_API_URL = 'https://api.github.com/repos/sxie738-bot/hotel-ai-workbench/contents/prompts.json';
 let cloudPrompts = null; // 云端 Prompt 缓存
 
+// ==================== 应用版本更新检测 ====================
+const APP_VERSION = '1.0.0'; // 当前代码版本号（每次发布新功能时手动递增）
+
+// 检查是否有新版本可用
+async function checkForUpdate(showToastIfLatest = false) {
+  try {
+    const resp = await fetch(PROMPTS_CLOUD_URL + '?t=' + Date.now());
+    if (!resp.ok) return;
+    const data = await resp.json();
+    const cloudVersion = data._app_version;
+
+    if (!cloudVersion) return; // 云端还没有版本号字段，跳过
+
+    if (cloudVersion !== APP_VERSION) {
+      showUpdateModal(cloudVersion);
+    } else if (showToastIfLatest) {
+      showToast('✅ 已是最新版本 v' + APP_VERSION);
+    }
+  } catch (e) {
+    // 网络问题静默忽略
+    if (showToastIfLatest) {
+      showToast('❌ 检查更新失败，请稍后重试', 'warning');
+    }
+  }
+}
+
+// 显示更新弹窗
+function showUpdateModal(newVersion) {
+  const modal = document.getElementById('updateModal');
+  if (!modal) return;
+  document.getElementById('updateNewVersion').textContent = 'v' + newVersion;
+  document.getElementById('updateCurrentVersion').textContent = 'v' + APP_VERSION;
+  modal.style.display = 'flex';
+}
+
+// 立即更新（刷新页面加载最新代码）
+function applyUpdate() {
+  // 强制绕过浏览器缓存刷新
+  location.reload(true);
+}
+
+// 关闭更新弹窗
+function closeUpdateModal() {
+  const modal = document.getElementById('updateModal');
+  if (modal) modal.style.display = 'none';
+}
+
 // 获取管理员保存的 GitHub Token（存在 localStorage，不会硬编码）
 function getGitHubToken() {
   return localStorage.getItem('github_token') || '';
@@ -2460,6 +2507,9 @@ function initApp() {
   fetchCloudPrompts().then(() => {
     ['ctrip', 'multi', 'training', 'analysis'].forEach(key => renderPromptCard(key));
   });
+
+  // 自动检查版本更新（静默，有新版才弹窗）
+  setTimeout(() => checkForUpdate(false), 3000);
 
   // 刷新 Prompt 卡片状态（先用本地缓存渲染）
   ['ctrip', 'multi', 'training', 'analysis'].forEach(key => renderPromptCard(key));

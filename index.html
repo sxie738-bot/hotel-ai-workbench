@@ -257,6 +257,14 @@
       </a>
     </nav>
     <div class="sidebar-footer">
+      <!-- 检查更新按钮 -->
+      <div style="padding:0 8px; margin-bottom:4px;">
+        <a href="javascript:void(0)" class="nav-item" onclick="checkForUpdate(true)" style="display:flex; align-items:center; padding:8px 10px; border-radius:8px; text-decoration:none; color:var(--text-secondary); font-size:13px; transition:all 0.2s;" onmouseover="this.style.background='var(--gray-100)'" onmouseout="this.style.background='none'">
+          <span style="margin-right:8px;">🔄</span>
+          <span>检查更新</span>
+          <span style="margin-left:auto; font-size:11px; color:var(--text-muted);" id="appVersionLabel">v1.0.0</span>
+        </a>
+      </div>
       <div class="user-info admin-only" style="display:none;">
         <div class="user-avatar">谢</div>
         <div class="user-detail">
@@ -1155,6 +1163,24 @@
       </div>
       <div class="modal-footer" style="justify-content:center;">
         <button class="btn btn-primary" onclick="submitHotelName()" style="padding:12px 40px; font-size:15px;">进入工作台 →</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ==================== 版本更新弹窗 ==================== -->
+  <div class="modal-overlay" id="updateModal" style="display:none; z-index:300;">
+    <div class="modal" style="max-width:400px; text-align:center;">
+      <div style="padding:32px 24px 24px;">
+        <div style="font-size:48px; margin-bottom:12px;">🔄</div>
+        <h3 style="font-size:18px; font-weight:700; margin:0 0 8px;">发现新版本</h3>
+        <p style="font-size:13px; color:var(--text-secondary); margin:0 0 20px;">
+          当前版本 <span id="updateCurrentVersion" style="font-weight:600;"></span><br>
+          最新版本 <span id="updateNewVersion" style="font-weight:600; color:var(--primary);"></span>
+        </p>
+        <div style="display:flex; gap:12px; justify-content:center;">
+          <button class="btn" onclick="closeUpdateModal()" style="padding:10px 24px;">稍后再说</button>
+          <button class="btn btn-primary" onclick="applyUpdate()" style="padding:10px 24px;">立即更新</button>
+        </div>
       </div>
     </div>
   </div>
