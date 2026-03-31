@@ -416,10 +416,15 @@ function checkModuleAccess(moduleKey, onAllowed) {
   const hotelName = member ? member.hotel : '';
 
   let lockMsg = '';
+  let actionBtnText = '我知道了';
+  let actionBtnFn = 'closeModalLock()';
+
   if (!member || !member.name) {
     // 未注册用户
     lockMsg = `<strong>${config ? config.name : moduleKey}</strong> 仅对正式学员开放。<br><br>` +
-      `请使用「我的会员」功能完成注册，或联系管理员开通权限。`;
+      `请先完成注册（填写姓名、手机号、酒店名称）。`;
+    actionBtnText = '📝 去注册';
+    actionBtnFn = 'closeModalLock(); showHotelWelcome();';
   } else if (hotelName) {
     // 已注册但该酒店未配置权限
     lockMsg = `<strong>${config ? config.name : moduleKey}</strong> 当前暂未开放。<br><br>` +
@@ -428,7 +433,9 @@ function checkModuleAccess(moduleKey, onAllowed) {
   } else {
     // 未设置酒店名
     lockMsg = `<strong>${config ? config.name : moduleKey}</strong> 仅对正式学员开放。<br><br>` +
-      `请先在左下角点击设置您的酒店名称。`;
+      `请先设置您的酒店名称。`;
+    actionBtnText = '🏨 设置酒店';
+    actionBtnFn = 'closeModalLock(); showHotelWelcome();';
   }
 
   document.getElementById('moduleLockMessage').innerHTML = lockMsg;
@@ -444,6 +451,13 @@ function checkModuleAccess(moduleKey, onAllowed) {
   }
 
   document.getElementById('moduleLockModal').style.display = 'flex';
+
+  // 更新按钮文字和行为
+  const actionBtn = document.getElementById('moduleLockActionBtn');
+  if (actionBtn) {
+    actionBtn.textContent = actionBtnText;
+    actionBtn.setAttribute('onclick', actionBtnFn);
+  }
   return false;
 }
 
@@ -489,19 +503,19 @@ function updateSidebarByPermissions() {
 function renderProfilePage() {
   const member = MemberStore.get();
 
-  // 如果没有会员信息，显示提示
-  if (!member) {
+  // 如果没有会员信息或未填写姓名，显示提示
+  if (!member || !member.name) {
     document.getElementById('profileCardHeader').style.background = 'var(--gray-100)';
     document.getElementById('profileCardIcon').textContent = '👤';
     document.getElementById('profilePlanName').textContent = '未登录';
-    document.getElementById('profilePlanSub').textContent = '请先完成注册以查看会员信息';
+    document.getElementById('profilePlanSub').textContent = '请先完成注册以使用全部功能';
     document.getElementById('profileName').textContent = '-';
     document.getElementById('profileHotel').textContent = '-';
     document.getElementById('profileActivateDate').textContent = '-';
     document.getElementById('profileExpireDate').textContent = '永久';
     document.getElementById('profileStatusBar').style.display = 'none';
-    document.getElementById('profileRenewBtn').textContent = '🔄 立即注册';
-    document.getElementById('profileRenewBtn').onclick = function() { showEntryPage(); };
+    document.getElementById('profileRenewBtn').textContent = '📝 立即注册';
+    document.getElementById('profileRenewBtn').onclick = function() { showHotelWelcome(); };
     document.getElementById('profileLogoutBtn').style.display = 'none';
     return;
   }
@@ -590,6 +604,9 @@ function renderProfilePage() {
 
   // 渲染操作历史
   renderProfileHistory();
+
+  // 更新侧边栏用户按钮
+  updateUserNavButton();
 }
 
 function renderProfileUsage() {
@@ -689,23 +706,66 @@ function renderProfileHistory() {
 }
 
 function showRenewModal() {
-  document.getElementById('entryPage').style.display = '';
-  showStep(0);
+  // 显示收款码弹窗供用户扫码续费
+  const savedQR = localStorage.getItem('hotel_pay_qrcode');
+  if (!savedQR) {
+    showToast('请联系管理员（谢瑷瞳）办理续费', 'warning');
+    return;
+  }
+  // 复用模块锁定弹窗展示收款码
+  document.getElementById('moduleLockMessage').innerHTML =
+    `<strong>扫码续费</strong><br><br>` +
+    `请使用微信扫描下方收款码完成支付，支付后联系管理员（谢瑷瞳）确认开通。` +
+    `<br><br><img src="${savedQR}" style="width:180px; height:180px; object-fit:contain; border-radius:8px;">`;
+  document.getElementById('moduleLockUsage').style.display = 'none';
+  document.getElementById('moduleLockModal').style.display = 'flex';
 }
 
 function showLogoutConfirm() {
-  if (!confirm('确认退出登录？\n\n退出后需要重新输入姓名和手机号登录。')) return;
+  // 弹窗确认退出
+  const modal = document.getElementById('logoutConfirmModal');
+  if (modal) {
+    modal.style.display = 'flex';
+  }
+}
+
+function confirmLogout() {
+  const member = MemberStore.get();
+  const name = member?.name || '';
   MemberStore.clear();
   localStorage.removeItem('hotel_operation_history');
   localStorage.removeItem('current_hotel');
-  document.getElementById('entryPage').style.display = '';
-  showStep(0);
-  showToast('已退出登录');
+  localStorage.removeItem('hotel_expiry_reminded');
+  document.getElementById('logoutConfirmModal').style.display = 'none';
+  showToast(`👋 ${name}，已退出登录`);
+  // 刷新页面最干净
+  setTimeout(() => location.reload(), 500);
+}
+
+function cancelLogout() {
+  document.getElementById('logoutConfirmModal').style.display = 'none';
+}
+
+// 更新侧边栏用户按钮显示
+function updateUserNavButton() {
+  const member = MemberStore.get();
+  const label = document.getElementById('userNavLabel');
+  const icon = document.getElementById('userNavButton')?.querySelector('.nav-icon');
+  if (!label) return;
+  if (member && member.name) {
+    // 已登录：显示用户名
+    label.textContent = member.name;
+    if (icon) icon.textContent = '👤';
+  } else {
+    // 未登录：显示登录/注册
+    label.textContent = '登录 / 注册';
+    if (icon) icon.textContent = '👤';
+  }
 }
 
 function showEntryPage() {
-  document.getElementById('entryPage').style.display = '';
-  showStep(0);
+  // 改为弹出注册弹窗
+  showHotelWelcome();
 }
 
 // ==================== AI API 配置 ====================
@@ -897,7 +957,7 @@ const PROMPTS_API_URL = 'https://api.github.com/repos/sxie738-bot/hotel-ai-workb
 let cloudPrompts = null; // 云端 Prompt 缓存
 
 // ==================== 应用版本更新检测 ====================
-const APP_VERSION = '1.2.0'; // 当前代码版本号（每次发布新功能时手动递增）
+const APP_VERSION = '1.3.0'; // 当前代码版本号（每次发布新功能时手动递增）
 
 // 检查是否有新版本可用
 async function checkForUpdate(showToastIfLatest = false) {
@@ -2025,39 +2085,60 @@ function getHotelConfig(name) {
 // 显示酒店名输入弹窗
 function showHotelWelcome() {
   const modal = document.getElementById('hotelWelcomeModal');
-  const input = document.getElementById('hotelNameInput');
   const error = document.getElementById('hotelNameError');
   modal.style.display = 'flex';
-  input.value = getCurrentHotel();
   error.style.display = 'none';
-  setTimeout(() => input.focus(), 100);
+  // 预填已有信息
+  const member = MemberStore.get();
+  document.getElementById('welcomeName').value = member?.name || '';
+  document.getElementById('welcomePhone').value = member?.phone || '';
+  document.getElementById('hotelNameInput').value = getCurrentHotel();
+  setTimeout(() => {
+    const firstEmpty = !member?.name ? 'welcomeName' : !member?.phone ? 'welcomePhone' : 'hotelNameInput';
+    document.getElementById(firstEmpty)?.focus();
+  }, 100);
 }
 
-// 提交酒店名
-function submitHotelName() {
-  const input = document.getElementById('hotelNameInput');
-  const error = document.getElementById('hotelNameError');
-  const name = input.value.trim();
+// 关闭欢迎弹窗
+function closeHotelWelcome() {
+  document.getElementById('hotelWelcomeModal').style.display = 'none';
+}
 
-  if (!name) {
-    error.textContent = '请输入酒店名称';
-    error.style.display = 'block';
-    return;
-  }
+// 提交酒店名（同时完成注册）
+function submitHotelName() {
+  const error = document.getElementById('hotelNameError');
+  const name = document.getElementById('welcomeName').value.trim();
+  const phone = document.getElementById('welcomePhone').value.trim();
+  const hotel = document.getElementById('hotelNameInput').value.trim();
+
+  if (!name) { error.textContent = '请输入姓名'; error.style.display = 'block'; return; }
+  if (!phone || phone.length !== 11) { error.textContent = '请输入正确的11位手机号'; error.style.display = 'block'; return; }
+  if (!hotel) { error.textContent = '请输入酒店名称'; error.style.display = 'block'; return; }
 
   // 检查酒店名是否在云端配置中（如果已有云端数据）
-  if (Object.keys(hotelsData).length > 0 && !hotelsData[name]) {
-    // 模糊匹配提示
-    const similar = Object.keys(hotelsData).find(h => h.includes(name) || name.includes(h));
+  if (Object.keys(hotelsData).length > 0 && !hotelsData[hotel]) {
+    const similar = Object.keys(hotelsData).find(h => h.includes(hotel) || hotel.includes(h));
     if (similar) {
       error.textContent = `未找到完全匹配，你是否要输入「${similar}」？`;
       error.style.display = 'block';
       return;
     }
-    // 没有匹配也允许进入（管理员可能还没添加）
   }
 
-  setCurrentHotel(name);
+  // 保存/更新会员信息（注册+设酒店一步完成）
+  const existingMember = MemberStore.get();
+  const memberData = {
+    name: name,
+    hotel: hotel,
+    phone: phone,
+    plan: existingMember?.plan || 'free',
+    activateDate: existingMember?.activateDate || new Date().toISOString().split('T')[0],
+    expireDate: existingMember?.expireDate || '2099-12-31',
+    status: 'active',
+    usage: existingMember?.usage || MemberStore.getUsage()
+  };
+  MemberStore.set(memberData);
+  setCurrentHotel(hotel);
   document.getElementById('hotelWelcomeModal').style.display = 'none';
   updateHotelUI();
 
@@ -2065,12 +2146,15 @@ function submitHotelName() {
   updateSidebarByPermissions();
   renderProfilePage();
 
+  // 更新侧边栏用户按钮显示
+  updateUserNavButton();
+
   // 如果有专属配置，提示加载成功
-  const config = getHotelConfig(name);
+  const config = getHotelConfig(hotel);
   if (config && config.feishu_url) {
-    showToast(`✅ 已进入 ${name}，专属配置已加载`);
+    showToast(`✅ 欢迎 ${name}，${hotel} 专属配置已加载`);
   } else {
-    showToast(`✅ 已进入 ${name}`);
+    showToast(`✅ 欢迎 ${name}，已进入 ${hotel}`);
   }
 }
 
@@ -2841,10 +2925,13 @@ function initApp() {
     dateEl.textContent = new Date().toLocaleDateString('zh-CN', { year: 'numeric', month: 'long', day: 'numeric', weekday: 'long' });
   }
 
-  // 检查是否需要显示酒店名输入弹窗（已有会员信息则跳过）
+  // 检查是否需要显示注册弹窗（未填写姓名和手机号时弹出）
   const currentHotel = getCurrentHotel();
   const member = MemberStore.get();
-  if (!currentHotel && !isAdmin && !member) {
+  if (!isAdmin && (!member || !member.name || !member.phone)) {
+    setTimeout(() => showHotelWelcome(), 500);
+  } else if (!currentHotel && !isAdmin) {
+    // 有会员信息但没设酒店名，弹出设酒店
     setTimeout(() => showHotelWelcome(), 500);
   } else {
     updateHotelUI();
@@ -2922,6 +3009,7 @@ function initApp() {
 
   // 渲染会员中心初始数据（侧边栏badge等）
   renderProfilePage();
+  updateUserNavButton();
 
   // 渲染反馈历史
   renderFeedbackHistory();
