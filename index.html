@@ -190,7 +190,7 @@
   <div class="modal-overlay" id="moduleLockModal" style="display:none;">
     <div class="modal" style="max-width:380px;">
       <div class="modal-header">
-        <h3>🔒 该功能需要升级</h3>
+        <h3>🔒 功能暂未开放</h3>
         <button class="modal-close" onclick="closeModalLock()">✕</button>
       </div>
       <div class="modal-body" style="text-align:center;">
@@ -200,8 +200,7 @@
         </div>
       </div>
       <div class="modal-footer" style="justify-content:center;">
-        <button class="btn" onclick="closeModalLock()">我知道了</button>
-        <button class="btn btn-primary" onclick="upgradeFromLock()">升级套餐</button>
+        <button class="btn btn-primary" onclick="closeModalLock()">我知道了</button>
       </div>
     </div>
   </div>
@@ -267,7 +266,7 @@
         <a href="javascript:void(0)" class="nav-item" onclick="checkForUpdate(true)" style="display:flex; align-items:center; padding:8px 10px; border-radius:8px; text-decoration:none; color:var(--text-secondary); font-size:13px; transition:all 0.2s;" onmouseover="this.style.background='var(--gray-100)'" onmouseout="this.style.background='none'">
           <span style="margin-right:8px;">🔄</span>
           <span>检查更新</span>
-          <span style="margin-left:auto; font-size:11px; color:var(--text-muted);" id="appVersionLabel">v1.1.0</span>
+          <span style="margin-left:auto; font-size:11px; color:var(--text-muted);" id="appVersionLabel">v1.2.0</span>
         </a>
       </div>
       <div class="user-info admin-only" style="display:none;">
@@ -1215,6 +1214,15 @@
           <label>酒店名称</label>
           <input type="text" id="studentHotelName" class="form-input" placeholder="例：订一晚酒店成都旗舰店">
           <p style="font-size:11px; color:var(--text-muted); margin-top:4px;">学员将用此名称登录，请确保唯一且准确</p>
+        </div>
+        <div class="form-group">
+          <label>会员套餐</label>
+          <select class="form-select" id="studentPlan">
+            <option value="free">🆓 免费体验（每模块3次）</option>
+            <option value="monthly">🔥 包月会员（¥39/月，全功能不限次）</option>
+            <option value="yearly">💎 包年会员（¥428/年，全功能+优先体验）</option>
+          </select>
+          <p style="font-size:11px; color:var(--text-muted); margin-top:4px;">该酒店下所有用户将默认使用此套餐的权限</p>
         </div>
         <div class="form-group">
           <label>飞书多维表格链接</label>
