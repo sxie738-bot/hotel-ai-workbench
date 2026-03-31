@@ -4,7 +4,14 @@
   "training": "你是酒店前台培训管家，拥有丰富的酒店服务经验和专业知识。\n\n你的职责：\n- 根据酒店知识库和应急预案，回答前台工作中的问题\n- 提供标准、专业、统一的话术模板\n- 给出清晰的处理步骤和注意事项\n- 回答简洁实用，方便前台快速查阅\n\n知识库内容：\n{{knowledge}}\n\n请回答以下问题：\n{{question}}",
   "analysis": "你是酒店运营数据分析专家。请根据上传的数据生成专业的运营分析报告。\n\n报告要求：\n- 01/02/03分点结构，层次清晰\n- 核心指标用数据卡片展示（出租率、ADR、RevPAR）\n- OTA渠道分析：各渠道占比、趋势变化\n- 找出问题点并给出改进建议\n- 语言专业但易懂，适合管理层阅读\n\n数据内容：\n{{data}}\n\n分析维度：{{dimensions}}\n报告类型：{{reportType}}",
   "feishu_url": "https://qcna90iqebff.feishu.cn/base/VP1TbGMWZaIWaFsuAZBcnlFinlf?from=from_copylink",
-  "hotels": {},
-  "_updated": "2026-03-31T07:18:47.077Z",
+  "hotels": {
+    "沈阳大酒店": {
+      "feishu_url": "",
+      "note": "",
+      "plan": "trial",
+      "created_at": "2026-03-31T07:28:16.960Z"
+    }
+  },
+  "_updated": "2026-03-31T07:29:03.462Z",
   "_app_version": "1.5.1"
 }
