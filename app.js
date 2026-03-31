@@ -278,6 +278,24 @@ function enterWorkbench() {
   initApp();
 }
 
+// 跳过入口页面，以免费体验身份直接进入工作台
+function skipEntry() {
+  // 如果还没有会员记录，创建一个免费体验记录
+  const member = MemberStore.get();
+  if (!member) {
+    MemberStore.set({
+      name: '游客',
+      hotel: '',
+      phone: '',
+      plan: 'free',
+      status: 'active',
+      activateDate: new Date().toISOString(),
+      expireDate: '' // 免费版无过期时间
+    });
+  }
+  enterWorkbench();
+}
+
 function memberLogin() {
   const name = document.getElementById('loginName').value.trim();
   const phone = document.getElementById('loginPhone').value.trim();
@@ -795,7 +813,7 @@ function exportConfig() {
   const currentPrompts = {};
   allKeys.forEach(key => { currentPrompts[key] = getPrompt(key); });
 
-  const configCode = `// ★ 酒店AI工作台 Prompt 配置（导出备份）★
+  const configCode = `// ★ 酒店AI实战营 Prompt 配置（导出备份）★
 // 当前所有生效的 Prompt
 const PROMPTS = ${JSON.stringify(currentPrompts, null, 2)};`;
 
@@ -935,6 +953,19 @@ function activateAdminUI() {
   const adminGreeting = document.getElementById('adminGreeting');
   if (adminGreeting) {
     adminGreeting.textContent = `${greeting}，谢瑷瞳 👋`;
+  }
+
+  // 渲染管理员专属面板（会员列表、权限配置、收款码预览）
+  renderMemberList();
+  renderPermissionTable();
+  renderStudentList();
+  // 加载收款码预览
+  const savedQR = localStorage.getItem('hotel_pay_qrcode');
+  if (savedQR) {
+    const img = document.getElementById('qrPreviewImg');
+    if (img) { img.src = savedQR; img.style.display = 'block'; }
+    const ph = document.getElementById('qrPlaceholder');
+    if (ph) ph.style.display = 'none';
   }
 
   // 自动检测 Token 状态，更新界面提示
@@ -1701,7 +1732,7 @@ function updateHotelUI() {
   const hotelName = getCurrentHotel();
   const nameEl = document.getElementById('currentHotelName');
   if (nameEl) {
-    nameEl.textContent = hotelName || '酒店AI工作台';
+    nameEl.textContent = hotelName || '酒店AI实战营';
   }
 }
 
@@ -1953,7 +1984,10 @@ function saveQRCode() {
   const temp = localStorage.getItem('hotel_pay_qrcode_temp');
   if (!temp) { showToast('请先上传收款码图片', 'error'); return; }
   localStorage.setItem('hotel_pay_qrcode', temp);
-  showToast('✅ 收款码已保存，用户付款时将看到此收款码');
+  localStorage.removeItem('hotel_pay_qrcode_temp');
+  showToast('✅ 收款码已保存');
+  // 同步到云端
+  syncMembersToCloud();
 }
 
 // 权限配置渲染
@@ -2006,20 +2040,26 @@ function savePermissions() {
   });
   localStorage.setItem('hotel_module_permissions', JSON.stringify(perms));
   showToast('✅ 权限配置已保存');
+  // 同步到云端
+  syncMembersToCloud();
 }
 
 // 同步会员数据到云端
 async function syncMembersToCloud() {
   const token = localStorage.getItem('github_token');
-  if (!token) return;
+  if (!token) { showToast('⚠️ 未配置同步Token，请先在Prompt调教页设置'); return; }
   try {
+    showToast('⏳ 正在同步到云端...');
     // 先拉取最新
     const res = await fetch('https://raw.githubusercontent.com/sxie738-bot/hotel-ai-workbench/main/prompts.json?t=' + Date.now());
     const data = await res.json();
     data.members = getMembersData();
-    // 保存更新权限
+    // 同步权限配置
     const perms = localStorage.getItem('hotel_module_permissions');
     if (perms) { try { data.modulePermissions = JSON.parse(perms); } catch {} }
+    // 同步收款码
+    const qr = localStorage.getItem('hotel_pay_qrcode');
+    if (qr) { data.payQRCode = qr; }
 
     await fetch(`https://api.github.com/repos/sxie738-bot/hotel-ai-workbench/contents/prompts.json`, {
       method: 'PUT',
@@ -2032,7 +2072,8 @@ async function syncMembersToCloud() {
         content: btoa(unescape(encodeURIComponent(JSON.stringify(data, null, 2))))
       })
     });
-  } catch(e) { console.warn('同步会员数据失败:', e); }
+    showToast('✅ 已同步到云端');
+  } catch(e) { console.warn('同步会员数据失败:', e); showToast('❌ 同步失败，请检查网络或Token'); }
 }
 
 function renderStudentList() {
@@ -2630,7 +2671,7 @@ function showInstallGuide() {
       <ol style="margin:0; padding-left:20px; line-height:2;">
         <li>查看地址栏右侧是否有 <b>📲 安装图标</b>（电脑图标）</li>
         <li>点击该图标 → 点击 <b>「安装」</b></li>
-        <li>或点击右上角菜单 ⋮ → <b>「安装酒店AI工作台」</b></li>
+        <li>或点击右上角菜单 ⋮ → <b>「安装酒店AI实战营」</b></li>
       </ol>
       <p style="margin:12px 0 0; font-size:12px; color:#6b7280;">💡 如未看到安装图标，请刷新页面后再试</p>`;
   } else if (/Edge/i.test(ua)) {

@@ -6,19 +6,20 @@
   <meta name="theme-color" content="#2563eb">
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="default">
-  <meta name="apple-mobile-web-app-title" content="酒店AI">
+  <meta name="apple-mobile-web-app-title" content="酒店AI实战营">
   <link rel="manifest" href="manifest.json">
   <link rel="apple-touch-icon" href="icons/icon-192x192.png">
-  <title>酒店AI工作台</title>
+  <title>酒店AI实战营</title>
   <link rel="stylesheet" href="style.css">
 </head>
 <body>
   <!-- ==================== 入口选择页面（非会员首次访问） ==================== -->
   <div class="entry-page" id="entryPage" style="display:none;">
+    <button class="entry-close-btn" onclick="skipEntry()" title="跳过，直接浏览">✕</button>
     <div class="entry-container">
       <div class="entry-header">
         <div style="font-size:48px; margin-bottom:12px;">🏨</div>
-        <h1 class="entry-title">酒店AI工作台</h1>
+        <h1 class="entry-title">酒店AI实战营</h1>
         <p class="entry-subtitle">AI赋能酒店运营 · 让每个决策都有数据支撑</p>
       </div>
 
@@ -56,6 +57,9 @@
         </div>
         <div class="entry-login-link" onclick="showLoginStep()">
           已是会员？<a href="javascript:void(0)">输入姓名+手机号登录 →</a>
+        </div>
+        <div class="entry-skip-link" onclick="skipEntry()">
+          跳过，直接浏览 →
         </div>
       </div>
 
@@ -205,11 +209,11 @@
   <!-- 侧边栏 -->
   <aside class="sidebar" id="sidebar">
     <div class="sidebar-header">
-      <div class="logo" id="logoArea" title="">
+        <div class="logo" id="logoArea" title="">
         <span class="logo-icon">🏨</span>
         <div class="logo-text">
-          <h1>酒店AI工作台</h1>
-          <p class="logo-sub">Hotel AI Workbench</p>
+          <h1>酒店AI实战营</h1>
+          <p class="logo-sub">谢瑷瞳</p>
         </div>
       </div>
     </div>
@@ -263,7 +267,7 @@
       <div class="user-info admin-hide">
         <div class="user-avatar" style="background:var(--gray-600);">🏨</div>
         <div class="user-detail">
-          <span class="user-name" id="currentHotelName">酒店AI工作台</span>
+          <span class="user-name" id="currentHotelName">酒店AI实战营</span>
           <span class="user-role" style="cursor:pointer;" onclick="showHotelWelcome()" title="切换酒店">点击设置酒店名</span>
         </div>
       </div>
@@ -285,7 +289,7 @@
     <section class="page active" id="page-dashboard">
       <div class="welcome-banner">
         <div class="welcome-text">
-          <h2 class="admin-hide">欢迎使用酒店AI工作台 🏨</h2>
+          <h2 class="admin-hide">欢迎使用酒店AI实战营 🏨</h2>
           <h2 class="admin-only" style="display:none;" id="adminGreeting">下午好，谢瑷瞳 👋</h2>
           <p>今天是 <strong id="todayDate"></strong>，你有 <strong>3个AI工具</strong> 可以使用，全部已接入AI能力 ✅</p>
         </div>
@@ -332,7 +336,7 @@
           <div class="tool-input">
             <div class="form-group">
               <label>酒店名称</label>
-              <input type="text" placeholder="例：沈阳贝壳酒店（中街店）" class="form-input">
+              <input type="text" placeholder="例：订一晚酒店成都旗舰店" class="form-input">
             </div>
             <div class="form-group">
               <label>内容主题</label>
@@ -848,19 +852,14 @@
           <!-- 品牌定制 -->
           <div class="setting-section" id="setting-brand">
             <h3>🎨 品牌定制</h3>
-            <p class="setting-desc">自定义工作台的名称、Logo、主题色和外部链接。</p>
+            <p class="setting-desc">自定义工作台的名称、Logo和主题色。</p>
             <div class="form-group">
               <label>工作台名称</label>
-              <input type="text" value="酒店AI工作台" class="form-input">
+              <input type="text" value="酒店AI实战营" class="form-input">
             </div>
             <div class="form-group">
               <label>品牌标语</label>
               <input type="text" value="AI赋能酒店运营" class="form-input">
-            </div>
-            <div class="form-group">
-              <label>飞书多维表格链接</label>
-              <input type="text" id="feishuUrlInput" class="form-input" placeholder="粘贴飞书多维表格的完整链接">
-              <p style="font-size:11px; color:var(--text-muted); margin-top:4px;">学员点击侧边栏「飞书表格」时将跳转到此链接</p>
             </div>
             <div class="form-group">
               <label>主题色</label>
@@ -873,6 +872,11 @@
               </div>
             </div>
             <button class="btn btn-primary" style="margin-top:16px;" onclick="saveFeishuUrl()">💾 保存设置</button>
+
+            <div class="setting-tip" style="margin-top:16px;">
+              <span>💡 说明</span>
+              <p>飞书多维表格链接请在「酒店配置」中为每个酒店单独设置，这里不需要配置全局链接。</p>
+            </div>
           </div>
 
           <!-- 会员管理 -->
@@ -1116,7 +1120,7 @@
       <div class="modal-body">
         <div class="form-group">
           <label>酒店名称</label>
-          <input type="text" id="studentHotelName" class="form-input" placeholder="例：如家精选·沈阳北站店">
+          <input type="text" id="studentHotelName" class="form-input" placeholder="例：订一晚酒店成都旗舰店">
           <p style="font-size:11px; color:var(--text-muted); margin-top:4px;">学员将用此名称登录，请确保唯一且准确</p>
         </div>
         <div class="form-group">
@@ -1125,7 +1129,7 @@
         </div>
         <div class="form-group">
           <label>备注 <span class="optional">（可选）</span></label>
-          <input type="text" id="studentNote" class="form-input" placeholder="例：沈阳贝壳酒店-张店长">
+          <input type="text" id="studentNote" class="form-input" placeholder="例：订一晚酒店成都旗舰店-张店长">
         </div>
       </div>
       <div class="modal-footer">
@@ -1139,13 +1143,13 @@
   <div class="modal-overlay" id="hotelWelcomeModal" style="display:none;">
     <div class="modal" style="max-width:420px;">
       <div class="modal-header">
-        <h3>🏨 欢迎使用酒店AI工作台</h3>
+        <h3>🏨 欢迎使用酒店AI实战营</h3>
       </div>
       <div class="modal-body" style="text-align:center;">
         <div style="font-size:48px; margin-bottom:16px;">🏨</div>
         <p style="font-size:15px; color:var(--text-primary); margin-bottom:8px;">请输入你的酒店名称</p>
         <p style="font-size:13px; color:var(--text-secondary); margin-bottom:20px;">输入后将自动加载你的专属配置（飞书表格等）</p>
-        <input type="text" id="hotelNameInput" class="form-input" placeholder="例：如家精选·沈阳北站店" style="font-size:15px; text-align:center; margin-bottom:12px;">
+        <input type="text" id="hotelNameInput" class="form-input" placeholder="例：订一晚酒店成都旗舰店" style="font-size:15px; text-align:center; margin-bottom:12px;">
         <p id="hotelNameError" style="color:#dc2626; font-size:12px; display:none; margin-bottom:8px;"></p>
         <p style="font-size:11px; color:var(--text-muted);">酒店名称由管理员分配，请确认后输入</p>
       </div>
