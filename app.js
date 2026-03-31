@@ -1301,11 +1301,17 @@ function showUpdateModal(newVersion) {
 
 // 立即更新（强制绕过缓存刷新）
 function applyUpdate() {
-  // 在 URL 加时间戳参数强制绕过所有缓存（尤其手机端 Safari/微信浏览器）
+  const doReload = () => {
+    location.replace(location.pathname + '?v=' + Date.now());
+  };
   if ('serviceWorker' in navigator) {
-    navigator.serviceWorker.getRegistrations().then(regs => regs.forEach(r => r.unregister()));
+    navigator.serviceWorker.getRegistrations()
+      .then(regs => Promise.all(regs.map(r => r.unregister())))
+      .then(doReload)
+      .catch(doReload); // 即使出错也强制跳转
+  } else {
+    doReload();
   }
-  location.replace(location.pathname + '?v=' + Date.now());
 }
 
 // 关闭更新弹窗
