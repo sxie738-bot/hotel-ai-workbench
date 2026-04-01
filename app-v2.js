@@ -3182,6 +3182,7 @@ async function syncUserToCloud(userData) {
     const token = localStorage.getItem('github_write_token') || localStorage.getItem('github_token');
     if (!token) {
       console.log('未配置 GitHub Token，跳过云端同步（用户数据仅保存本地）');
+      showToast('⚠️ 未配置GitHub Token，数据仅本地保存', 'warning');
       return;
     }
 
@@ -3191,6 +3192,7 @@ async function syncUserToCloud(userData) {
     });
     if (!apiRes.ok) {
       console.warn('获取 GitHub 文件信息失败:', await apiRes.text());
+      showToast('⚠️ GitHub Token无效，请重新配置', 'error');
       return;
     }
     const fileInfo = await apiRes.json();
@@ -3245,8 +3247,10 @@ async function syncUserToCloud(userData) {
 
     if (putRes.ok) {
       console.log('✅ 用户数据已同步到云端');
+      showToast('✅ 注册信息已同步到云端', 'success');
     } else {
       console.warn('同步用户数据失败:', await putRes.text());
+      showToast('⚠️ 同步失败，请检查Token配置', 'warning');
     }
   } catch (e) {
     console.warn('同步用户数据失败:', e);
@@ -3259,6 +3263,7 @@ async function syncPaymentToGitHub(paymentData) {
     const token = localStorage.getItem('github_token') || localStorage.getItem('github_write_token');
     if (!token) {
       console.log('未配置 GitHub Token，跳过付款同步');
+      showToast('⚠️ 未配置GitHub Token，付款申请仅本地保存', 'warning');
       return;
     }
 
@@ -3268,6 +3273,7 @@ async function syncPaymentToGitHub(paymentData) {
     });
     if (!apiRes.ok) {
       console.warn('获取 GitHub 文件信息失败:', await apiRes.text());
+      showToast('⚠️ GitHub Token无效，请重新配置', 'error');
       return;
     }
     const fileInfo = await apiRes.json();
@@ -3323,6 +3329,7 @@ async function syncFeedbackToCloud(feedbackData) {
     const token = localStorage.getItem('github_token') || localStorage.getItem('github_write_token');
     if (!token) {
       console.log('未配置 GitHub Token，跳过反馈同步');
+      showToast('⚠️ 未配置GitHub Token，反馈仅本地保存', 'warning');
       return;
     }
 
@@ -3330,7 +3337,11 @@ async function syncFeedbackToCloud(feedbackData) {
     const apiRes = await fetch('https://api.github.com/repos/sxie738-bot/hotel-ai-workbench/contents/prompts.json', {
       headers: { 'Authorization': `Bearer ${token}` }
     });
-    if (!apiRes.ok) return;
+    if (!apiRes.ok) {
+      console.warn('获取 GitHub 文件信息失败:', await apiRes.text());
+      showToast('⚠️ GitHub Token无效，请重新配置', 'error');
+      return;
+    }
     const fileInfo = await apiRes.json();
     const sha = fileInfo.sha;
 
@@ -3371,6 +3382,7 @@ async function syncCommunityPostToCloud(postData) {
     const token = localStorage.getItem('github_token') || localStorage.getItem('github_write_token');
     if (!token) {
       console.log('未配置 GitHub Token，跳过社区打卡同步');
+      showToast('⚠️ 未配置GitHub Token，打卡仅本地保存', 'warning');
       return;
     }
 
@@ -3378,7 +3390,11 @@ async function syncCommunityPostToCloud(postData) {
     const apiRes = await fetch('https://api.github.com/repos/sxie738-bot/hotel-ai-workbench/contents/prompts.json', {
       headers: { 'Authorization': `Bearer ${token}` }
     });
-    if (!apiRes.ok) return;
+    if (!apiRes.ok) {
+      console.warn('获取GitHub文件信息失败:', await apiRes.text());
+      showToast('⚠️ GitHub Token无效，请重新配置', 'error');
+      return;
+    }
     const fileInfo = await apiRes.json();
     const sha = fileInfo.sha;
 
