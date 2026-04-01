@@ -4439,6 +4439,30 @@ function saveAirtableToken() {
   });
 }
 
+// 初始化 GitHub Token
+function initGithubToken() {
+  const savedToken = localStorage.getItem('github_token') || '';
+  const input = document.getElementById('githubTokenInput');
+  if (input && savedToken) {
+    input.value = savedToken;
+  }
+}
+
+// 保存 GitHub Token
+function saveGithubToken() {
+  const input = document.getElementById('githubTokenInput');
+  if (!input) return;
+  
+  const token = input.value.trim();
+  if (!token) {
+    showToast('请输入 GitHub Token', 'error');
+    return;
+  }
+  
+  localStorage.setItem('github_token', token);
+  showToast('✅ GitHub Token 已保存，用户数据将实时同步到云端', 'success');
+}
+
 // 生成AI配图
 async function generateImage() {
   const promptEl = document.getElementById('imagePrompt');
@@ -4720,6 +4744,7 @@ function initApp() {
   initFeishuUrlInput();
   initSiliconFlowKey();
   initAirtableToken();
+  initGithubToken();
   initMembersCache();
 
   // 加载本地酒店配置（在云端数据拉取之前先有本地缓存）
