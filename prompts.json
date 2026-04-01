@@ -166,7 +166,7 @@
       "icon": "🧩"
     }
   },
-  "_updated": "2026-04-01T11:47:51.260Z",
+  "_updated": "2026-04-01T11:59:43.175Z",
   "_app_version": "2.0.0",
   "users": [
     {
@@ -180,6 +180,18 @@
       "expireDate": "2026-04-04",
       "registeredAt": "2026-04-01T11:23:33.448Z",
       "lastLoginAt": "2026-04-01T11:47:51.260Z"
+    },
+    {
+      "id": "17308105191",
+      "name": "李迪",
+      "phone": "17308105191",
+      "hotel": "老战友",
+      "plan": "free",
+      "status": "active",
+      "activateDate": "2026-04-01",
+      "expireDate": "2026-04-04",
+      "registeredAt": "2026-04-01T11:59:43.175Z",
+      "lastLoginAt": "2026-04-01T11:59:43.175Z"
     }
   ],
   "payment_requests": [],
