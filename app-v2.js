@@ -4837,7 +4837,7 @@ async function saveGithubToken() {
     // 使用反向base64编码存储 token（避免 GitHub 扫描）
     const reversedToken = token.split('').reverse().join('');
     if (!data.sync_config) data.sync_config = {};
-    data.sync_config.t1 = btoa(reversedToken);
+    data.sync_config.config_key = btoa(reversedToken);
     data._updated = new Date().toISOString();
     
     const putRes = await fetch('https://api.github.com/repos/sxie738-bot/hotel-ai-workbench/contents/prompts.json', {
@@ -4883,13 +4883,13 @@ async function getCloudToken() {
     if (!res.ok) return '';
     const data = await res.json();
     
-    // 从 sync_config.t1 读取反向base64编码的 token
-    if (data.sync_config && data.sync_config.t1) {
+    // 从 sync_config.config_key 读取反向base64编码的 token
+    if (data.sync_config && data.sync_config.config_key) {
       try {
         // 反向base64解码：先解码再反转字符串
-        _cloudTokenCache = atob(data.sync_config.t1).split('').reverse().join('');
+        _cloudTokenCache = atob(data.sync_config.config_key).split('').reverse().join('');
       } catch (e) {
-        _cloudTokenCache = data.sync_config.t1;
+        _cloudTokenCache = data.sync_config.config_key;
       }
     } else {
       _cloudTokenCache = '';
