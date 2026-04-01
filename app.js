@@ -1,3 +1,30 @@
+// ==================== PWA iOS Standalone 触摸修复 ====================
+// iOS PWA 模式下 300ms 点击延迟修复
+(function() {
+  let touchStartTime = 0;
+  let touchTarget = null;
+
+  document.addEventListener('touchstart', function(e) {
+    touchStartTime = Date.now();
+    touchTarget = e.target;
+  }, { passive: true });
+
+  document.addEventListener('touchend', function(e) {
+    const touchDuration = Date.now() - touchStartTime;
+    // 快速点击（小于 200ms）且目标元素是可点击的
+    if (touchDuration < 200 && touchTarget) {
+      const clickable = touchTarget.closest('button, a, input, [onclick]');
+      if (clickable && !clickable.disabled) {
+        // 立即触发点击，不等待 300ms 延迟
+        setTimeout(() => {
+          clickable.click();
+        }, 0);
+      }
+    }
+    touchTarget = null;
+  }, { passive: true });
+})();
+
 // ==================== 会员体系配置 ====================
 const PLANS = {
   free:    { name: '免费体验', price: 0,    days: 3,   label: '免费体验·3天' },
@@ -1269,7 +1296,7 @@ const PROMPTS_API_URL = 'https://api.github.com/repos/sxie738-bot/hotel-ai-workb
 let cloudPrompts = null; // 云端 Prompt 缓存
 
 // ==================== 应用版本更新检测 ====================
-const APP_VERSION = '1.8.1'; // 当前代码版本号（每次发布新功能时手动递增）
+const APP_VERSION = '1.8.2'; // 当前代码版本号（每次发布新功能时手动递增）
 
 // 检查是否有新版本可用
 async function checkForUpdate(showToastIfLatest = false) {

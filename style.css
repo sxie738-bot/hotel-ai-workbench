@@ -1,4 +1,19 @@
 /* ==================== CSS 设计系统 ==================== */
+
+/* PWA Standalone 模式触摸修复 */
+html {
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: transparent;
+}
+
+* {
+  -webkit-touch-callout: none;
+}
+
+input, button, textarea, select {
+  touch-action: manipulation;
+}
+
 :root {
   /* 主色调 */
   --primary: #2563eb;
@@ -1370,6 +1385,10 @@ input, select, textarea { font-family: inherit; }
   justify-content: center;
   animation: fadeIn 0.2s ease;
   backdrop-filter: blur(2px);
+  /* PWA standalone 模式修复 */
+  transform: translateZ(0);
+  -webkit-transform: translateZ(0);
+  touch-action: pan-y pinch-zoom;
 }
 
 .modal {
@@ -1975,6 +1994,11 @@ input, select, textarea { font-family: inherit; }
   position: relative;
   z-index: 1;
   text-align: center;
+  /* PWA standalone 触摸修复 */
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: transparent;
+  user-select: none;
+  -webkit-user-select: none;
 }
 
 .auth-tab.active {
@@ -2041,6 +2065,10 @@ input, select, textarea { font-family: inherit; }
   outline: none;
   box-sizing: border-box;
   font-family: inherit;
+  /* PWA standalone 触摸修复 */
+  touch-action: manipulation;
+  -webkit-appearance: none;
+  appearance: none;
 }
 
 .auth-input::placeholder {
@@ -2081,6 +2109,13 @@ input, select, textarea { font-family: inherit; }
   margin-top: 8px;
   letter-spacing: 4px;
   box-shadow: 0 4px 12px rgba(37, 99, 235, 0.3);
+  /* PWA standalone 触摸修复 */
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: transparent;
+  user-select: none;
+  -webkit-user-select: none;
+  position: relative;
+  z-index: 1;
 }
 
 .auth-submit-btn:hover {
