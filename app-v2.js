@@ -3952,6 +3952,13 @@ function removeMember(index) {
 function handleQRUpload(event) {
   const file = event.target.files[0];
   if (!file) return;
+  
+  // 检查文件大小（限制 2MB）
+  if (file.size > 2 * 1024 * 1024) {
+    showToast('图片太大，请选择小于2MB的图片', 'error');
+    return;
+  }
+  
   const reader = new FileReader();
   reader.onload = (e) => {
     const img = document.getElementById('qrPreviewImg');
@@ -3959,8 +3966,17 @@ function handleQRUpload(event) {
     img.style.display = 'block';
     document.getElementById('qrPlaceholder').style.display = 'none';
     localStorage.setItem('hotel_pay_qrcode_temp', e.target.result);
+    showToast('✅ 图片已选择，点击「保存收款码」生效');
+  };
+  reader.onerror = () => {
+    showToast('读取图片失败，请重试', 'error');
   };
   reader.readAsDataURL(file);
+}
+
+// 点击预览区域触发文件选择
+function triggerQRUpload() {
+  document.getElementById('qrFileInput').click();
 }
 
 function saveQRCode() {
