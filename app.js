@@ -1,30 +1,3 @@
-// ==================== PWA iOS Standalone 触摸修复 ====================
-// iOS PWA 模式下 300ms 点击延迟修复
-(function() {
-  let touchStartTime = 0;
-  let touchTarget = null;
-
-  document.addEventListener('touchstart', function(e) {
-    touchStartTime = Date.now();
-    touchTarget = e.target;
-  }, { passive: true });
-
-  document.addEventListener('touchend', function(e) {
-    const touchDuration = Date.now() - touchStartTime;
-    // 快速点击（小于 200ms）且目标元素是可点击的
-    if (touchDuration < 200 && touchTarget) {
-      const clickable = touchTarget.closest('button, a, input, [onclick]');
-      if (clickable && !clickable.disabled) {
-        // 立即触发点击，不等待 300ms 延迟
-        setTimeout(() => {
-          clickable.click();
-        }, 0);
-      }
-    }
-    touchTarget = null;
-  }, { passive: true });
-})();
-
 // ==================== 会员体系配置 ====================
 const PLANS = {
   free:    { name: '免费体验', price: 0,    days: 3,   label: '免费体验·3天' },
