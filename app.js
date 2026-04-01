@@ -867,7 +867,18 @@ async function syncPaymentRequestToCloud(orderData) {
       return;
     }
 
-    // 拉取最新 prompts.json
+    // 从 GitHub API 获取文件信息和 sha
+    const apiRes = await fetch('https://api.github.com/repos/sxie738-bot/hotel-ai-workbench/contents/prompts.json', {
+      headers: { 'Authorization': `Bearer ${token}` }
+    });
+    if (!apiRes.ok) {
+      console.warn('获取 GitHub 文件信息失败:', await apiRes.text());
+      return;
+    }
+    const fileInfo = await apiRes.json();
+    const sha = fileInfo.sha;
+
+    // 拉取最新 prompts.json 内容
     const res = await fetch('https://raw.githubusercontent.com/sxie738-bot/hotel-ai-workbench/main/prompts.json?t=' + Date.now());
     const data = await res.json();
 
@@ -897,7 +908,7 @@ async function syncPaymentRequestToCloud(orderData) {
       body: JSON.stringify({
         message: `付款申请: ${orderData.name} - ${orderData.planLabel}`,
         content: btoa(unescape(encodeURIComponent(JSON.stringify(data, null, 2)))),
-        sha: data._sha || undefined
+        sha: sha
       })
     });
 
@@ -1321,7 +1332,7 @@ const PROMPTS_API_URL = 'https://api.github.com/repos/sxie738-bot/hotel-ai-workb
 let cloudPrompts = null; // 云端 Prompt 缓存
 
 // ==================== 应用版本更新检测 ====================
-const APP_VERSION = '1.9.1'; // 当前代码版本号（每次发布新功能时手动递增）
+const APP_VERSION = '1.9.2'; // 当前代码版本号（每次发布新功能时手动递增）
 
 // 检查是否有新版本可用
 async function checkForUpdate(showToastIfLatest = false) {
@@ -3081,7 +3092,18 @@ async function syncUserToCloud(userData) {
       return;
     }
 
-    // 拉取最新 prompts.json
+    // 从 GitHub API 获取文件信息和 sha
+    const apiRes = await fetch('https://api.github.com/repos/sxie738-bot/hotel-ai-workbench/contents/prompts.json', {
+      headers: { 'Authorization': `Bearer ${token}` }
+    });
+    if (!apiRes.ok) {
+      console.warn('获取 GitHub 文件信息失败:', await apiRes.text());
+      return;
+    }
+    const fileInfo = await apiRes.json();
+    const sha = fileInfo.sha;
+
+    // 拉取最新 prompts.json 内容
     const res = await fetch('https://raw.githubusercontent.com/sxie738-bot/hotel-ai-workbench/main/prompts.json?t=' + Date.now());
     const data = await res.json();
 
@@ -3124,7 +3146,7 @@ async function syncUserToCloud(userData) {
       body: JSON.stringify({
         message: `用户注册/更新: ${userData.name} - ${userData.hotel}`,
         content: btoa(unescape(encodeURIComponent(JSON.stringify(data, null, 2)))),
-        sha: data._sha || undefined
+        sha: sha
       })
     });
 
@@ -3597,19 +3619,30 @@ async function removePaymentRequestFromCloud(phone, submitTime) {
     console.log('无管理员token，无法删除云端付款申请');
     return;
   }
-  
+
+  // 从 GitHub API 获取文件信息和 sha
+  const apiRes = await fetch('https://api.github.com/repos/sxie738-bot/hotel-ai-workbench/contents/prompts.json', {
+    headers: { 'Authorization': `Bearer ${token}` }
+  });
+  if (!apiRes.ok) {
+    console.warn('获取 GitHub 文件信息失败:', await apiRes.text());
+    return;
+  }
+  const fileInfo = await apiRes.json();
+  const sha = fileInfo.sha;
+
   const resp = await fetch('https://raw.githubusercontent.com/sxie738-bot/hotel-ai-workbench/main/prompts.json?t=' + Date.now());
   const data = await resp.json();
-  
+
   if (!data.payment_requests) return;
-  
+
   // 过滤掉要删除的申请
-  data.payment_requests = data.payment_requests.filter(p => 
+  data.payment_requests = data.payment_requests.filter(p =>
     !(p.phone === phone && p.submitTime === submitTime)
   );
-  
+
   data._updated = new Date().toISOString();
-  
+
   await fetch('https://api.github.com/repos/sxie738-bot/hotel-ai-workbench/contents/prompts.json', {
     method: 'PUT',
     headers: {
@@ -3619,7 +3652,7 @@ async function removePaymentRequestFromCloud(phone, submitTime) {
     body: JSON.stringify({
       message: `处理付款申请: ${phone}`,
       content: btoa(unescape(encodeURIComponent(JSON.stringify(data, null, 2)))),
-      sha: data._sha || undefined
+      sha: sha
     })
   });
 }
@@ -3865,7 +3898,20 @@ async function syncMembersToCloud() {
   if (!token) { console.log('无可用写 token，跳过云端同步'); return; }
   try {
     showToast('⏳ 正在同步到云端...');
-    // 先拉取最新
+
+    // 从 GitHub API 获取文件信息和 sha
+    const apiRes = await fetch('https://api.github.com/repos/sxie738-bot/hotel-ai-workbench/contents/prompts.json', {
+      headers: { 'Authorization': `Bearer ${token}` }
+    });
+    if (!apiRes.ok) {
+      console.warn('获取 GitHub 文件信息失败:', await apiRes.text());
+      showToast('❌ 同步失败，无法获取文件信息', 'error');
+      return;
+    }
+    const fileInfo = await apiRes.json();
+    const sha = fileInfo.sha;
+
+    // 拉取最新 prompts.json 内容
     const res = await fetch('https://raw.githubusercontent.com/sxie738-bot/hotel-ai-workbench/main/prompts.json?t=' + Date.now());
     const data = await res.json();
     data.members = getMembersData();
@@ -3884,7 +3930,8 @@ async function syncMembersToCloud() {
       },
       body: JSON.stringify({
         message: '更新会员数据',
-        content: btoa(unescape(encodeURIComponent(JSON.stringify(data, null, 2))))
+        content: btoa(unescape(encodeURIComponent(JSON.stringify(data, null, 2)))),
+        sha: sha
       })
     });
     showToast('✅ 已同步到云端');
