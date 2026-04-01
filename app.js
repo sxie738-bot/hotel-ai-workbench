@@ -844,6 +844,9 @@ function confirmPaidUpgrade() {
   members.push(orderData);
   saveMembersData(members);
 
+  // 同步付款申请到云端（使用 write_token）
+  syncPaymentRequestToCloud(orderData);
+
   // 切换到成功步骤
   document.getElementById('upgradeStep1').style.display = 'none';
   document.getElementById('upgradeStep2').style.display = 'none';
@@ -853,6 +856,59 @@ function confirmPaidUpgrade() {
   document.getElementById('upgradeFooter3').style.display = '';
 
   showToast('✅ 付款申请已提交，请等待管理员确认');
+}
+
+// 同步付款申请到云端
+async function syncPaymentRequestToCloud(orderData) {
+  try {
+    const token = localStorage.getItem('github_write_token') || localStorage.getItem('github_token');
+    if (!token) {
+      console.log('未配置 GitHub Token，付款申请仅保存本地');
+      return;
+    }
+
+    // 拉取最新 prompts.json
+    const res = await fetch('https://raw.githubusercontent.com/sxie738-bot/hotel-ai-workbench/main/prompts.json?t=' + Date.now());
+    const data = await res.json();
+
+    // 初始化 payment_requests 数组
+    if (!data.payment_requests) data.payment_requests = [];
+
+    // 检查是否已存在相同申请
+    const existingIndex = data.payment_requests.findIndex(p => 
+      p.phone === orderData.phone && p.submitTime === orderData.submitTime
+    );
+
+    if (existingIndex >= 0) {
+      data.payment_requests[existingIndex] = orderData;
+    } else {
+      data.payment_requests.push(orderData);
+    }
+
+    data._updated = new Date().toISOString();
+
+    // 推送到 GitHub
+    const putRes = await fetch('https://api.github.com/repos/sxie738-bot/hotel-ai-workbench/contents/prompts.json', {
+      method: 'PUT',
+      headers: {
+        'Authorization': `Bearer ${token}`,
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({
+        message: `付款申请: ${orderData.name} - ${orderData.planLabel}`,
+        content: btoa(unescape(encodeURIComponent(JSON.stringify(data, null, 2)))),
+        sha: data._sha || undefined
+      })
+    });
+
+    if (putRes.ok) {
+      console.log('✅ 付款申请已同步到云端');
+    } else {
+      console.warn('同步付款申请失败:', await putRes.text());
+    }
+  } catch (e) {
+    console.warn('同步付款申请失败:', e);
+  }
 }
 
 function closeUpgradeModal() {
@@ -3015,12 +3071,13 @@ function submitRegister() {
   syncUserToCloud(memberData);
 }
 
-// 同步用户注册数据到 GitHub 云端
+// 同步用户注册数据到 GitHub 云端（使用 write_token，无需管理员token）
 async function syncUserToCloud(userData) {
   try {
-    const token = localStorage.getItem('github_token');
+    // 优先使用 write_token（管理员下发的用户端写权限token）
+    const token = localStorage.getItem('github_write_token') || localStorage.getItem('github_token');
     if (!token) {
-      console.log('未配置 GitHub Token，跳过云端同步');
+      console.log('未配置 GitHub Token，跳过云端同步（用户数据仅保存本地）');
       return;
     }
 
@@ -3058,7 +3115,7 @@ async function syncUserToCloud(userData) {
     data._updated = new Date().toISOString();
 
     // 推送到 GitHub
-    await fetch('https://api.github.com/repos/sxie738-bot/hotel-ai-workbench/contents/prompts.json', {
+    const putRes = await fetch('https://api.github.com/repos/sxie738-bot/hotel-ai-workbench/contents/prompts.json', {
       method: 'PUT',
       headers: {
         'Authorization': `Bearer ${token}`,
@@ -3066,11 +3123,16 @@ async function syncUserToCloud(userData) {
       },
       body: JSON.stringify({
         message: `用户注册/更新: ${userData.name} - ${userData.hotel}`,
-        content: btoa(unescape(encodeURIComponent(JSON.stringify(data, null, 2))))
+        content: btoa(unescape(encodeURIComponent(JSON.stringify(data, null, 2)))),
+        sha: data._sha || undefined
       })
     });
 
-    console.log('✅ 用户数据已同步到云端');
+    if (putRes.ok) {
+      console.log('✅ 用户数据已同步到云端');
+    } else {
+      console.warn('同步用户数据失败:', await putRes.text());
+    }
   } catch (e) {
     console.warn('同步用户数据失败:', e);
   }
@@ -3288,20 +3350,52 @@ function saveMembersData(data) {
   if (token) syncMembersToCloud();
 }
 
-function renderMemberList() {
+// 从云端加载付款申请数据
+async function loadPaymentRequestsFromCloud() {
+  try {
+    const resp = await fetch('https://raw.githubusercontent.com/sxie738-bot/hotel-ai-workbench/main/prompts.json?t=' + Date.now());
+    const data = await resp.json();
+    return data.payment_requests || [];
+  } catch (e) {
+    console.warn('从云端加载付款申请失败:', e);
+    return [];
+  }
+}
+
+// 渲染会员列表（包含从云端同步的付款申请）
+async function renderMemberList() {
+  // 从本地获取数据
   const members = getMembersData();
+  
+  // 从云端加载付款申请
+  const cloudPayments = await loadPaymentRequestsFromCloud();
+  
+  // 合并数据：云端付款申请 + 本地会员数据
+  const allPending = [...cloudPayments];
+  
+  // 将本地 pending 状态的会员也加入（兼容旧数据）
+  members.forEach(m => {
+    if (m.status === 'pending') {
+      const exists = allPending.some(p => p.phone === m.phone && p.submitTime === m.submitTime);
+      if (!exists) {
+        allPending.push(m);
+      }
+    }
+  });
+  
   const active = members.filter(m => m.status === 'active' && !isMemberExpired(m));
-  const pending = members.filter(m => m.status === 'pending');
 
   // 更新统计大盘
   refreshAdminStats();
 
   // 待确认列表
   const pendingContainer = document.getElementById('pendingList');
-  if (pending.length === 0) {
+  if (!pendingContainer) return;
+  
+  if (allPending.length === 0) {
     pendingContainer.innerHTML = '<div style="padding:20px; text-align:center; color:var(--text-muted); font-size:13px;">暂无待确认付款 ✅</div>';
   } else {
-    pendingContainer.innerHTML = pending.sort((a,b) => new Date(b.submitTime) - new Date(a.submitTime)).map((m, i) => `
+    pendingContainer.innerHTML = allPending.sort((a,b) => new Date(b.submitTime) - new Date(a.submitTime)).map((m, i) => `
       <div style="padding:14px; background:var(--warning-bg); border-radius:10px; margin-bottom:10px; border:1px solid #fde68a;">
         <div style="display:flex; justify-content:space-between; align-items:flex-start;">
           <div style="flex:1;">
@@ -3318,8 +3412,8 @@ function renderMemberList() {
             </div>
           </div>
           <div style="display:flex; flex-direction:column; gap:6px; flex-shrink:0; margin-left:12px;">
-            <button class="btn-sm" style="background:var(--success); color:#fff; padding:6px 16px;" onclick="approveMember(${members.indexOf(m)})">✓ 确认开通</button>
-            <button class="btn-sm" style="background:var(--danger); color:#fff; padding:6px 16px;" onclick="rejectMember(${members.indexOf(m)})">✕ 拒绝</button>
+            <button class="btn-sm" style="background:var(--success); color:#fff; padding:6px 16px;" onclick="approvePayment('${m.phone}', '${m.submitTime}')">✓ 确认开通</button>
+            <button class="btn-sm" style="background:var(--danger); color:#fff; padding:6px 16px;" onclick="rejectPayment('${m.phone}', '${m.submitTime}')">✕ 拒绝</button>
           </div>
         </div>
       </div>
@@ -3328,6 +3422,8 @@ function renderMemberList() {
 
   // 已开通列表
   const memberContainer = document.getElementById('memberList');
+  if (!memberContainer) return;
+  
   if (active.length === 0) {
     memberContainer.innerHTML = '<div style="padding:20px; text-align:center; color:var(--text-muted); font-size:13px;">暂无会员</div>';
   } else {
@@ -3423,6 +3519,109 @@ function rejectMember(index) {
   saveMembersData(members);
   renderMemberList();
   showToast(`已拒绝 ${m?.name || '该用户'} 的申请`);
+}
+
+// 确认开通云端付款申请
+async function approvePayment(phone, submitTime) {
+  try {
+    // 从云端获取付款申请
+    const cloudPayments = await loadPaymentRequestsFromCloud();
+    const payment = cloudPayments.find(p => p.phone === phone && p.submitTime === submitTime);
+    
+    if (!payment) {
+      showToast('未找到该付款申请', 'error');
+      return;
+    }
+    
+    const plan = PLANS[payment.plan];
+    const now = new Date();
+    const expire = new Date(now);
+    expire.setDate(expire.getDate() + (plan ? plan.days : 30));
+    
+    // 创建会员记录
+    const memberData = {
+      name: payment.name,
+      phone: payment.phone,
+      hotel: payment.hotel,
+      plan: payment.plan,
+      status: 'active',
+      activateDate: now.toISOString().split('T')[0],
+      expireDate: expire.toISOString().split('T')[0],
+      submitTime: payment.submitTime
+    };
+    
+    // 保存到本地会员数据
+    const members = getMembersData();
+    members.push(memberData);
+    saveMembersData(members);
+    
+    // 从云端删除该付款申请
+    await removePaymentRequestFromCloud(phone, submitTime);
+    
+    // 更新酒店配置
+    if (payment.hotel && payment.plan && payment.plan !== 'free') {
+      if (hotelsData[payment.hotel]) {
+        hotelsData[payment.hotel].plan = payment.plan;
+        localStorage.setItem('hotels_data', JSON.stringify(hotelsData));
+        renderStudentList();
+        if (isAdmin) syncHotelsToCloud();
+      }
+    }
+    
+    renderMemberList();
+    showToast(`✅ 已开通 ${payment.name} 的 ${plan?.label || payment.plan}，有效期至 ${memberData.expireDate}`);
+  } catch (e) {
+    console.error('确认开通失败:', e);
+    showToast('开通失败，请重试', 'error');
+  }
+}
+
+// 拒绝云端付款申请
+async function rejectPayment(phone, submitTime) {
+  if (!confirm('确认拒绝该付款申请？')) return;
+  
+  try {
+    await removePaymentRequestFromCloud(phone, submitTime);
+    renderMemberList();
+    showToast('已拒绝该申请');
+  } catch (e) {
+    console.error('拒绝申请失败:', e);
+    showToast('操作失败，请重试', 'error');
+  }
+}
+
+// 从云端删除付款申请
+async function removePaymentRequestFromCloud(phone, submitTime) {
+  const token = localStorage.getItem('github_token');
+  if (!token) {
+    console.log('无管理员token，无法删除云端付款申请');
+    return;
+  }
+  
+  const resp = await fetch('https://raw.githubusercontent.com/sxie738-bot/hotel-ai-workbench/main/prompts.json?t=' + Date.now());
+  const data = await resp.json();
+  
+  if (!data.payment_requests) return;
+  
+  // 过滤掉要删除的申请
+  data.payment_requests = data.payment_requests.filter(p => 
+    !(p.phone === phone && p.submitTime === submitTime)
+  );
+  
+  data._updated = new Date().toISOString();
+  
+  await fetch('https://api.github.com/repos/sxie738-bot/hotel-ai-workbench/contents/prompts.json', {
+    method: 'PUT',
+    headers: {
+      'Authorization': `Bearer ${token}`,
+      'Content-Type': 'application/json'
+    },
+    body: JSON.stringify({
+      message: `处理付款申请: ${phone}`,
+      content: btoa(unescape(encodeURIComponent(JSON.stringify(data, null, 2)))),
+      sha: data._sha || undefined
+    })
+  });
 }
 
 function extendMember(index) {
