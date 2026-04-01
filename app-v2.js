@@ -4821,11 +4821,15 @@ async function saveGithubToken() {
   
   // 同时同步到云端 prompts.json（使用 base64 编码避免 GitHub 扫描警告）
   try {
+    console.log('🔄 开始同步 Token 到云端...');
+    
     const apiRes = await fetch('https://api.github.com/repos/sxie738-bot/hotel-ai-workbench/contents/prompts.json', {
       headers: { 'Authorization': `Bearer ${token}` }
     });
-    if (!apiRes.ok) throw new Error('获取文件信息失败');
+    console.log('📋 获取文件信息响应:', apiRes.status);
+    if (!apiRes.ok) throw new Error('获取文件信息失败: ' + apiRes.status);
     const fileInfo = await apiRes.json();
+    console.log('📋 文件 sha:', fileInfo.sha);
     
     const res = await fetch('https://raw.githubusercontent.com/sxie738-bot/hotel-ai-workbench/main/prompts.json?t=' + Date.now());
     const data = await res.json();
@@ -4848,13 +4852,16 @@ async function saveGithubToken() {
       })
     });
     
+    console.log('📤 推送结果:', putRes.status);
     if (putRes.ok) {
       showToast('✅ Token已保存到本地+云端，用户可自动同步', 'success');
     } else {
-      showToast('✅ Token已保存到本地（云端同步失败）', 'warning');
+      const errText = await putRes.text();
+      console.error('❌ 推送失败:', errText);
+      showToast('✅ Token已保存到本地（云端同步失败: ' + putRes.status + '）', 'warning');
     }
   } catch (e) {
-    console.warn('同步Token到云端失败:', e);
+    console.error('❌ 同步Token到云端失败:', e);
     showToast('✅ Token已保存到本地（云端同步失败）', 'warning');
   }
 }
