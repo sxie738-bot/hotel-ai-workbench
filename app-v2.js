@@ -3669,10 +3669,29 @@ async function loadPaymentRequestsFromCloud() {
   }
 }
 
-// 渲染会员列表（包含从 Airtable 同步的付款申请）
+// 从 GitHub 云端加载用户注册和付款申请
+async function loadFromGitHub() {
+  try {
+    const resp = await fetch('https://raw.githubusercontent.com/sxie738-bot/hotel-ai-workbench/main/prompts.json?t=' + Date.now());
+    if (!resp.ok) return { users: [], payments: [] };
+    const data = await resp.json();
+    return {
+      users: data.users || [],
+      payments: data.payment_requests || []
+    };
+  } catch (e) {
+    console.warn('从 GitHub 加载数据失败:', e);
+    return { users: [], payments: [] };
+  }
+}
+
+// 渲染会员列表（包含从 GitHub 和 Airtable 同步的数据）
 async function renderMemberList() {
   // 先刷新 Airtable 缓存
   await refreshMembersFromAirtable();
+  
+  // 同时从 GitHub 加载数据
+  const githubData = await loadFromGitHub();
   
   // 从缓存获取数据
   const members = getMembersData();
@@ -3680,11 +3699,40 @@ async function renderMemberList() {
   // 从 Airtable 加载付款申请
   const cloudPayments = await loadPaymentRequestsFromCloud();
   
-  // 合并数据：云端付款申请 + 本地会员数据
+  // 合并数据：GitHub 付款申请 + Airtable 付款申请
   const allPending = [...cloudPayments];
   
+  // 添加 GitHub 上的付款申请
+  githubData.payments.forEach(p => {
+    const exists = allPending.some(existing => existing.phone === p.phone && existing.submitTime === p.submitTime);
+    if (!exists && p.status !== 'confirmed') {
+      allPending.push(p);
+    }
+  });
+  
+  // GitHub 注册用户（转换为会员格式）
+  const githubMembers = githubData.users.map(u => ({
+    name: u.name,
+    phone: u.phone,
+    hotel: u.hotel,
+    plan: u.plan || 'free',
+    activateDate: u.activateDate,
+    expireDate: u.expireDate,
+    status: u.status || 'active',
+    source: 'GitHub'
+  }));
+  
+  // 合并本地会员和 GitHub 会员（去重）
+  const allMembers = [...members];
+  githubMembers.forEach(gm => {
+    const exists = allMembers.some(m => m.phone === gm.phone);
+    if (!exists) {
+      allMembers.push(gm);
+    }
+  });
+  
   // 将本地 pending 状态的会员也加入（兼容旧数据）
-  members.forEach(m => {
+  allMembers.forEach(m => {
     if (m.status === 'pending') {
       const exists = allPending.some(p => p.phone === m.phone && p.submitTime === m.submitTime);
       if (!exists) {
@@ -3693,7 +3741,7 @@ async function renderMemberList() {
     }
   });
   
-  const active = members.filter(m => m.status === 'active' && !isMemberExpired(m));
+  const active = allMembers.filter(m => m.status === 'active' && !isMemberExpired(m));
 
   // 更新统计大盘
   refreshAdminStats();
