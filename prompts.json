@@ -1,6 +1,6 @@
 {
   "appName": "ꚳ平台理设大达学手载",
-  "_updated": "2026-04-01T13:36:31.478Z",
+  "_updated": "2026-04-01T13:36:47.730Z",
   "_app_version": "2.0.0",
   "sync_config": {
     "t1": "ZGIthHViOtQXoPQJsBPMXaFzxD3KA2S7MHMP4yCkfOoVBZtWORA6Ryi8aS4gDVIG7YAMADLYvXrP8"
@@ -13,18 +13,20 @@
       "hotel": "台味深度",
       "plan": "frock",
       "createdAt": "2026-04-01T18:26:00.000Z"
-    },
+    }
+  ],
+  "feedback": [
     {
-      "id": "17308105191",
-      "name": "刘烨",
+      "id": 1775050606627,
+      "type": "feature",
+      "title": "成都地铁上",
+      "content": "成都地铁的票买",
+      "author": "刘烨",
       "phone": "17308105191",
       "hotel": "鸟巢",
-      "plan": "free",
-      "status": "active",
-      "activateDate": "2026-04-01",
-      "expireDate": "2026-04-04",
-      "registeredAt": "2026-04-01T13:36:31.478Z",
-      "lastLoginAt": "2026-04-01T13:36:31.478Z"
+      "status": "pending",
+      "submitTime": "2026-04-01T13:36:46.627Z",
+      "rewardGiven": false
     }
   ]
 }
