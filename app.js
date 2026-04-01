@@ -1321,7 +1321,7 @@ const PROMPTS_API_URL = 'https://api.github.com/repos/sxie738-bot/hotel-ai-workb
 let cloudPrompts = null; // 云端 Prompt 缓存
 
 // ==================== 应用版本更新检测 ====================
-const APP_VERSION = '1.8.0'; // 当前代码版本号（每次发布新功能时手动递增）
+const APP_VERSION = '1.9.1'; // 当前代码版本号（每次发布新功能时手动递增）
 
 // 检查是否有新版本可用
 async function checkForUpdate(showToastIfLatest = false) {
@@ -4941,11 +4941,10 @@ async function generateAITaskPlan() {
   output.innerHTML = '<div style="text-align:center;padding:40px;color:var(--text-muted);"><div style="font-size:32px;animation:pulse 1.5s infinite;">🧩</div><p style="margin-top:12px;">AI正在拆解任务步骤...</p></div>';
 
   const hotelName = MemberStore.get()?.hotel || '我们酒店';
-  const messages = [
-    {
-      role: 'system',
-      content: `你是酒店AI实战营导师，专门帮助酒店人用AI高效完成工作。
-用户角色：${role}，AI熟练度：${level}，酒店：${hotelName}。
+
+  // 从云端获取 Prompt 模板
+  const systemPrompt = getPrompt('aitask', `你是酒店AI实战营导师，专门帮助酒店人用AI高效完成工作。
+用户角色：{{role}}，AI熟练度：{{level}}，酒店：{{hotelName}}。
 
 请用以下格式输出任务拆解方案：
 
@@ -4963,7 +4962,15 @@ async function generateAITaskPlan() {
 [2-3条重点提醒]
 
 ## 🚀 快速开始
-[告诉用户现在最应该先做第几步，并给一句鼓励]`
+[告诉用户现在最应该先做第几步，并给一句鼓励]`)
+    .replace(/\{\{role\}\}/g, role)
+    .replace(/\{\{level\}\}/g, level)
+    .replace(/\{\{hotelName\}\}/g, hotelName);
+
+  const messages = [
+    {
+      role: 'system',
+      content: systemPrompt
     },
     {
       role: 'user',
@@ -5400,8 +5407,17 @@ async function runDiagnosis() {
   output.innerHTML = '<div style="text-align:center;padding:40px;color:var(--text-muted);"><div style="font-size:32px;animation:pulse 1.5s infinite;">🩺</div><p style="margin-top:12px;">AI正在诊断中...</p></div>';
 
   try {
+    // 从云端获取 Prompt 模板
+    const systemPrompt = getPrompt('diagnosis', `你是资深酒店经营顾问，服务过上百家酒店。请根据经营数据进行全面诊断。\n\n输出格式：\n1.【健康评分】0-100分综合评分\n2.【盈利分析】RevPAR计算、与行业均值对比\n3.【问题诊断】列出3-5个关键问题，按严重程度排序\n4.【改进建议】每个问题对应的具体可执行方案\n5.【优先级排序】建议的实施顺序和时间表\n\n风格：专业、直接、数据驱动、不说空话。`)
+      .replace(/\{\{hotelName\}\}/g, hotel)
+      .replace(/\{\{occupancy\}\}/g, occupancy || '未提供')
+      .replace(/\{\{adr\}\}/g, adr || '未提供')
+      .replace(/\{\{rooms\}\}/g, rooms || '未提供')
+      .replace(/\{\{revenue\}\}/g, revenue || '未提供')
+      .replace(/\{\{issue\}\}/g, issue || '无');
+
     const messages = [
-      { role: 'system', content: `你是资深酒店经营顾问，服务过上百家酒店。请根据经营数据进行全面诊断。\n\n输出格式：\n1.【健康评分】0-100分综合评分\n2.【盈利分析】RevPAR计算、与行业均值对比\n3.【问题诊断】列出3-5个关键问题，按严重程度排序\n4.【改进建议】每个问题对应的具体可执行方案\n5.【优先级排序】建议的实施顺序和时间表\n\n风格：专业、直接、数据驱动、不说空话。` },
+      { role: 'system', content: systemPrompt },
       { role: 'user', content: `酒店名称：${hotel}\n月均出租率：${occupancy || '未提供'}%\n月均ADR：${adr || '未提供'}元\n总房间数：${rooms || '未提供'}间\n月均营收：${revenue || '未提供'}万元\n当前问题：${issue || '无'}\n\n请进行全面经营诊断。` }
     ];
     const result = await callAIWithFallback('content', messages, { temperature: 0.4 });
@@ -5472,8 +5488,13 @@ async function startPatrol(scene) {
       reportEl.innerHTML = '<div style="text-align:center;padding:40px;color:var(--text-muted);"><div style="font-size:32px;animation:pulse 1.5s infinite;">🤖</div><p style="margin-top:12px;">AI正在对照SOP标准分析...</p></div>';
 
       // AI分析（基于场景名称，无法发送图片到文本API，使用场景描述替代）
+      // 从云端获取 Prompt 模板
+      const systemPrompt = getPrompt('patrol', `你是酒店质检专家。请根据巡检场景生成一份标准的巡检报告。\n\n输出格式：\n1.【巡检概要】场景、时间、巡检人\n2.【检查清单】10项关键检查点（✅/⚠️/❌状态）\n3.【发现问题】发现的问题及严重等级\n4.【整改建议】每个问题的具体整改方案\n5.【评分】该场景综合评分（0-100）`)
+        .replace(/\{\{scene\}\}/g, scene)
+        .replace(/\{\{hotelName\}\}/g, MemberStore.get()?.hotel || '未设置');
+
       const messages = [
-        { role: 'system', content: `你是酒店质检专家。请根据巡检场景生成一份标准的巡检报告。\n\n输出格式：\n1.【巡检概要】场景、时间、巡检人\n2.【检查清单】10项关键检查点（✅/⚠️/❌状态）\n3.【发现问题】发现的问题及严重等级\n4.【整改建议】每个问题的具体整改方案\n5.【评分】该场景综合评分（0-100）` },
+        { role: 'system', content: systemPrompt },
         { role: 'user', content: `巡检场景：${scene}\n酒店：${MemberStore.get()?.hotel || '未设置'}\n巡检时间：${new Date().toLocaleString()}\n\n请生成${scene}场景的标准巡检报告。` }
       ];
       const result = await callAIWithFallback('content', messages, { temperature: 0.3 });
