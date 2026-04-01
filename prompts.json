@@ -166,7 +166,7 @@
       "icon": "🧩"
     }
   },
-  "_updated": "2026-04-01T12:27:51.152Z",
+  "_updated": "2026-04-01T12:43:33.034Z",
   "_app_version": "2.0.0",
   "users": [
     {
@@ -180,6 +180,18 @@
       "expireDate": "2026-04-04",
       "registeredAt": "2026-04-01T11:23:33.448Z",
       "lastLoginAt": "2026-04-01T11:47:51.260Z"
+    },
+    {
+      "id": "17308105191",
+      "name": "谢瑷瞳",
+      "phone": "17308105191",
+      "hotel": "订一晚酒店",
+      "plan": "free",
+      "status": "active",
+      "activateDate": "2026-04-01",
+      "expireDate": "2026-04-04",
+      "registeredAt": "2026-04-01T12:43:33.034Z",
+      "lastLoginAt": "2026-04-01T12:43:33.034Z"
     }
   ],
   "payment_requests": [
