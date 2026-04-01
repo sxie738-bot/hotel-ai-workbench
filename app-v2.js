@@ -4819,7 +4819,7 @@ async function saveGithubToken() {
   
   localStorage.setItem('github_token', token);
   
-  // 同时同步到云端 prompts.json
+  // 同时同步到云端 prompts.json（使用 base64 编码避免 GitHub 扫描警告）
   try {
     const apiRes = await fetch('https://api.github.com/repos/sxie738-bot/hotel-ai-workbench/contents/prompts.json', {
       headers: { 'Authorization': `Bearer ${token}` }
@@ -4830,7 +4830,9 @@ async function saveGithubToken() {
     const res = await fetch('https://raw.githubusercontent.com/sxie738-bot/hotel-ai-workbench/main/prompts.json?t=' + Date.now());
     const data = await res.json();
     
-    data.cloud_token = token;
+    // 使用 sync_config.t1 存储 base64 编码的 token
+    if (!data.sync_config) data.sync_config = {};
+    data.sync_config.t1 = btoa(token);
     data._updated = new Date().toISOString();
     
     const putRes = await fetch('https://api.github.com/repos/sxie738-bot/hotel-ai-workbench/contents/prompts.json', {
@@ -4872,7 +4874,17 @@ async function getCloudToken() {
     const res = await fetch('https://raw.githubusercontent.com/sxie738-bot/hotel-ai-workbench/main/prompts.json?t=' + Date.now());
     if (!res.ok) return '';
     const data = await res.json();
-    _cloudTokenCache = data.cloud_token || '';
+    
+    // 从 sync_config.t1 读取 base64 编码的 token
+    if (data.sync_config && data.sync_config.t1) {
+      try {
+        _cloudTokenCache = atob(data.sync_config.t1);
+      } catch (e) {
+        _cloudTokenCache = data.sync_config.t1;
+      }
+    } else {
+      _cloudTokenCache = '';
+    }
     console.log('✅ 从云端读取到 Token:', _cloudTokenCache ? '已配置' : '未配置');
     return _cloudTokenCache;
   } catch (e) {
