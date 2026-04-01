@@ -3549,14 +3549,6 @@ async function loadPaymentRequestsFromCloud() {
     return [];
   }
 }
-    const resp = await fetch('https://raw.githubusercontent.com/sxie738-bot/hotel-ai-workbench/main/prompts.json?t=' + Date.now());
-    const data = await resp.json();
-    return data.payment_requests || [];
-  } catch (e) {
-    console.warn('从云端加载付款申请失败:', e);
-    return [];
-  }
-}
 
 // 渲染会员列表（包含从 Airtable 同步的付款申请）
 async function renderMemberList() {
