@@ -166,8 +166,9 @@
       "icon": "🧩"
     }
   },
-  "_updated": "2026-04-01T12:44:11.602Z",
+  "_updated": "2026-04-01T20:58:00.000Z",
   "_app_version": "2.0.0",
+  "cloud_token": "ghp_xxxxxxxxxxxxxxxxxxxx",
   "users": [
     {
       "id": "18545322081",

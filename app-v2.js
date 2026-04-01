@@ -3175,11 +3175,10 @@ function submitRegister() {
   syncUserToCloud(memberData);
 }
 
-// 同步用户注册数据到 GitHub 云端（使用 write_token，无需管理员token）
+// 同步用户注册数据到 GitHub 云端
 async function syncUserToCloud(userData) {
   try {
-    // 优先使用 write_token（管理员下发的用户端写权限token）
-    const token = localStorage.getItem('github_write_token') || localStorage.getItem('github_token');
+    const token = await getCloudToken();
     if (!token) {
       console.log('未配置 GitHub Token，跳过云端同步（用户数据仅保存本地）');
       showToast('⚠️ 未配置GitHub Token，数据仅本地保存', 'warning');
@@ -3260,7 +3259,7 @@ async function syncUserToCloud(userData) {
 // 同步付款申请到 GitHub
 async function syncPaymentToGitHub(paymentData) {
   try {
-    const token = localStorage.getItem('github_token') || localStorage.getItem('github_write_token');
+    const token = await getCloudToken();
     if (!token) {
       console.log('未配置 GitHub Token，跳过付款同步');
       showToast('⚠️ 未配置GitHub Token，付款申请仅本地保存', 'warning');
@@ -3326,7 +3325,7 @@ async function syncPaymentToGitHub(paymentData) {
 // 同步反馈到 GitHub
 async function syncFeedbackToCloud(feedbackData) {
   try {
-    const token = localStorage.getItem('github_token') || localStorage.getItem('github_write_token');
+    const token = await getCloudToken();
     if (!token) {
       console.log('未配置 GitHub Token，跳过反馈同步');
       showToast('⚠️ 未配置GitHub Token，反馈仅本地保存', 'warning');
@@ -3379,7 +3378,7 @@ async function syncFeedbackToCloud(feedbackData) {
 // 同步社区打卡到 GitHub
 async function syncCommunityPostToCloud(postData) {
   try {
-    const token = localStorage.getItem('github_token') || localStorage.getItem('github_write_token');
+    const token = await getCloudToken();
     if (!token) {
       console.log('未配置 GitHub Token，跳过社区打卡同步');
       showToast('⚠️ 未配置GitHub Token，打卡仅本地保存', 'warning');
@@ -3432,7 +3431,7 @@ async function syncCommunityPostToCloud(postData) {
 // 从 GitHub 加载社区打卡
 async function loadCommunityPostsFromCloud() {
   try {
-    const token = localStorage.getItem('github_token') || localStorage.getItem('github_write_token');
+    const token = await getCloudToken();
     if (!token) return [];
     const res = await fetch('https://raw.githubusercontent.com/sxie738-bot/hotel-ai-workbench/main/prompts.json?t=' + Date.now());
     if (!res.ok) return [];
@@ -3752,7 +3751,7 @@ async function loadPaymentRequestsFromAirtable() {
 // 从 GitHub 加载付款申请
 async function loadPaymentRequestsFromGitHub() {
   try {
-    const token = localStorage.getItem('github_token') || localStorage.getItem('github_write_token');
+    const token = await getCloudToken();
     if (!token) {
       console.log('未配置GitHub Token');
       return [];
@@ -3775,7 +3774,7 @@ async function loadPaymentRequestsFromGitHub() {
 // 从 GitHub 删除或标记已处理的付款申请
 async function removePaymentFromGitHub(phone, submitTime) {
   try {
-    const token = localStorage.getItem('github_token') || localStorage.getItem('github_write_token');
+    const token = await getCloudToken();
     if (!token) return;
     
     // 获取文件 sha
@@ -4401,7 +4400,7 @@ function savePermissions() {
 
 // 同步会员数据到云端
 async function syncMembersToCloud() {
-  const token = localStorage.getItem('github_token') || localStorage.getItem('github_write_token');
+  const token = await getCloudToken();
   if (!token) { console.log('无可用写 token，跳过云端同步'); return; }
   try {
     showToast('⏳ 正在同步到云端...');
@@ -4807,8 +4806,8 @@ function initGithubToken() {
   }
 }
 
-// 保存 GitHub Token
-function saveGithubToken() {
+// 保存 GitHub Token（同时保存到云端，用户端可自动读取）
+async function saveGithubToken() {
   const input = document.getElementById('githubTokenInput');
   if (!input) return;
   
@@ -4819,7 +4818,67 @@ function saveGithubToken() {
   }
   
   localStorage.setItem('github_token', token);
-  showToast('✅ GitHub Token 已保存，用户数据将实时同步到云端', 'success');
+  
+  // 同时同步到云端 prompts.json
+  try {
+    const apiRes = await fetch('https://api.github.com/repos/sxie738-bot/hotel-ai-workbench/contents/prompts.json', {
+      headers: { 'Authorization': `Bearer ${token}` }
+    });
+    if (!apiRes.ok) throw new Error('获取文件信息失败');
+    const fileInfo = await apiRes.json();
+    
+    const res = await fetch('https://raw.githubusercontent.com/sxie738-bot/hotel-ai-workbench/main/prompts.json?t=' + Date.now());
+    const data = await res.json();
+    
+    data.cloud_token = token;
+    data._updated = new Date().toISOString();
+    
+    const putRes = await fetch('https://api.github.com/repos/sxie738-bot/hotel-ai-workbench/contents/prompts.json', {
+      method: 'PUT',
+      headers: {
+        'Authorization': `Bearer ${token}`,
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({
+        message: '更新云端Token',
+        content: btoa(unescape(encodeURIComponent(JSON.stringify(data, null, 2)))),
+        sha: fileInfo.sha
+      })
+    });
+    
+    if (putRes.ok) {
+      showToast('✅ Token已保存到本地+云端，用户可自动同步', 'success');
+    } else {
+      showToast('✅ Token已保存到本地（云端同步失败）', 'warning');
+    }
+  } catch (e) {
+    console.warn('同步Token到云端失败:', e);
+    showToast('✅ Token已保存到本地（云端同步失败）', 'warning');
+  }
+}
+
+// 异步获取 Token（优先本地，其次云端）
+let _cloudTokenCache = null;
+async function getCloudToken() {
+  // 优先从 localStorage 获取
+  const localToken = localStorage.getItem('github_token') || localStorage.getItem('github_write_token');
+  if (localToken) return localToken;
+  
+  // 如果有缓存，直接返回
+  if (_cloudTokenCache) return _cloudTokenCache;
+  
+  // 从云端 prompts.json 读取
+  try {
+    const res = await fetch('https://raw.githubusercontent.com/sxie738-bot/hotel-ai-workbench/main/prompts.json?t=' + Date.now());
+    if (!res.ok) return '';
+    const data = await res.json();
+    _cloudTokenCache = data.cloud_token || '';
+    console.log('✅ 从云端读取到 Token:', _cloudTokenCache ? '已配置' : '未配置');
+    return _cloudTokenCache;
+  } catch (e) {
+    console.warn('从云端读取Token失败:', e);
+    return '';
+  }
 }
 
 // 生成AI配图
