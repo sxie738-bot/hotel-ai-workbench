@@ -1,6 +1,6 @@
 {
   "appName": "酒店AI实战营",
-  "_updated": "2026-04-01T14:12:33.997Z",
+  "_updated": "2026-04-01T14:12:53.806Z",
   "_app_version": "2.0.0",
   "sync_config": {
     "config_key": "UEtOdDdYYXVSQUJVNlJMRFBqbjJMU2JnU0lSYmt4d2VZVDVzZ0luSzk0N0pZeDlXSTRVZ1ljSExaWjJfSU81bElWcDVNeEdDMFlINVM0WkIxMV90YXBfYnVodGln"
@@ -17,6 +17,18 @@
   ],
   "feedback": [
     {
+      "id": 1775052773242,
+      "type": "feature",
+      "title": "成都",
+      "content": "成都市公安局交通管理局",
+      "author": "成都",
+      "phone": "17308105191",
+      "hotel": "成都军区",
+      "status": "pending",
+      "submitTime": "2026-04-01T14:12:53.242Z",
+      "rewardGiven": false
+    },
+    {
       "id": 1775050606627,
       "type": "feature",
       "title": "成都地铁上",
@@ -27,18 +39,6 @@
       "status": "pending",
       "submitTime": "2026-04-01T13:36:46.627Z",
       "rewardGiven": false
-    }
-  ],
-  "payment_requests": [
-    {
-      "name": "成都",
-      "phone": "17308105191",
-      "hotel": "成都军区",
-      "plan": "monthly",
-      "price": 39,
-      "planLabel": "包月会员",
-      "submitTime": "2026-04-01T14:12:33.310Z",
-      "status": "pending"
     }
   ]
 }
