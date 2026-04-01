@@ -1,5 +1,34 @@
 {
-  "hotels": {},
+  "hotels": {
+    "沈阳曼怡": {
+      "contact_name": "黄总",
+      "feishu_url": "",
+      "note": "",
+      "plan": "yearly",
+      "created_at": "2026-03-31T09:59:50.913Z"
+    },
+    "亚桔智能酒店": {
+      "contact_name": "店长",
+      "feishu_url": "",
+      "note": "",
+      "plan": "monthly",
+      "created_at": "2026-03-31T10:10:23.161Z"
+    },
+    "测试号": {
+      "contact_name": "李总",
+      "feishu_url": "",
+      "note": "",
+      "plan": "yearly",
+      "created_at": "2026-04-01T07:06:52.455Z"
+    },
+    "谢瑷瞳": {
+      "contact_name": "谢瑷瞳",
+      "feishu_url": "",
+      "note": "",
+      "plan": "yearly",
+      "created_at": "2026-04-01T19:25:00.000Z"
+    }
+  },
   "modulePermissions": {
     "content": {
       "free": -1,
@@ -137,7 +166,7 @@
       "icon": "🧩"
     }
   },
-  "_updated": "2026-04-01T12:41:07.126Z",
+  "_updated": "2026-04-01T12:27:51.152Z",
   "_app_version": "2.0.0",
   "users": [
     {
@@ -162,7 +191,7 @@
       "price": 39,
       "planLabel": "包月会员",
       "submitTime": "2026-04-01T12:27:49.829Z",
-      "status": "pending"
+      "status": "confirmed"
     }
   ],
   "ctrip": "你是酒店OTA运营专家，擅长撰写携程社区笔记。\n\n写作风格要求：\n- 真实感强，像真实住客的体验分享，不要像广告\n- 细节丰富，有画面感，有温度\n- 自然融入酒店卖点，不要硬广\n- 加入实用小贴士\n- 结尾带相关话题标签\n- 适当使用Emoji，但不要过多\n- 字数控制在300-500字\n\n请根据以下信息生成携程社区内容：\n- 酒店名称：{{hotelName}}\n- 内容主题：{{topic}}\n- 卖点关键词：{{keywords}}\n- 补充信息：{{extra}}",
