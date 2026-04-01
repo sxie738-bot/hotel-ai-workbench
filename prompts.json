@@ -166,20 +166,20 @@
       "icon": "🧩"
     }
   },
-  "_updated": "2026-04-01T11:23:33.448Z",
+  "_updated": "2026-04-01T11:47:51.260Z",
   "_app_version": "2.0.0",
   "users": [
     {
       "id": "18545322081",
-      "name": "谢瑷曈",
+      "name": "注册",
       "phone": "18545322081",
-      "hotel": "订一晚大酒店",
+      "hotel": "注册酒店",
       "plan": "free",
       "status": "active",
       "activateDate": "2026-04-01",
       "expireDate": "2026-04-04",
       "registeredAt": "2026-04-01T11:23:33.448Z",
-      "lastLoginAt": "2026-04-01T11:23:33.448Z"
+      "lastLoginAt": "2026-04-01T11:47:51.260Z"
     }
   ],
   "payment_requests": [],
