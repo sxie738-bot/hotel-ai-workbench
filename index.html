@@ -1916,7 +1916,12 @@
 
             <!-- 待确认队列 -->
             <div id="pendingQueue" style="margin-bottom:20px;">
-              <h4 style="font-size:14px; margin-bottom:12px;">⏳ 待确认付款</h4>
+              <h4 style="font-size:14px; margin-bottom:12px; display:flex; align-items:center; justify-content:space-between;">
+                <span>⏳ 待确认付款</span>
+                <button class="btn-sm" onclick="renderMemberList()" title="从云端刷新数据">
+                  🔄 刷新
+                </button>
+              </h4>
               <div id="pendingList"></div>
             </div>
 

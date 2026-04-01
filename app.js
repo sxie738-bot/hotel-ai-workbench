@@ -861,26 +861,41 @@ function confirmPaidUpgrade() {
 // 同步付款申请到云端
 async function syncPaymentRequestToCloud(orderData) {
   try {
-    const token = localStorage.getItem('github_write_token') || localStorage.getItem('github_token');
+    const writeToken = localStorage.getItem('github_write_token');
+    const adminToken = localStorage.getItem('github_token');
+    const token = writeToken || adminToken;
+    
+    console.log('🔄 开始同步付款申请到云端...');
+    console.log('  - write_token 存在:', !!writeToken);
+    console.log('  - admin_token 存在:', !!adminToken);
+    console.log('  - 使用 token:', token ? token.substring(0, 8) + '...' : '无');
+    
     if (!token) {
-      console.log('未配置 GitHub Token，付款申请仅保存本地');
+      console.warn('❌ 未配置 GitHub Token，付款申请仅保存本地');
+      console.warn('   请管理员在「系统设置-API配置」中设置 _write_token');
       return;
     }
 
     // 从 GitHub API 获取文件信息和 sha
+    console.log('📡 正在获取 GitHub 文件 sha...');
     const apiRes = await fetch('https://api.github.com/repos/sxie738-bot/hotel-ai-workbench/contents/prompts.json', {
       headers: { 'Authorization': `Bearer ${token}` }
     });
     if (!apiRes.ok) {
-      console.warn('获取 GitHub 文件信息失败:', await apiRes.text());
+      const errorText = await apiRes.text();
+      console.warn('❌ 获取 GitHub 文件信息失败:', errorText);
+      showToast('同步失败：Token 无效或无权限', 'error');
       return;
     }
     const fileInfo = await apiRes.json();
     const sha = fileInfo.sha;
+    console.log('✅ 获取 sha 成功:', sha.substring(0, 16) + '...');
 
     // 拉取最新 prompts.json 内容
+    console.log('📡 正在拉取最新 prompts.json...');
     const res = await fetch('https://raw.githubusercontent.com/sxie738-bot/hotel-ai-workbench/main/prompts.json?t=' + Date.now());
     const data = await res.json();
+    console.log('✅ 拉取成功，当前 payment_requests 数量:', (data.payment_requests || []).length);
 
     // 初始化 payment_requests 数组
     if (!data.payment_requests) data.payment_requests = [];
@@ -892,13 +907,16 @@ async function syncPaymentRequestToCloud(orderData) {
 
     if (existingIndex >= 0) {
       data.payment_requests[existingIndex] = orderData;
+      console.log('📝 更新已有申请');
     } else {
       data.payment_requests.push(orderData);
+      console.log('📝 添加新申请，当前总数:', data.payment_requests.length);
     }
 
     data._updated = new Date().toISOString();
 
     // 推送到 GitHub
+    console.log('📡 正在推送到 GitHub...');
     const putRes = await fetch('https://api.github.com/repos/sxie738-bot/hotel-ai-workbench/contents/prompts.json', {
       method: 'PUT',
       headers: {
@@ -913,12 +931,18 @@ async function syncPaymentRequestToCloud(orderData) {
     });
 
     if (putRes.ok) {
+      const result = await putRes.json();
       console.log('✅ 付款申请已同步到云端');
+      console.log('   提交 SHA:', result.commit?.sha?.substring(0, 16) + '...');
+      showToast('✅ 付款申请已同步到云端', 'success');
     } else {
-      console.warn('同步付款申请失败:', await putRes.text());
+      const errorText = await putRes.text();
+      console.warn('❌ 同步付款申请失败:', errorText);
+      showToast('同步失败，请检查控制台', 'error');
     }
   } catch (e) {
-    console.warn('同步付款申请失败:', e);
+    console.warn('❌ 同步付款申请失败:', e);
+    showToast('同步失败: ' + e.message, 'error');
   }
 }
 
@@ -1332,7 +1356,7 @@ const PROMPTS_API_URL = 'https://api.github.com/repos/sxie738-bot/hotel-ai-workb
 let cloudPrompts = null; // 云端 Prompt 缓存
 
 // ==================== 应用版本更新检测 ====================
-const APP_VERSION = '1.9.2'; // 当前代码版本号（每次发布新功能时手动递增）
+const APP_VERSION = '1.9.3'; // 当前代码版本号（每次发布新功能时手动递增）
 
 // 检查是否有新版本可用
 async function checkForUpdate(showToastIfLatest = false) {
