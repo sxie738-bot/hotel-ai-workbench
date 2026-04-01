@@ -166,7 +166,7 @@
       "icon": "🧩"
     }
   },
-  "_updated": "2026-04-01T12:27:44.280Z",
+  "_updated": "2026-04-01T12:27:51.152Z",
   "_app_version": "2.0.0",
   "users": [
     {
@@ -180,29 +180,17 @@
       "expireDate": "2026-04-04",
       "registeredAt": "2026-04-01T11:23:33.448Z",
       "lastLoginAt": "2026-04-01T11:47:51.260Z"
-    },
-    {
-      "id": "17308105191",
-      "name": "小萌",
-      "phone": "17308105191",
-      "hotel": "成都live",
-      "plan": "free",
-      "status": "active",
-      "activateDate": "2026-04-01",
-      "expireDate": "2026-04-04",
-      "registeredAt": "2026-04-01T12:27:44.280Z",
-      "lastLoginAt": "2026-04-01T12:27:44.280Z"
     }
   ],
   "payment_requests": [
     {
-      "name": "李迪",
+      "name": "小萌",
       "phone": "17308105191",
-      "hotel": "老战友",
+      "hotel": "成都live",
       "plan": "monthly",
       "price": 39,
       "planLabel": "包月会员",
-      "submitTime": "2026-04-01T11:59:49.428Z",
+      "submitTime": "2026-04-01T12:27:49.829Z",
       "status": "pending"
     }
   ],
