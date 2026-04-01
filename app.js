@@ -830,7 +830,6 @@ function confirmPaidUpgrade() {
 
   // 提交到待确认队列（写入 localStorage + 同步云端）
   const orderData = {
-    id: Date.now(),
     name: member.name,
     phone: member.phone,
     hotel: member.hotel,
@@ -844,9 +843,6 @@ function confirmPaidUpgrade() {
   const members = getMembersData();
   members.push(orderData);
   saveMembersData(members);
-
-  // 同步付款申请到云端
-  await syncPaymentToCloud(orderData);
 
   // 切换到成功步骤
   document.getElementById('upgradeStep1').style.display = 'none';
@@ -1269,7 +1265,7 @@ const PROMPTS_API_URL = 'https://api.github.com/repos/sxie738-bot/hotel-ai-workb
 let cloudPrompts = null; // 云端 Prompt 缓存
 
 // ==================== 应用版本更新检测 ====================
-const APP_VERSION = '1.8.2'; // 当前代码版本号（每次发布新功能时手动递增）
+const APP_VERSION = '1.8.0'; // 当前代码版本号（每次发布新功能时手动递增）
 
 // 检查是否有新版本可用
 async function checkForUpdate(showToastIfLatest = false) {
@@ -3292,23 +3288,7 @@ function saveMembersData(data) {
   if (token) syncMembersToCloud();
 }
 
-async function renderMemberList() {
-  // 从云端同步付款申请到本地
-  const cloudPayments = await loadPaymentsFromCloud();
-  if (cloudPayments.length > 0) {
-    const localMembers = getMembersData();
-    // 合并云端和本地的 pending 记录
-    cloudPayments.forEach(cloud => {
-      if (cloud.status === 'pending') {
-        const exists = localMembers.find(m => m.id === cloud.id || (m.phone === cloud.phone && m.status === 'pending'));
-        if (!exists) {
-          localMembers.push(cloud);
-        }
-      }
-    });
-    saveMembersData(localMembers);
-  }
-
+function renderMemberList() {
   const members = getMembersData();
   const active = members.filter(m => m.status === 'active' && !isMemberExpired(m));
   const pending = members.filter(m => m.status === 'pending');
@@ -3394,7 +3374,7 @@ function formatTime(isoStr) {
   return `${d.getMonth()+1}/${d.getDate()} ${d.getHours()}:${String(d.getMinutes()).padStart(2,'0')}`;
 }
 
-async function approveMember(index) {
+function approveMember(index) {
   const members = getMembersData();
   const m = members[index];
   if (!m) return;
@@ -3408,9 +3388,6 @@ async function approveMember(index) {
   m.expireDate = expire.toISOString().split('T')[0];
   members[index] = m;
   saveMembersData(members);
-
-  // 同步付款状态变更到云端
-  await syncPaymentStatusToCloud(m);
 
   // 如果该用户有酒店名，同时更新酒店配置的套餐（这样酒店下所有用户都生效）
   if (m.hotel && m.plan && m.plan !== 'free') {
@@ -3958,101 +3935,6 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 });
 
-// 同步付款申请到云端
-async function syncPaymentToCloud(paymentData) {
-  try {
-    const token = localStorage.getItem('github_token');
-    if (!token) {
-      console.log('未配置 GitHub Token，付款申请仅保存在本地');
-      return;
-    }
-
-    // 拉取最新 prompts.json
-    const res = await fetch('https://raw.githubusercontent.com/sxie738-bot/hotel-ai-workbench/main/prompts.json?t=' + Date.now());
-    const data = await res.json();
-
-    // 初始化 payments 数组
-    if (!data.payments) data.payments = [];
-
-    // 检查是否已存在
-    const existingIndex = data.payments.findIndex(p => p.id === paymentData.id);
-    if (existingIndex >= 0) {
-      data.payments[existingIndex] = paymentData;
-    } else {
-      data.payments.unshift(paymentData);
-    }
-
-    // 更新统计
-    data._updated = new Date().toISOString();
-
-    // 推送到 GitHub
-    await fetch('https://api.github.com/repos/sxie738-bot/hotel-ai-workbench/contents/prompts.json', {
-      method: 'PUT',
-      headers: {
-        'Authorization': `Bearer ${token}`,
-        'Content-Type': 'application/json'
-      },
-      body: JSON.stringify({
-        message: `付款申请: ${paymentData.name} - ${paymentData.planLabel} ¥${paymentData.price}`,
-        content: btoa(unescape(encodeURIComponent(JSON.stringify(data, null, 2))))
-      })
-    });
-
-    console.log('✅ 付款申请已同步到云端');
-  } catch (e) {
-    console.warn('同步付款申请失败:', e);
-  }
-}
-
-// 同步付款状态变更到云端
-async function syncPaymentStatusToCloud(paymentData) {
-  try {
-    const token = localStorage.getItem('github_token');
-    if (!token) return;
-
-    const res = await fetch('https://raw.githubusercontent.com/sxie738-bot/hotel-ai-workbench/main/prompts.json?t=' + Date.now());
-    const data = await res.json();
-
-    if (!data.payments) data.payments = [];
-
-    // 查找并更新状态
-    const idx = data.payments.findIndex(p => p.id === paymentData.id || (p.phone === paymentData.phone && p.status === 'pending'));
-    if (idx >= 0) {
-      data.payments[idx] = { ...data.payments[idx], ...paymentData };
-    }
-
-    data._updated = new Date().toISOString();
-
-    await fetch('https://api.github.com/repos/sxie738-bot/hotel-ai-workbench/contents/prompts.json', {
-      method: 'PUT',
-      headers: {
-        'Authorization': `Bearer ${token}`,
-        'Content-Type': 'application/json'
-      },
-      body: JSON.stringify({
-        message: `确认开通: ${paymentData.name} - ${paymentData.planLabel}`,
-        content: btoa(unescape(encodeURIComponent(JSON.stringify(data, null, 2))))
-      })
-    });
-
-    console.log('✅ 付款状态已同步到云端');
-  } catch (e) {
-    console.warn('同步付款状态失败:', e);
-  }
-}
-
-// 从云端加载付款申请
-async function loadPaymentsFromCloud() {
-  try {
-    const resp = await fetch('https://raw.githubusercontent.com/sxie738-bot/hotel-ai-workbench/main/prompts.json?t=' + Date.now());
-    const data = await resp.json();
-    return data.payments || [];
-  } catch (e) {
-    console.warn('从云端加载付款申请失败:', e);
-    return [];
-  }
-}
-
 // 同步酒店配置到 GitHub 云端
 async function syncHotelsToCloud() {
   const token = getGitHubToken();
@@ -4549,7 +4431,7 @@ function initApp() {
 }
 
 // ==================== 共创中心 ====================
-async function submitFeedback() {
+function submitFeedback() {
   const type = document.getElementById('feedbackType').value;
   const title = document.getElementById('feedbackTitle').value.trim();
   const content = document.getElementById('feedbackContent').value.trim();
@@ -4575,61 +4457,12 @@ async function submitFeedback() {
   feedbacks.unshift(feedback);
   localStorage.setItem('hotel_feedbacks', JSON.stringify(feedbacks));
 
-  // 同步到云端
-  await syncFeedbackToCloud(feedback);
-
   // 清空表单
   document.getElementById('feedbackTitle').value = '';
   document.getElementById('feedbackContent').value = '';
 
   renderFeedbackHistory();
   showToast('✅ 反馈已提交，感谢您的参与！');
-}
-
-// 同步反馈到云端
-async function syncFeedbackToCloud(feedback) {
-  try {
-    const token = localStorage.getItem('github_token');
-    if (!token) {
-      console.log('未配置 GitHub Token，反馈仅保存在本地');
-      return;
-    }
-
-    // 拉取最新 prompts.json
-    const res = await fetch('https://raw.githubusercontent.com/sxie738-bot/hotel-ai-workbench/main/prompts.json?t=' + Date.now());
-    const data = await res.json();
-
-    // 初始化 feedbacks 数组
-    if (!data.feedbacks) data.feedbacks = [];
-
-    // 检查是否已存在
-    const existingIndex = data.feedbacks.findIndex(f => f.id === feedback.id);
-    if (existingIndex >= 0) {
-      data.feedbacks[existingIndex] = feedback;
-    } else {
-      data.feedbacks.unshift(feedback);
-    }
-
-    // 更新统计
-    data._updated = new Date().toISOString();
-
-    // 推送到 GitHub
-    await fetch('https://api.github.com/repos/sxie738-bot/hotel-ai-workbench/contents/prompts.json', {
-      method: 'PUT',
-      headers: {
-        'Authorization': `Bearer ${token}`,
-        'Content-Type': 'application/json'
-      },
-      body: JSON.stringify({
-        message: `用户反馈: ${feedback.title} - ${feedback.hotel || '匿名'}`,
-        content: btoa(unescape(encodeURIComponent(JSON.stringify(data, null, 2))))
-      })
-    });
-
-    console.log('✅ 反馈已同步到云端');
-  } catch (e) {
-    console.warn('同步反馈失败:', e);
-  }
 }
 
 function renderFeedbackHistory() {
@@ -4793,37 +4626,15 @@ function refreshAdminStats() {
 // ==================== 共创反馈后台管理 ====================
 let _fbFilter = 'all';
 
-async function loadFeedbackAdmin() {
-  // 从云端拉取反馈
-  const feedbacks = await loadFeedbacksFromCloud();
+function loadFeedbackAdmin() {
+  // 从云端拉取反馈（当前用 localStorage 模拟，云端同步版后续补充）
+  const feedbacks = loadFeedbacksFromCloud();
   renderFeedbackAdmin(feedbacks);
 }
 
-async function loadFeedbacksFromCloud() {
-  try {
-    const resp = await fetch('https://raw.githubusercontent.com/sxie738-bot/hotel-ai-workbench/main/prompts.json?t=' + Date.now());
-    const data = await resp.json();
-    const cloudFeedbacks = data.feedbacks || [];
-
-    // 合并本地和云端数据（以云端为准，本地补充）
-    const localFeedbacks = JSON.parse(localStorage.getItem('hotel_feedbacks') || '[]');
-    const merged = [...cloudFeedbacks];
-
-    // 本地独有的反馈补充进去
-    localFeedbacks.forEach(local => {
-      if (!merged.find(f => f.id === local.id)) {
-        merged.push(local);
-      }
-    });
-
-    // 按时间倒序
-    merged.sort((a, b) => new Date(b.submitTime) - new Date(a.submitTime));
-
-    return merged;
-  } catch (e) {
-    console.warn('从云端加载反馈失败，使用本地数据:', e);
-    return JSON.parse(localStorage.getItem('hotel_feedbacks') || '[]');
-  }
+function loadFeedbacksFromCloud() {
+  // 合并本地所有 hotel_feedbacks（将来替换为 GitHub 云端读取）
+  return JSON.parse(localStorage.getItem('hotel_feedbacks') || '[]');
 }
 
 function filterFeedbackAdmin(status) {
@@ -4879,7 +4690,7 @@ function renderFeedbackAdmin(feedbacks) {
   }).join('');
 }
 
-async function setFeedbackStatus(feedbackId, status) {
+function setFeedbackStatus(feedbackId, status) {
   const feedbacks = JSON.parse(localStorage.getItem('hotel_feedbacks') || '[]');
   const idx = feedbacks.findIndex(f => f.id === feedbackId);
   if (idx < 0) { showToast('未找到该反馈', 'error'); return; }
@@ -4916,10 +4727,6 @@ async function setFeedbackStatus(feedbackId, status) {
   }
 
   localStorage.setItem('hotel_feedbacks', JSON.stringify(feedbacks));
-
-  // 同步状态变更到云端
-  await syncFeedbackToCloud(feedbacks[idx]);
-
   loadFeedbackAdmin();
 }
 
@@ -5612,7 +5419,7 @@ function previewCommunityVoice(input) {
 }
 
 // 发布打卡
-async function submitCommunityPost() {
+function submitCommunityPost() {
   const insight = document.getElementById('communityInsight')?.value.trim();
   const problem = document.getElementById('communityProblem')?.value.trim();
   const date    = document.getElementById('communityDate')?.value || '';
@@ -5623,13 +5430,9 @@ async function submitCommunityPost() {
 
   // 获取作者名
   let author = '匿名酒店人';
-  let phone = '';
-  let hotel = '';
   if (!communityAnon) {
     const member = MemberStore.get();
     author = (member?.name || '用户') + (member?.hotel ? '·' + member.hotel : '');
-    phone = member?.phone || '';
-    hotel = member?.hotel || '';
   }
 
   // 读取图片 base64（本地存储）
@@ -5644,13 +5447,11 @@ async function submitCommunityPost() {
     id: Date.now(),
     date,
     author,
-    phone,
-    hotel,
     anon: communityAnon,
     insight,
     problem,
     stars: communityStars,
-    images: imageData.slice(0, 3), // 限制同步图片数量
+    images: imageData,
     hasAudio: !!communityAudioBlob,
     ts: new Date().toISOString(),
   };
@@ -5661,9 +5462,6 @@ async function submitCommunityPost() {
   posts.unshift(post);
   if (posts.length > 100) posts.splice(100);
   localStorage.setItem(KEY, JSON.stringify(posts));
-
-  // 同步到云端
-  await syncCommunityPostToCloud(post);
 
   // 5星小红花彩蛋
   if (communityStars === 5) {
@@ -5686,17 +5484,12 @@ async function submitCommunityPost() {
 }
 
 // 渲染打卡列表
-async function renderCommunityPosts() {
+function renderCommunityPosts() {
+  const KEY = 'community_posts';
+  const posts = JSON.parse(localStorage.getItem(KEY) || '[]');
   const listEl = document.getElementById('communityList');
   const countEl = document.getElementById('communityCount');
   if (!listEl) return;
-
-  // 显示加载中
-  listEl.innerHTML = '<div style="text-align:center;color:#ccc;padding:32px 0;font-size:14px;">⏳ 加载中...</div>';
-
-  // 从云端加载
-  const posts = await loadCommunityPostsFromCloud();
-
   if (countEl) countEl.textContent = `共 ${posts.length} 条打卡`;
   if (posts.length === 0) {
     listEl.innerHTML = '<div style="text-align:center;color:#ccc;padding:32px 0;font-size:14px;">还没有打卡记录，发布第一条吧 🌱</div>';
@@ -5730,89 +5523,6 @@ function closeFlowerModal() {
   const modal = document.getElementById('flowerModal');
   if (modal) modal.style.display = 'none';
   showToast('🌸 小红花 +1，今天你最棒！');
-}
-
-// 同步社区帖子到云端
-async function syncCommunityPostToCloud(post) {
-  try {
-    const token = localStorage.getItem('github_token');
-    if (!token) {
-      console.log('未配置 GitHub Token，帖子仅保存在本地');
-      return;
-    }
-
-    // 拉取最新 prompts.json
-    const res = await fetch('https://raw.githubusercontent.com/sxie738-bot/hotel-ai-workbench/main/prompts.json?t=' + Date.now());
-    const data = await res.json();
-
-    // 初始化 community_posts 数组
-    if (!data.community_posts) data.community_posts = [];
-
-    // 检查是否已存在
-    const existingIndex = data.community_posts.findIndex(p => p.id === post.id);
-    if (existingIndex >= 0) {
-      data.community_posts[existingIndex] = post;
-    } else {
-      data.community_posts.unshift(post);
-    }
-
-    // 限制云端存储数量（最多200条）
-    if (data.community_posts.length > 200) {
-      data.community_posts = data.community_posts.slice(0, 200);
-    }
-
-    // 更新统计
-    data._updated = new Date().toISOString();
-
-    // 推送到 GitHub
-    await fetch('https://api.github.com/repos/sxie738-bot/hotel-ai-workbench/contents/prompts.json', {
-      method: 'PUT',
-      headers: {
-        'Authorization': `Bearer ${token}`,
-        'Content-Type': 'application/json'
-      },
-      body: JSON.stringify({
-        message: `社区打卡: ${post.anon ? '匿名用户' : post.author} - ${post.date}`,
-        content: btoa(unescape(encodeURIComponent(JSON.stringify(data, null, 2))))
-      })
-    });
-
-    console.log('✅ 社区帖子已同步到云端');
-  } catch (e) {
-    console.warn('同步社区帖子失败:', e);
-  }
-}
-
-// 从云端加载社区帖子
-async function loadCommunityPostsFromCloud() {
-  try {
-    const resp = await fetch('https://raw.githubusercontent.com/sxie738-bot/hotel-ai-workbench/main/prompts.json?t=' + Date.now());
-    const data = await resp.json();
-    const cloudPosts = data.community_posts || [];
-
-    // 合并本地和云端数据
-    const localPosts = JSON.parse(localStorage.getItem('community_posts') || '[]');
-    const merged = [...cloudPosts];
-
-    // 本地独有的帖子补充进去
-    localPosts.forEach(local => {
-      if (!merged.find(p => p.id === local.id)) {
-        merged.push(local);
-      }
-    });
-
-    // 按时间倒序
-    merged.sort((a, b) => new Date(b.ts) - new Date(a.ts));
-
-    // 更新本地存储
-    if (merged.length > 100) merged.splice(100);
-    localStorage.setItem('community_posts', JSON.stringify(merged));
-
-    return merged;
-  } catch (e) {
-    console.warn('从云端加载社区帖子失败，使用本地数据:', e);
-    return JSON.parse(localStorage.getItem('community_posts') || '[]');
-  }
 }
 
 // 撒花粒子动画
