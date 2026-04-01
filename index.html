@@ -244,6 +244,11 @@
         <span class="nav-label">共创中心</span>
       </a>
       <div class="nav-divider"></div>
+      <a href="#" class="nav-item admin-only" data-page="usermgmt" style="display:none;">
+        <span class="nav-icon">👥</span>
+        <span class="nav-label">用户管理</span>
+        <span class="nav-badge" id="newUserBadge" style="background:#ff4d4f; color:#fff; display:none;">新</span>
+      </a>
       <a href="#" class="nav-item admin-only" data-page="settings" style="display:none;">
         <span class="nav-icon">⚙️</span>
         <span class="nav-label">系统设置</span>
@@ -1519,6 +1524,71 @@
           2. 管理员评估后标记「已采纳」<br>
           3. 采纳的需求将在 <strong>1周内</strong> 上线<br>
           4. 采纳后自动赠送 <strong>1个月</strong> 会员时长</p>
+        </div>
+      </div>
+    </section>
+
+    <!-- ==================== 页面：用户管理 ==================== -->
+    <section class="page" id="page-usermgmt">
+      <div class="page-header">
+        <h2>👥 用户管理</h2>
+        <p>查看注册用户、统计信息和会员状态</p>
+      </div>
+
+      <!-- 统计卡片 -->
+      <div class="stats-grid" style="display:grid; grid-template-columns:repeat(auto-fit, minmax(200px, 1fr)); gap:16px; margin-bottom:24px;">
+        <div class="stat-card" style="background:linear-gradient(135deg, #667eea 0%, #764ba2 100%); color:#fff; padding:20px; border-radius:12px;">
+          <div style="font-size:32px; font-weight:700;" id="statTotalUsers">0</div>
+          <div style="font-size:14px; opacity:0.9;">总注册用户数</div>
+        </div>
+        <div class="stat-card" style="background:linear-gradient(135deg, #11998e 0%, #38ef7d 100%); color:#fff; padding:20px; border-radius:12px;">
+          <div style="font-size:32px; font-weight:700;" id="statTodayUsers">0</div>
+          <div style="font-size:14px; opacity:0.9;">今日新增</div>
+        </div>
+        <div class="stat-card" style="background:linear-gradient(135deg, #fc4a1a 0%, #f7b733 100%); color:#fff; padding:20px; border-radius:12px;">
+          <div style="font-size:32px; font-weight:700;" id="statActiveMembers">0</div>
+          <div style="font-size:14px; opacity:0.9;">有效会员</div>
+        </div>
+        <div class="stat-card" style="background:linear-gradient(135deg, #4facfe 0%, #00f2fe 100%); color:#fff; padding:20px; border-radius:12px;">
+          <div style="font-size:32px; font-weight:700;" id="statExpiredMembers">0</div>
+          <div style="font-size:14px; opacity:0.9;">已过期会员</div>
+        </div>
+      </div>
+
+      <!-- 用户列表 -->
+      <div class="content-card" style="background:#fff; border-radius:12px; box-shadow:0 2px 8px rgba(0,0,0,0.08); overflow:hidden;">
+        <div style="padding:16px 20px; border-bottom:1px solid #f0f0f0; display:flex; justify-content:space-between; align-items:center;">
+          <h3 style="margin:0; font-size:16px;">用户列表</h3>
+          <div style="display:flex; gap:8px;">
+            <button class="btn btn-secondary" onclick="refreshUserList()" style="padding:6px 12px; font-size:13px;">
+              🔄 刷新
+            </button>
+            <button class="btn btn-primary" onclick="markAllAsRead()" style="padding:6px 12px; font-size:13px;">
+              全部已读
+            </button>
+          </div>
+        </div>
+        <div style="overflow-x:auto;">
+          <table style="width:100%; border-collapse:collapse; font-size:14px;">
+            <thead>
+              <tr style="background:#fafafa;">
+                <th style="padding:12px 16px; text-align:left; font-weight:600; color:#666; border-bottom:1px solid #f0f0f0;">注册时间</th>
+                <th style="padding:12px 16px; text-align:left; font-weight:600; color:#666; border-bottom:1px solid #f0f0f0;">姓名</th>
+                <th style="padding:12px 16px; text-align:left; font-weight:600; color:#666; border-bottom:1px solid #f0f0f0;">手机号</th>
+                <th style="padding:12px 16px; text-align:left; font-weight:600; color:#666; border-bottom:1px solid #f0f0f0;">酒店名称</th>
+                <th style="padding:12px 16px; text-align:left; font-weight:600; color:#666; border-bottom:1px solid #f0f0f0;">套餐</th>
+                <th style="padding:12px 16px; text-align:left; font-weight:600; color:#666; border-bottom:1px solid #f0f0f0;">状态</th>
+                <th style="padding:12px 16px; text-align:left; font-weight:600; color:#666; border-bottom:1px solid #f0f0f0;">到期日</th>
+              </tr>
+            </thead>
+            <tbody id="userListTable">
+              <tr>
+                <td colspan="7" style="padding:40px; text-align:center; color:#999;">
+                  <div>⏳ 加载中...</div>
+                </td>
+              </tr>
+            </tbody>
+          </table>
         </div>
       </div>
     </section>

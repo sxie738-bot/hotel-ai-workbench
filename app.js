@@ -1265,7 +1265,7 @@ const PROMPTS_API_URL = 'https://api.github.com/repos/sxie738-bot/hotel-ai-workb
 let cloudPrompts = null; // 云端 Prompt 缓存
 
 // ==================== 应用版本更新检测 ====================
-const APP_VERSION = '1.7.6'; // 当前代码版本号（每次发布新功能时手动递增）
+const APP_VERSION = '1.8.0'; // 当前代码版本号（每次发布新功能时手动递增）
 
 // 检查是否有新版本可用
 async function checkForUpdate(showToastIfLatest = false) {
@@ -3010,6 +3010,70 @@ function submitRegister() {
   renderProfilePage();
   updateUserNavButton();
   showToast(`🎉 欢迎 ${name} 注册成功！`);
+
+  // 同步用户注册到云端
+  syncUserToCloud(memberData);
+}
+
+// 同步用户注册数据到 GitHub 云端
+async function syncUserToCloud(userData) {
+  try {
+    const token = localStorage.getItem('github_token');
+    if (!token) {
+      console.log('未配置 GitHub Token，跳过云端同步');
+      return;
+    }
+
+    // 拉取最新 prompts.json
+    const res = await fetch('https://raw.githubusercontent.com/sxie738-bot/hotel-ai-workbench/main/prompts.json?t=' + Date.now());
+    const data = await res.json();
+
+    // 初始化 users 数组
+    if (!data.users) data.users = [];
+
+    // 检查是否已存在（根据手机号）
+    const existingIndex = data.users.findIndex(u => u.phone === userData.phone);
+    const userRecord = {
+      id: userData.phone, // 用手机号作为唯一ID
+      name: userData.name,
+      phone: userData.phone,
+      hotel: userData.hotel,
+      plan: userData.plan,
+      status: userData.status,
+      activateDate: userData.activateDate,
+      expireDate: userData.expireDate,
+      registeredAt: new Date().toISOString(),
+      lastLoginAt: new Date().toISOString()
+    };
+
+    if (existingIndex >= 0) {
+      // 更新已有记录
+      data.users[existingIndex] = { ...data.users[existingIndex], ...userRecord, registeredAt: data.users[existingIndex].registeredAt };
+    } else {
+      // 新增记录
+      data.users.push(userRecord);
+    }
+
+    // 更新统计
+    data._updated = new Date().toISOString();
+
+    // 推送到 GitHub
+    await fetch('https://api.github.com/repos/sxie738-bot/hotel-ai-workbench/contents/prompts.json', {
+      method: 'PUT',
+      headers: {
+        'Authorization': `Bearer ${token}`,
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({
+        message: `用户注册/更新: ${userData.name} - ${userData.hotel}`,
+        content: btoa(unescape(encodeURIComponent(JSON.stringify(data, null, 2))))
+      })
+    });
+
+    console.log('✅ 用户数据已同步到云端');
+  } catch (e) {
+    console.warn('同步用户数据失败:', e);
+  }
 }
 
 // 关闭欢迎弹窗
@@ -3668,6 +3732,208 @@ function renderStudentList() {
       </div>`;
   }).join('');
 }
+
+// ==================== 用户管理 ====================
+let cloudUsersData = []; // 云端用户数据缓存
+let lastSeenUserCount = 0; // 上次查看时的用户数量
+
+// 加载用户列表（从云端）
+async function loadUserList() {
+  const tbody = document.getElementById('userListTable');
+  if (!tbody) return;
+
+  tbody.innerHTML = `
+    <tr>
+      <td colspan="7" style="padding:40px; text-align:center; color:#999;">
+        <div>⏳ 加载中...</div>
+      </td>
+    </tr>`;
+
+  try {
+    const resp = await fetch('https://raw.githubusercontent.com/sxie738-bot/hotel-ai-workbench/main/prompts.json?t=' + Date.now());
+    const data = await resp.json();
+    cloudUsersData = data.users || [];
+
+    // 更新统计
+    updateUserStats();
+
+    // 渲染列表
+    renderUserTable();
+
+    // 检查新用户
+    checkNewUsers();
+  } catch (e) {
+    console.warn('加载用户列表失败:', e);
+    tbody.innerHTML = `
+      <tr>
+        <td colspan="7" style="padding:40px; text-align:center; color:#999;">
+          <div>❌ 加载失败，请检查网络</div>
+        </td>
+      </tr>`;
+  }
+}
+
+// 更新用户统计
+function updateUserStats() {
+  const total = cloudUsersData.length;
+  const today = new Date().toISOString().split('T')[0];
+  const todayUsers = cloudUsersData.filter(u => u.registeredAt && u.registeredAt.startsWith(today)).length;
+
+  const now = new Date().toISOString();
+  const activeMembers = cloudUsersData.filter(u => {
+    if (u.status !== 'active') return false;
+    return !u.expireDate || u.expireDate > now;
+  }).length;
+
+  const expiredMembers = cloudUsersData.filter(u => {
+    if (u.status !== 'active') return false;
+    return u.expireDate && u.expireDate <= now;
+  }).length;
+
+  document.getElementById('statTotalUsers').textContent = total;
+  document.getElementById('statTodayUsers').textContent = todayUsers;
+  document.getElementById('statActiveMembers').textContent = activeMembers;
+  document.getElementById('statExpiredMembers').textContent = expiredMembers;
+}
+
+// 渲染用户表格
+function renderUserTable() {
+  const tbody = document.getElementById('userListTable');
+  if (!tbody) return;
+
+  if (cloudUsersData.length === 0) {
+    tbody.innerHTML = `
+      <tr>
+        <td colspan="7" style="padding:40px; text-align:center; color:#999;">
+          <div style="font-size:36px; margin-bottom:8px;">📭</div>
+          <div>暂无注册用户</div>
+        </td>
+      </tr>`;
+    return;
+  }
+
+  // 按注册时间倒序
+  const sortedUsers = [...cloudUsersData].sort((a, b) => {
+    return new Date(b.registeredAt || 0) - new Date(a.registeredAt || 0);
+  });
+
+  tbody.innerHTML = sortedUsers.map(user => {
+    const planLabel = PLANS[user.plan]?.label || user.plan || '免费';
+    const planColor = user.plan === 'yearly' ? '#8b5cf6' : user.plan === 'monthly' ? '#10b981' : user.plan === 'trial' ? '#f59e0b' : '#6b7280';
+
+    const isExpired = user.expireDate && user.expireDate <= new Date().toISOString();
+    const statusText = user.status === 'active' ? (isExpired ? '已过期' : '有效') : user.status;
+    const statusColor = user.status === 'active' ? (isExpired ? '#ef4444' : '#10b981') : '#6b7280';
+
+    const registerTime = user.registeredAt ? new Date(user.registeredAt).toLocaleString('zh-CN') : '-';
+
+    return `
+      <tr style="border-bottom:1px solid #f0f0f0;">
+        <td style="padding:12px 16px; font-size:13px; color:#666;">${registerTime}</td>
+        <td style="padding:12px 16px; font-weight:500;">${escapeHtml(user.name || '-')}</td>
+        <td style="padding:12px 16px; font-family:monospace; font-size:13px;">${user.phone || '-'}</td>
+        <td style="padding:12px 16px; color:#666;">${escapeHtml(user.hotel || '-')}</td>
+        <td style="padding:12px 16px;">
+          <span style="font-size:12px; background:${planColor}15; color:${planColor}; padding:2px 8px; border-radius:8px;">${planLabel}</span>
+        </td>
+        <td style="padding:12px 16px;">
+          <span style="font-size:12px; color:${statusColor}; font-weight:500;">${statusText}</span>
+        </td>
+        <td style="padding:12px 16px; font-size:13px; color:#666;">${user.expireDate ? user.expireDate.split('T')[0] : '-'}</td>
+      </tr>`;
+  }).join('');
+}
+
+// 刷新用户列表
+function refreshUserList() {
+  loadUserList();
+  showToast('🔄 已刷新用户列表');
+}
+
+// 检查新用户（标题闪烁提醒）
+function checkNewUsers() {
+  const currentCount = cloudUsersData.length;
+  const lastCount = parseInt(localStorage.getItem('lastSeenUserCount') || '0');
+
+  if (currentCount > lastCount && lastCount > 0) {
+    // 有新用户
+    const newCount = currentCount - lastCount;
+    startTitleBlink(newCount);
+    showNewUserBadge();
+  }
+
+  // 更新 lastSeenUserCount（但不保存，等用户点击"全部已读"才保存）
+  lastSeenUserCount = lastCount;
+}
+
+// 标题闪烁
+let titleBlinkInterval = null;
+function startTitleBlink(newCount) {
+  if (titleBlinkInterval) clearInterval(titleBlinkInterval);
+
+  const originalTitle = document.title;
+  let blink = true;
+
+  titleBlinkInterval = setInterval(() => {
+    document.title = blink ? `【${newCount}位新用户】酒店AI实战营` : originalTitle;
+    blink = !blink;
+  }, 1000);
+
+  // 30秒后停止闪烁
+  setTimeout(() => {
+    stopTitleBlink(originalTitle);
+  }, 30000);
+}
+
+function stopTitleBlink(originalTitle) {
+  if (titleBlinkInterval) {
+    clearInterval(titleBlinkInterval);
+    titleBlinkInterval = null;
+  }
+  document.title = originalTitle || '酒店AI实战营';
+}
+
+// 显示新用户徽章
+function showNewUserBadge() {
+  const badge = document.getElementById('newUserBadge');
+  if (badge) badge.style.display = 'inline-block';
+}
+
+// 隐藏新用户徽章
+function hideNewUserBadge() {
+  const badge = document.getElementById('newUserBadge');
+  if (badge) badge.style.display = 'none';
+}
+
+// 标记全部已读
+function markAllAsRead() {
+  localStorage.setItem('lastSeenUserCount', cloudUsersData.length.toString());
+  hideNewUserBadge();
+  stopTitleBlink();
+  showToast('✅ 已标记全部已读');
+}
+
+// 页面切换时加载用户列表
+document.addEventListener('DOMContentLoaded', () => {
+  // 监听页面切换
+  const observer = new MutationObserver((mutations) => {
+    mutations.forEach((mutation) => {
+      if (mutation.type === 'attributes' && mutation.attributeName === 'class') {
+        const page = document.getElementById('page-usermgmt');
+        if (page && page.classList.contains('active')) {
+          loadUserList();
+          // 进入页面时标记已读
+          markAllAsRead();
+        }
+      }
+    });
+  });
+
+  const pageUsermgmt = document.getElementById('page-usermgmt');
+  if (pageUsermgmt) {
+    observer.observe(pageUsermgmt, { attributes: true });
+  }
+});
 
 // 同步酒店配置到 GitHub 云端
 async function syncHotelsToCloud() {
