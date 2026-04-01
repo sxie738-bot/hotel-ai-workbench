@@ -3365,6 +3365,69 @@ async function syncFeedbackToCloud(feedbackData) {
   }
 }
 
+// 同步社区打卡到 GitHub
+async function syncCommunityPostToCloud(postData) {
+  try {
+    const token = localStorage.getItem('github_token') || localStorage.getItem('github_write_token');
+    if (!token) {
+      console.log('未配置 GitHub Token，跳过社区打卡同步');
+      return;
+    }
+
+    // 获取文件 sha
+    const apiRes = await fetch('https://api.github.com/repos/sxie738-bot/hotel-ai-workbench/contents/prompts.json', {
+      headers: { 'Authorization': `Bearer ${token}` }
+    });
+    if (!apiRes.ok) return;
+    const fileInfo = await apiRes.json();
+    const sha = fileInfo.sha;
+
+    // 拉取最新内容
+    const res = await fetch('https://raw.githubusercontent.com/sxie738-bot/hotel-ai-workbench/main/prompts.json?t=' + Date.now());
+    const data = await res.json();
+
+    // 初始化 community 数组
+    if (!data.community) data.community = [];
+    data.community.unshift(postData);
+    data._updated = new Date().toISOString();
+
+    // 推送到 GitHub
+    const putRes = await fetch('https://api.github.com/repos/sxie738-bot/hotel-ai-workbench/contents/prompts.json', {
+      method: 'PUT',
+      headers: {
+        'Authorization': `Bearer ${token}`,
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({
+        message: `社区打卡: ${postData.author}`,
+        content: btoa(unescape(encodeURIComponent(JSON.stringify(data, null, 2)))),
+        sha: sha
+      })
+    });
+
+    if (putRes.ok) {
+      console.log('✅ 社区打卡已同步到云端');
+    }
+  } catch (e) {
+    console.warn('同步社区打卡失败:', e);
+  }
+}
+
+// 从 GitHub 加载社区打卡
+async function loadCommunityPostsFromCloud() {
+  try {
+    const token = localStorage.getItem('github_token') || localStorage.getItem('github_write_token');
+    if (!token) return [];
+    const res = await fetch('https://raw.githubusercontent.com/sxie738-bot/hotel-ai-workbench/main/prompts.json?t=' + Date.now());
+    if (!res.ok) return [];
+    const data = await res.json();
+    return data.community || [];
+  } catch (e) {
+    console.warn('加载云端社区打卡失败:', e);
+    return [];
+  }
+}
+
 // 关闭欢迎弹窗
 function closeHotelWelcome() {
   document.getElementById('hotelWelcomeModal').style.display = 'none';
@@ -3647,7 +3710,7 @@ async function saveMembersData(data) {
 }
 
 // 从 Airtable 加载付款申请
-async function loadPaymentRequestsFromCloud() {
+async function loadPaymentRequestsFromAirtable() {
   try {
     const records = await AirtableAPI.get('Payments');
     return records
@@ -3661,12 +3724,104 @@ async function loadPaymentRequestsFromCloud() {
         price: parseFloat(r.fields.price) || 0,
         planLabel: r.fields.plan,
         submitTime: r.createdTime,
-        status: r.fields.status
+        status: r.fields.status,
+        source: 'Airtable'
       }));
   } catch (e) {
-    console.warn('加载付款申请失败:', e);
+    console.warn('加载Airtable付款申请失败:', e);
     return [];
   }
+}
+
+// 从 GitHub 加载付款申请
+async function loadPaymentRequestsFromGitHub() {
+  try {
+    const token = localStorage.getItem('github_token') || localStorage.getItem('github_write_token');
+    if (!token) {
+      console.log('未配置GitHub Token');
+      return [];
+    }
+    const res = await fetch('https://raw.githubusercontent.com/sxie738-bot/hotel-ai-workbench/main/prompts.json?t=' + Date.now());
+    if (!res.ok) return [];
+    const data = await res.json();
+    return (data.payment_requests || [])
+      .filter(p => p.status !== 'confirmed' && p.status !== 'completed')
+      .map(p => ({
+        ...p,
+        source: 'GitHub'
+      }));
+  } catch (e) {
+    console.warn('加载GitHub付款申请失败:', e);
+    return [];
+  }
+}
+
+// 从 GitHub 删除或标记已处理的付款申请
+async function removePaymentFromGitHub(phone, submitTime) {
+  try {
+    const token = localStorage.getItem('github_token') || localStorage.getItem('github_write_token');
+    if (!token) return;
+    
+    // 获取文件 sha
+    const apiRes = await fetch('https://api.github.com/repos/sxie738-bot/hotel-ai-workbench/contents/prompts.json', {
+      headers: { 'Authorization': `Bearer ${token}` }
+    });
+    if (!apiRes.ok) return;
+    const fileInfo = await apiRes.json();
+    const sha = fileInfo.sha;
+    
+    // 拉取最新内容
+    const res = await fetch('https://raw.githubusercontent.com/sxie738-bot/hotel-ai-workbench/main/prompts.json?t=' + Date.now());
+    const data = await res.json();
+    
+    // 标记付款申请为 confirmed
+    if (data.payment_requests) {
+      data.payment_requests = data.payment_requests.map(p => {
+        if (p.phone === phone && p.submitTime === submitTime) {
+          return { ...p, status: 'confirmed' };
+        }
+        return p;
+      });
+    }
+    
+    // 推送到 GitHub
+    const putRes = await fetch('https://api.github.com/repos/sxie738-bot/hotel-ai-workbench/contents/prompts.json', {
+      method: 'PUT',
+      headers: {
+        'Authorization': `Bearer ${token}`,
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({
+        message: `确认付款: ${phone}`,
+        content: btoa(unescape(encodeURIComponent(JSON.stringify(data, null, 2)))),
+        sha: sha
+      })
+    });
+    
+    if (putRes.ok) {
+      console.log('✅ 已从GitHub标记付款申请为已确认');
+    }
+  } catch (e) {
+    console.warn('从GitHub更新付款申请失败:', e);
+  }
+}
+
+// 合并从 Airtable 和 GitHub 加载的付款申请
+async function loadPaymentRequestsFromCloud() {
+  const [airtable, github] = await Promise.all([
+    loadPaymentRequestsFromAirtable(),
+    loadPaymentRequestsFromGitHub()
+  ]);
+  
+  // 合并并去重
+  const all = [...airtable];
+  github.forEach(gp => {
+    const exists = all.some(ap => ap.phone === gp.phone && ap.submitTime === gp.submitTime);
+    if (!exists) all.push(gp);
+  });
+  
+  console.log('✅ 加载付款申请: Airtable=' + airtable.length + ', GitHub=' + github.length + ', 合并=' + all.length);
+  return all;
 }
 
 // 从 GitHub 云端加载用户注册和付款申请
@@ -3915,6 +4070,11 @@ async function approvePayment(phone, submitTime) {
     
     // 从 Airtable 更新付款申请状态为 confirmed
     await removePaymentRequestFromCloud(phone, submitTime, 'confirm');
+    
+    // 如果来自 GitHub，也从 GitHub 删除该付款申请
+    if (payment.source === 'GitHub') {
+      await removePaymentFromGitHub(phone, submitTime);
+    }
     
     // 更新酒店配置
     if (payment.hotel && payment.plan && payment.plan !== 'free') {
@@ -6129,6 +6289,9 @@ function submitCommunityPost() {
     showToast('🌸 打卡成功！继续加油');
   }
 
+  // 同步到云端
+  syncCommunityPostToCloud(post);
+
   // 重置表单
   document.getElementById('communityInsight').value = '';
   document.getElementById('communityProblem').value = '';
@@ -6141,19 +6304,39 @@ function submitCommunityPost() {
   renderCommunityPosts();
 }
 
-// 渲染打卡列表
-function renderCommunityPosts() {
+// 渲染打卡列表（本地 + 云端合并）
+async function renderCommunityPosts() {
   const KEY = 'community_posts';
-  const posts = JSON.parse(localStorage.getItem(KEY) || '[]');
+  const localPosts = JSON.parse(localStorage.getItem(KEY) || '[]');
+  
+  // 尝试加载云端数据
+  let cloudPosts = [];
+  try {
+    cloudPosts = await loadCommunityPostsFromCloud();
+  } catch (e) {
+    console.warn('加载云端社区打卡失败:', e);
+  }
+  
+  // 合并去重（以 id 为准）
+  const allPosts = [...localPosts];
+  if (cloudPosts.length > 0) {
+    cloudPosts.forEach(cp => {
+      const exists = allPosts.some(lp => lp.id === cp.id);
+      if (!exists) {
+        allPosts.push({ ...cp, fromCloud: true });
+      }
+    });
+  }
+  
   const listEl = document.getElementById('communityList');
   const countEl = document.getElementById('communityCount');
   if (!listEl) return;
-  if (countEl) countEl.textContent = `共 ${posts.length} 条打卡`;
-  if (posts.length === 0) {
+  if (countEl) countEl.textContent = `共 ${allPosts.length} 条打卡`;
+  if (allPosts.length === 0) {
     listEl.innerHTML = '<div style="text-align:center;color:#ccc;padding:32px 0;font-size:14px;">还没有打卡记录，发布第一条吧 🌱</div>';
     return;
   }
-  listEl.innerHTML = posts.map(p => {
+  listEl.innerHTML = allPosts.map(p => {
     const starsHtml = p.stars ? '⭐'.repeat(p.stars) + (p.stars === 5 ? ' 🌸' : '') : '';
     const imagesHtml = (p.images && p.images.length > 0)
       ? `<div class="post-images">${p.images.map(src => `<img src="${src}" onclick="window.open(this.src,'_blank')">`).join('')}</div>` : '';
