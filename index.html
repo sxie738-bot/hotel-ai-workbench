@@ -1791,6 +1791,20 @@
               <span>💡 运行机制</span>
               <p>所有工具默认使用通义千问。如通义千问不可用，自动切换到 MiniMax 备用模型，无需手动操作。DeepSeek 充值后可随时启用。</p>
             </div>
+
+            <!-- Airtable 数据同步配置 -->
+            <div style="margin-top:32px; padding:16px; background:#f0fdf4; border:1px solid #bbf7d0; border-radius:12px;">
+              <h4 style="margin:0 0 8px; font-size:14px; color:#166534;">☁️ Airtable 数据同步</h4>
+              <p style="font-size:12px; color:#166534; margin-bottom:12px;">会员数据、付款记录实时同步到 Airtable（数据持久化保障）</p>
+              <div class="form-group" style="margin-bottom:8px;">
+                <label style="font-size:12px;">Airtable Personal Access Token</label>
+                <input type="password" id="airtableTokenInput" class="form-input" placeholder="patxxx..." style="background:var(--white);">
+              </div>
+              <button class="btn btn-primary" style="padding:8px 16px; font-size:12px;" onclick="saveAirtableToken()">💾 保存 Token</button>
+              <p style="font-size:11px; color:#166534; margin-top:8px;">
+                获取 Token：<a href="https://airtable.com/create/tokens" target="_blank" style="color:var(--primary);">Airtable Developer Hub →</a>
+              </p>
+            </div>
           </div>
 
           <!-- 品牌定制 -->
@@ -1918,7 +1932,7 @@
             <div id="pendingQueue" style="margin-bottom:20px;">
               <h4 style="font-size:14px; margin-bottom:12px; display:flex; align-items:center; justify-content:space-between;">
                 <span>⏳ 待确认付款</span>
-                <button class="btn-sm" onclick="renderMemberList()" title="从云端刷新数据">
+                <button class="btn-sm" onclick="refreshMembersFromAirtable().then(() => renderMemberList())" title="从 Airtable 刷新数据">
                   🔄 刷新
                 </button>
               </h4>

@@ -1,3 +1,116 @@
+// ==================== Airtable 配置 ====================
+// 用户需要在「系统设置-API配置」中设置 Airtable Token
+function getAirtableToken() {
+  return localStorage.getItem('airtable_token') || '';
+}
+
+function setAirtableToken(token) {
+  localStorage.setItem('airtable_token', token.trim());
+}
+
+const AIRTABLE_BASE_ID = 'appNR6oIINKxGlqM9';
+
+// Airtable 表格 ID
+const AIRTABLE_TABLES = {
+  Users: 'tblQ4hOrGkTxT7sGz',
+  Members: 'tblO0RC8IEPozUfdl',
+  Payments: 'tbl5uQ3NHf6A5by7b'
+};
+
+// Airtable API 基础配置
+const AIRTABLE_API = {
+  base: 'https://api.airtable.com/v0/' + AIRTABLE_BASE_ID,
+  get headers() {
+    const token = getAirtableToken();
+    return {
+      'Authorization': 'Bearer ' + token,
+      'Content-Type': 'application/json'
+    };
+  }
+};
+
+// Airtable API 封装
+const AirtableAPI = {
+  // 通用 GET 请求
+  async get(tableName) {
+    const token = getAirtableToken();
+    if (!token) {
+      console.warn('⚠️ 未配置 Airtable Token');
+      return [];
+    }
+    try {
+      const res = await fetch(AIRTABLE_API.base + '/' + AIRTABLE_TABLES[tableName], {
+        method: 'GET',
+        headers: AIRTABLE_API.headers
+      });
+      const data = await res.json();
+      return data.records || [];
+    } catch (e) {
+      console.error('Airtable GET 错误:', e);
+      return [];
+    }
+  },
+
+  // 通用 POST 请求（创建记录）
+  async create(tableName, fields) {
+    const token = getAirtableToken();
+    if (!token) {
+      console.warn('⚠️ 未配置 Airtable Token');
+      return null;
+    }
+    try {
+      const res = await fetch(AIRTABLE_API.base + '/' + AIRTABLE_TABLES[tableName], {
+        method: 'POST',
+        headers: AIRTABLE_API.headers,
+        body: JSON.stringify({ fields })
+      });
+      return await res.json();
+    } catch (e) {
+      console.error('Airtable POST 错误:', e);
+      return null;
+    }
+  },
+
+  // 通用 PUT 请求（更新记录）
+  async update(tableName, recordId, fields) {
+    const token = getAirtableToken();
+    if (!token) {
+      console.warn('⚠️ 未配置 Airtable Token');
+      return null;
+    }
+    try {
+      const res = await fetch(AIRTABLE_API.base + '/' + AIRTABLE_TABLES[tableName] + '/' + recordId, {
+        method: 'PATCH',
+        headers: AIRTABLE_API.headers,
+        body: JSON.stringify({ fields })
+      });
+      return await res.json();
+    } catch (e) {
+      console.error('Airtable PUT 错误:', e);
+      return null;
+    }
+  },
+
+  // 通用 DELETE 请求
+  async delete(tableName, recordId) {
+    const token = getAirtableToken();
+    if (!token) {
+      console.warn('⚠️ 未配置 Airtable Token');
+      return false;
+    }
+    try {
+      await fetch(AIRTABLE_API.base + '/' + AIRTABLE_TABLES[tableName] + '/' + recordId, {
+        method: 'DELETE',
+        headers: AIRTABLE_API.headers
+      });
+      return true;
+    } catch (e) {
+      console.error('Airtable DELETE 错误:', e);
+      return false;
+    }
+  }
+};
+
 // ==================== 会员体系配置 ====================
 const PLANS = {
   free:    { name: '免费体验', price: 0,    days: 3,   label: '免费体验·3天' },
@@ -858,91 +971,40 @@ function confirmPaidUpgrade() {
   showToast('✅ 付款申请已提交，请等待管理员确认');
 }
 
-// 同步付款申请到云端
+// 同步付款申请到 Airtable
 async function syncPaymentRequestToCloud(orderData) {
   try {
-    const writeToken = localStorage.getItem('github_write_token');
-    const adminToken = localStorage.getItem('github_token');
-    const token = writeToken || adminToken;
-    
-    console.log('🔄 开始同步付款申请到云端...');
-    console.log('  - write_token 存在:', !!writeToken);
-    console.log('  - admin_token 存在:', !!adminToken);
-    console.log('  - 使用 token:', token ? token.substring(0, 8) + '...' : '无');
-    
-    if (!token) {
-      console.warn('❌ 未配置 GitHub Token，付款申请仅保存本地');
-      console.warn('   请管理员在「系统设置-API配置」中设置 _write_token');
-      return;
-    }
-
-    // 从 GitHub API 获取文件信息和 sha
-    console.log('📡 正在获取 GitHub 文件 sha...');
-    const apiRes = await fetch('https://api.github.com/repos/sxie738-bot/hotel-ai-workbench/contents/prompts.json', {
-      headers: { 'Authorization': `Bearer ${token}` }
-    });
-    if (!apiRes.ok) {
-      const errorText = await apiRes.text();
-      console.warn('❌ 获取 GitHub 文件信息失败:', errorText);
-      showToast('同步失败：Token 无效或无权限', 'error');
-      return;
-    }
-    const fileInfo = await apiRes.json();
-    const sha = fileInfo.sha;
-    console.log('✅ 获取 sha 成功:', sha.substring(0, 16) + '...');
-
-    // 拉取最新 prompts.json 内容
-    console.log('📡 正在拉取最新 prompts.json...');
-    const res = await fetch('https://raw.githubusercontent.com/sxie738-bot/hotel-ai-workbench/main/prompts.json?t=' + Date.now());
-    const data = await res.json();
-    console.log('✅ 拉取成功，当前 payment_requests 数量:', (data.payment_requests || []).length);
-
-    // 初始化 payment_requests 数组
-    if (!data.payment_requests) data.payment_requests = [];
-
     // 检查是否已存在相同申请
-    const existingIndex = data.payment_requests.findIndex(p => 
-      p.phone === orderData.phone && p.submitTime === orderData.submitTime
+    const existing = await AirtableAPI.get('Payments');
+    const existingRecord = existing.find(r => 
+      r.fields.phone === orderData.phone && r.fields.plan === orderData.plan
     );
-
-    if (existingIndex >= 0) {
-      data.payment_requests[existingIndex] = orderData;
-      console.log('📝 更新已有申请');
+    
+    if (existingRecord) {
+      await AirtableAPI.update('Payments', existingRecord.id, {
+        name: orderData.name,
+        hotel: orderData.hotel,
+        plan: orderData.plan,
+        price: String(orderData.price),
+        status: 'pending'
+      });
+      console.log('✅ 更新付款申请到 Airtable');
     } else {
-      data.payment_requests.push(orderData);
-      console.log('📝 添加新申请，当前总数:', data.payment_requests.length);
+      await AirtableAPI.create('Payments', {
+        name: orderData.name,
+        phone: orderData.phone,
+        hotel: orderData.hotel,
+        plan: orderData.plan,
+        price: String(orderData.price),
+        status: 'pending'
+      });
+      console.log('✅ 新增付款申请到 Airtable');
     }
-
-    data._updated = new Date().toISOString();
-
-    // 推送到 GitHub
-    console.log('📡 正在推送到 GitHub...');
-    const putRes = await fetch('https://api.github.com/repos/sxie738-bot/hotel-ai-workbench/contents/prompts.json', {
-      method: 'PUT',
-      headers: {
-        'Authorization': `Bearer ${token}`,
-        'Content-Type': 'application/json'
-      },
-      body: JSON.stringify({
-        message: `付款申请: ${orderData.name} - ${orderData.planLabel}`,
-        content: btoa(unescape(encodeURIComponent(JSON.stringify(data, null, 2)))),
-        sha: sha
-      })
-    });
-
-    if (putRes.ok) {
-      const result = await putRes.json();
-      console.log('✅ 付款申请已同步到云端');
-      console.log('   提交 SHA:', result.commit?.sha?.substring(0, 16) + '...');
-      showToast('✅ 付款申请已同步到云端', 'success');
-    } else {
-      const errorText = await putRes.text();
-      console.warn('❌ 同步付款申请失败:', errorText);
-      showToast('同步失败，请检查控制台', 'error');
-    }
+    
+    showToast('✅ 付款申请已提交', 'success');
   } catch (e) {
-    console.warn('❌ 同步付款申请失败:', e);
-    showToast('同步失败: ' + e.message, 'error');
+    console.error('同步付款申请失败:', e);
+    showToast('提交失败，请重试', 'error');
   }
 }
 
@@ -1356,7 +1418,7 @@ const PROMPTS_API_URL = 'https://api.github.com/repos/sxie738-bot/hotel-ai-workb
 let cloudPrompts = null; // 云端 Prompt 缓存
 
 // ==================== 应用版本更新检测 ====================
-const APP_VERSION = '1.9.3'; // 当前代码版本号（每次发布新功能时手动递增）
+const APP_VERSION = '2.0.0'; // Airtable 数据同步版本
 
 // 检查是否有新版本可用
 async function checkForUpdate(showToastIfLatest = false) {
@@ -3385,20 +3447,108 @@ function deleteStudent(name) {
 }
 
 // ==================== 会员管理（管理员后台） ====================
+
+// 内存缓存
+let _cachedMembers = null;
+let _membersCacheTime = 0;
+
+// 初始化缓存
+async function initMembersCache() {
+  const now = Date.now();
+  if (!_cachedMembers || (now - _membersCacheTime) > 30000) {
+    await refreshMembersFromAirtable();
+  }
+}
+
+// 从 Airtable 刷新缓存
+async function refreshMembersFromAirtable() {
+  try {
+    const records = await AirtableAPI.get('Members');
+    _cachedMembers = records.map(r => ({
+      id: r.id,
+      name: r.fields.name || '',
+      phone: r.fields.phone || '',
+      hotel: r.fields.hotel || '',
+      plan: r.fields.plan || '',
+      status: r.fields.status || 'pending',
+      activateDate: r.fields.activate_date || '',
+      expireDate: r.fields.expire_date || '',
+      submitTime: r.createdTime
+    }));
+    _membersCacheTime = Date.now();
+    localStorage.setItem('hotel_members_data', JSON.stringify(_cachedMembers));
+    console.log('✅ 已从 Airtable 同步会员数据:', _cachedMembers.length, '条');
+    return _cachedMembers;
+  } catch (e) {
+    console.error('从 Airtable 读取会员失败:', e);
+    _cachedMembers = JSON.parse(localStorage.getItem('hotel_members_data')) || [];
+    _membersCacheTime = Date.now();
+    return _cachedMembers;
+  }
+}
+
 function getMembersData() {
-  try { return JSON.parse(localStorage.getItem('hotel_members_data')) || []; } catch { return []; }
+  if (!_cachedMembers) {
+    try { _cachedMembers = JSON.parse(localStorage.getItem('hotel_members_data')) || []; } 
+    catch { _cachedMembers = []; }
+  }
+  return _cachedMembers;
 }
 
-function saveMembersData(data) {
+async function refreshMembersData() {
+  return await refreshMembersFromAirtable();
+}
+
+async function saveMembersData(data) {
+  _cachedMembers = data;
+  _membersCacheTime = Date.now();
   localStorage.setItem('hotel_members_data', JSON.stringify(data));
-  // 有 token（管理员或用户端写 token）时同步到云端
-  const token = localStorage.getItem('github_token') || localStorage.getItem('github_write_token');
-  if (token) syncMembersToCloud();
+  
+  // 同步到 Airtable
+  try {
+    const existing = await AirtableAPI.get('Members');
+    for (const record of existing) {
+      await AirtableAPI.delete('Members', record.id);
+    }
+    for (const m of data) {
+      await AirtableAPI.create('Members', {
+        name: m.name,
+        phone: m.phone,
+        hotel: m.hotel,
+        plan: m.plan,
+        status: m.status,
+        activate_date: m.activateDate || '',
+        expire_date: m.expireDate || ''
+      });
+    }
+    console.log('✅ 会员数据已同步到 Airtable');
+  } catch (e) {
+    console.error('同步会员到 Airtable 失败:', e);
+  }
 }
 
-// 从云端加载付款申请数据
+// 从 Airtable 加载付款申请
 async function loadPaymentRequestsFromCloud() {
   try {
+    const records = await AirtableAPI.get('Payments');
+    return records
+      .filter(r => r.fields.status === 'pending')
+      .map(r => ({
+        id: r.id,
+        name: r.fields.name || '',
+        phone: r.fields.phone || '',
+        hotel: r.fields.hotel || '',
+        plan: r.fields.plan || '',
+        price: parseFloat(r.fields.price) || 0,
+        planLabel: r.fields.plan,
+        submitTime: r.createdTime,
+        status: r.fields.status
+      }));
+  } catch (e) {
+    console.warn('加载付款申请失败:', e);
+    return [];
+  }
+}
     const resp = await fetch('https://raw.githubusercontent.com/sxie738-bot/hotel-ai-workbench/main/prompts.json?t=' + Date.now());
     const data = await resp.json();
     return data.payment_requests || [];
@@ -3408,12 +3558,15 @@ async function loadPaymentRequestsFromCloud() {
   }
 }
 
-// 渲染会员列表（包含从云端同步的付款申请）
+// 渲染会员列表（包含从 Airtable 同步的付款申请）
 async function renderMemberList() {
-  // 从本地获取数据
+  // 先刷新 Airtable 缓存
+  await refreshMembersFromAirtable();
+  
+  // 从缓存获取数据
   const members = getMembersData();
   
-  // 从云端加载付款申请
+  // 从 Airtable 加载付款申请
   const cloudPayments = await loadPaymentRequestsFromCloud();
   
   // 合并数据：云端付款申请 + 本地会员数据
@@ -3599,10 +3752,10 @@ async function approvePayment(phone, submitTime) {
     // 保存到本地会员数据
     const members = getMembersData();
     members.push(memberData);
-    saveMembersData(members);
+    await saveMembersData(members);
     
-    // 从云端删除该付款申请
-    await removePaymentRequestFromCloud(phone, submitTime);
+    // 从 Airtable 更新付款申请状态为 confirmed
+    await removePaymentRequestFromCloud(phone, submitTime, 'confirm');
     
     // 更新酒店配置
     if (payment.hotel && payment.plan && payment.plan !== 'free') {
@@ -3627,7 +3780,8 @@ async function rejectPayment(phone, submitTime) {
   if (!confirm('确认拒绝该付款申请？')) return;
   
   try {
-    await removePaymentRequestFromCloud(phone, submitTime);
+    // 更新 Airtable 状态为 rejected
+    await removePaymentRequestFromCloud(phone, submitTime, 'reject');
     renderMemberList();
     showToast('已拒绝该申请');
   } catch (e) {
@@ -3636,49 +3790,27 @@ async function rejectPayment(phone, submitTime) {
   }
 }
 
-// 从云端删除付款申请
-async function removePaymentRequestFromCloud(phone, submitTime) {
-  const token = localStorage.getItem('github_token');
-  if (!token) {
-    console.log('无管理员token，无法删除云端付款申请');
-    return;
+// 从 Airtable 操作付款申请
+async function removePaymentRequestFromCloud(phone, submitTime, action = 'delete') {
+  try {
+    const records = await AirtableAPI.get('Payments');
+    const record = records.find(r => r.fields.phone === phone);
+    
+    if (record) {
+      if (action === 'delete') {
+        await AirtableAPI.delete('Payments', record.id);
+        console.log('✅ 已从 Airtable 删除付款申请');
+      } else if (action === 'confirm') {
+        await AirtableAPI.update('Payments', record.id, { status: 'confirmed' });
+        console.log('✅ 已更新付款申请状态为 confirmed');
+      } else if (action === 'reject') {
+        await AirtableAPI.update('Payments', record.id, { status: 'rejected' });
+        console.log('✅ 已更新付款申请状态为 rejected');
+      }
+    }
+  } catch (e) {
+    console.error('操作付款申请失败:', e);
   }
-
-  // 从 GitHub API 获取文件信息和 sha
-  const apiRes = await fetch('https://api.github.com/repos/sxie738-bot/hotel-ai-workbench/contents/prompts.json', {
-    headers: { 'Authorization': `Bearer ${token}` }
-  });
-  if (!apiRes.ok) {
-    console.warn('获取 GitHub 文件信息失败:', await apiRes.text());
-    return;
-  }
-  const fileInfo = await apiRes.json();
-  const sha = fileInfo.sha;
-
-  const resp = await fetch('https://raw.githubusercontent.com/sxie738-bot/hotel-ai-workbench/main/prompts.json?t=' + Date.now());
-  const data = await resp.json();
-
-  if (!data.payment_requests) return;
-
-  // 过滤掉要删除的申请
-  data.payment_requests = data.payment_requests.filter(p =>
-    !(p.phone === phone && p.submitTime === submitTime)
-  );
-
-  data._updated = new Date().toISOString();
-
-  await fetch('https://api.github.com/repos/sxie738-bot/hotel-ai-workbench/contents/prompts.json', {
-    method: 'PUT',
-    headers: {
-      'Authorization': `Bearer ${token}`,
-      'Content-Type': 'application/json'
-    },
-    body: JSON.stringify({
-      message: `处理付款申请: ${phone}`,
-      content: btoa(unescape(encodeURIComponent(JSON.stringify(data, null, 2)))),
-      sha: sha
-    })
-  });
 }
 
 function extendMember(index) {
@@ -4285,6 +4417,36 @@ function initSiliconFlowKey() {
   }
 }
 
+// 初始化 Airtable Token
+function initAirtableToken() {
+  const savedToken = localStorage.getItem('airtable_token') || '';
+  const input = document.getElementById('airtableTokenInput');
+  if (input && savedToken) {
+    input.value = savedToken;
+  }
+}
+
+// 保存 Airtable Token
+function saveAirtableToken() {
+  const input = document.getElementById('airtableTokenInput');
+  if (!input) return;
+  
+  const token = input.value.trim();
+  if (!token) {
+    showToast('请输入 Airtable Token', 'error');
+    return;
+  }
+  
+  setAirtableToken(token);
+  showToast('✅ Airtable Token 已保存，数据将实时同步', 'success');
+  
+  // 立即刷新一次数据
+  refreshMembersFromAirtable().then(() => {
+    renderMemberList();
+    showToast('✅ 已从 Airtable 同步最新数据', 'success');
+  });
+}
+
 // 生成AI配图
 async function generateImage() {
   const promptEl = document.getElementById('imagePrompt');
@@ -4565,6 +4727,8 @@ function initApp() {
   // 初始化飞书链接输入框
   initFeishuUrlInput();
   initSiliconFlowKey();
+  initAirtableToken();
+  initMembersCache();
 
   // 加载本地酒店配置（在云端数据拉取之前先有本地缓存）
   const localHotels = localStorage.getItem('hotels_data');
