@@ -22,6 +22,23 @@
       "created_at": "2026-04-01T07:06:52.455Z"
     }
   },
+  "modulePermissions": {
+    "content": { "free": -1, "freeyear": -1, "trial": -1, "monthly": -1, "yearly": -1, "name": "内容创作中心", "icon": "✍️" },
+    "training": { "free": -1, "freeyear": -1, "trial": -1, "monthly": -1, "yearly": -1, "name": "前台培训管家", "icon": "📖" },
+    "analysis": { "free": -1, "freeyear": -1, "trial": -1, "monthly": -1, "yearly": -1, "name": "数据分析助手", "icon": "📈" },
+    "geo": { "free": -1, "freeyear": -1, "trial": -1, "monthly": -1, "yearly": -1, "name": "GEO优化", "icon": "🎯" },
+    "video": { "free": -1, "freeyear": -1, "trial": -1, "monthly": -1, "yearly": -1, "name": "短视频生成", "icon": "🎬" },
+    "review": { "free": -1, "freeyear": -1, "trial": -1, "monthly": -1, "yearly": -1, "name": "点评回复", "icon": "💬" },
+    "competitor": { "free": -1, "freeyear": -1, "trial": -1, "monthly": -1, "yearly": -1, "name": "竞对情报站", "icon": "🔍" },
+    "diagnosis": { "free": -1, "freeyear": -1, "trial": -1, "monthly": -1, "yearly": -1, "name": "经营诊断", "icon": "📋" },
+    "b2b": { "free": -1, "freeyear": -1, "trial": -1, "monthly": -1, "yearly": -1, "name": "大客户拓展", "icon": "🤝" },
+    "patrol": { "free": -1, "freeyear": -1, "trial": -1, "monthly": -1, "yearly": -1, "name": "数字巡店", "icon": "📱" },
+    "community": { "free": -1, "freeyear": -1, "trial": -1, "monthly": -1, "yearly": -1, "name": "交流社区", "icon": "💭" },
+    "feishu": { "free": -1, "freeyear": -1, "trial": -1, "monthly": -1, "yearly": -1, "name": "飞书表格", "icon": "📊" },
+    "image": { "free": -1, "freeyear": -1, "trial": -1, "monthly": -1, "yearly": -1, "name": "AI配图", "icon": "🖼️" },
+    "quicklink": { "free": -1, "freeyear": -1, "trial": -1, "monthly": -1, "yearly": -1, "name": "一键直达", "icon": "🔗" },
+    "aitask": { "free": -1, "freeyear": -1, "trial": -1, "monthly": -1, "yearly": -1, "name": "AI任务拆解", "icon": "🧩" }
+  },
   "_updated": "2026-04-01T07:06:52.533Z",
   "_app_version": "2.0.0",
   "users": [],
