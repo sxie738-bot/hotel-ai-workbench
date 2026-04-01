@@ -1,6 +1,6 @@
 {
   "appName": "酒店AI实战营",
-  "_updated": "2026-04-01T14:44:14.513Z",
+  "_updated": "2026-04-01T14:44:30.133Z",
   "_app_version": "2.0.0",
   "sync_config": {
     "config_key": "UEtOdDdYYXVSQUJVNlJMRFBqbjJMU2JnU0lSYmt4d2VZVDVzZ0luSzk0N0pZeDlXSTRVZ1ljSExaWjJfSU81bElWcDVNeEdDMFlINVM0WkIxMV90YXBfYnVodGln"
@@ -81,6 +81,13 @@
       "note": "",
       "plan": "yearly",
       "created_at": "2026-04-01T19:25:00.000Z"
+    },
+    "大理沐风茗居": {
+      "contact_name": "李霞",
+      "feishu_url": "",
+      "note": "",
+      "plan": "freeyear",
+      "created_at": "2026-04-01T14:44:28.833Z"
     }
   }
 }
