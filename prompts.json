@@ -1,6 +1,6 @@
 {
   "appName": "酒店AI实战营",
-  "_updated": "2026-04-01T14:44:30.133Z",
+  "_updated": "2026-04-03T12:50:24.101Z",
   "_app_version": "2.0.0",
   "sync_config": {
     "config_key": "UEtOdDdYYXVSQUJVNlJMRFBqbjJMU2JnU0lSYmt4d2VZVDVzZ0luSzk0N0pZeDlXSTRVZ1ljSExaWjJfSU81bElWcDVNeEdDMFlINVM0WkIxMV90YXBfYnVodGln"
@@ -8,11 +8,15 @@
   "users": [
     {
       "id": "18545322081",
-      "name": "余学",
+      "name": "谢爽",
       "phone": "18545322081",
-      "hotel": "台味深度",
-      "plan": "frock",
-      "createdAt": "2026-04-01T18:26:00.000Z"
+      "hotel": "111",
+      "plan": "free",
+      "createdAt": "2026-04-01T18:26:00.000Z",
+      "status": "active",
+      "activateDate": "2026-04-03",
+      "expireDate": "2026-04-06",
+      "lastLoginAt": "2026-04-03T12:50:24.101Z"
     },
     {
       "id": "13354909935",
