@@ -1,6 +1,6 @@
 {
   "appName": "酒店AI实战营",
-  "_updated": "2026-04-03T12:50:24.101Z",
+  "_updated": "2026-04-09T07:39:30.623Z",
   "_app_version": "2.0.0",
   "sync_config": {
     "config_key": "UEtOdDdYYXVSQUJVNlJMRFBqbjJMU2JnU0lSYmt4d2VZVDVzZ0luSzk0N0pZeDlXSTRVZ1ljSExaWjJfSU81bElWcDVNeEdDMFlINVM0WkIxMV90YXBfYnVodGln"
@@ -29,6 +29,18 @@
       "expireDate": "2026-04-04",
       "registeredAt": "2026-04-01T14:33:59.114Z",
       "lastLoginAt": "2026-04-01T14:33:59.114Z"
+    },
+    {
+      "id": "11111111111",
+      "name": "ll",
+      "phone": "11111111111",
+      "hotel": "a",
+      "plan": "free",
+      "status": "active",
+      "activateDate": "2026-04-09",
+      "expireDate": "2026-04-12",
+      "registeredAt": "2026-04-09T07:39:30.623Z",
+      "lastLoginAt": "2026-04-09T07:39:30.623Z"
     }
   ],
   "feedback": [
