@@ -1,6 +1,6 @@
 {
   "appName": "酒店AI实战营",
-  "_updated": "2026-04-18T10:03:43.046Z",
+  "_updated": "2026-04-18T10:03:52.472Z",
   "_app_version": "2.0.0",
   "sync_config": {
     "config_key": "UEtOdDdYYXVSQUJVNlJMRFBqbjJMU2JnU0lSYmt4d2VZVDVzZ0luSzk0N0pZeDlXSTRVZ1ljSExaWjJfSU81bElWcDVNeEdDMFlINVM0WkIxMV90YXBfYnVodGln"
@@ -105,5 +105,6 @@
       "plan": "freeyear",
       "created_at": "2026-04-01T14:44:28.833Z"
     }
-  }
+  },
+  "review": "作为一个专业运营，根据差评写出回复，根据我的要求生成，第一句直接开始回复，不加前缀和多余的话\n\n第一句，抱歉给您不好的体验。\n第二句，找一个非酒店责任的背锅理由，理由多样化不要重复\n第三句，已落实完毕具体的整改措施和整改完的时间截点，不要大动干戈的方案，从单独细节入手\n第四句，您可以看一下近期的评价，已经没有客人反应类似问题了。\n第五句，期待您能联系我们，帮助我们进一步改进，为客人提供更好的服务。"
 }
