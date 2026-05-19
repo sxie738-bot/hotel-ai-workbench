@@ -1,6 +1,6 @@
 {
   "appName": "酒店AI实战营",
-  "_updated": "2026-05-19T00:49:31.261Z",
+  "_updated": "2026-04-18T10:03:52.472Z",
   "_app_version": "2.0.0",
   "sync_config": {
     "config_key": "UEtOdDdYYXVSQUJVNlJMRFBqbjJMU2JnU0lSYmt4d2VZVDVzZ0luSzk0N0pZeDlXSTRVZ1ljSExaWjJfSU81bElWcDVNeEdDMFlINVM0WkIxMV90YXBfYnVodGln"
@@ -41,18 +41,6 @@
       "expireDate": "2026-04-12",
       "registeredAt": "2026-04-09T07:39:30.623Z",
       "lastLoginAt": "2026-04-09T07:48:43.532Z"
-    },
-    {
-      "id": "18545832081",
-      "name": "谢爽",
-      "phone": "18545832081",
-      "hotel": "订一晚",
-      "plan": "free",
-      "status": "active",
-      "activateDate": "2026-05-19",
-      "expireDate": "2026-05-22",
-      "registeredAt": "2026-05-19T00:49:31.261Z",
-      "lastLoginAt": "2026-05-19T00:49:31.261Z"
     }
   ],
   "feedback": [
@@ -118,5 +106,152 @@
       "created_at": "2026-04-01T14:44:28.833Z"
     }
   },
-  "review": "作为一个专业运营，根据差评写出回复，根据我的要求生成，第一句直接开始回复，不加前缀和多余的话\n\n第一句，抱歉给您不好的体验。\n第二句，找一个非酒店责任的背锅理由，理由多样化不要重复\n第三句，已落实完毕具体的整改措施和整改完的时间截点，不要大动干戈的方案，从单独细节入手\n第四句，您可以看一下近期的评价，已经没有客人反应类似问题了。\n第五句，期待您能联系我们，帮助我们进一步改进，为客人提供更好的服务。"
+  "review": "作为一个专业运营，根据差评写出回复，根据我的要求生成，第一句直接开始回复，不加前缀和多余的话\n\n第一句，抱歉给您不好的体验。\n第二句，找一个非酒店责任的背锅理由，理由多样化不要重复\n第三句，已落实完毕具体的整改措施和整改完的时间截点，不要大动干戈的方案，从单独细节入手\n第四句，您可以看一下近期的评价，已经没有客人反应类似问题了。\n第五句，期待您能联系我们，帮助我们进一步改进，为客人提供更好的服务。",
+  "members": [],
+  "modulePermissions": {
+    "content": {
+      "free": 3,
+      "freeyear": 3,
+      "trial": -1,
+      "monthly": -1,
+      "yearly": -1,
+      "name": "内容创作中心",
+      "icon": "✍️"
+    },
+    "training": {
+      "free": 3,
+      "freeyear": 3,
+      "trial": -1,
+      "monthly": -1,
+      "yearly": -1,
+      "name": "前台培训管家",
+      "icon": "📖"
+    },
+    "analysis": {
+      "free": 3,
+      "freeyear": 0,
+      "trial": -1,
+      "monthly": -1,
+      "yearly": -1,
+      "name": "数据分析助手",
+      "icon": "📈"
+    },
+    "image": {
+      "free": 3,
+      "freeyear": 3,
+      "trial": 3,
+      "monthly": -1,
+      "yearly": -1,
+      "name": "AI配图",
+      "icon": "🎨"
+    },
+    "feishu": {
+      "free": 3,
+      "freeyear": 0,
+      "trial": 0,
+      "monthly": -1,
+      "yearly": -1,
+      "name": "飞书表格",
+      "icon": "📋"
+    },
+    "video": {
+      "free": 3,
+      "freeyear": 0,
+      "trial": 0,
+      "monthly": -1,
+      "yearly": -1,
+      "name": "短视频生成",
+      "icon": "🎬"
+    },
+    "geo": {
+      "free": 3,
+      "freeyear": 0,
+      "trial": 3,
+      "monthly": -1,
+      "yearly": -1,
+      "name": "GEO优化",
+      "icon": "🔍"
+    },
+    "quicklink": {
+      "free": -1,
+      "freeyear": -1,
+      "trial": -1,
+      "monthly": -1,
+      "yearly": -1,
+      "name": "一键直达",
+      "icon": "🚀"
+    },
+    "review": {
+      "free": 3,
+      "freeyear": 3,
+      "trial": -1,
+      "monthly": -1,
+      "yearly": -1,
+      "name": "点评回复",
+      "icon": "💬"
+    },
+    "competitor": {
+      "free": 3,
+      "freeyear": 0,
+      "trial": 0,
+      "monthly": -1,
+      "yearly": -1,
+      "name": "竞对情报站",
+      "icon": "🕵️"
+    },
+    "diagnosis": {
+      "free": 3,
+      "freeyear": 3,
+      "trial": -1,
+      "monthly": -1,
+      "yearly": -1,
+      "name": "经营诊断",
+      "icon": "🩺"
+    },
+    "bizdev": {
+      "free": 3,
+      "freeyear": 0,
+      "trial": 0,
+      "monthly": -1,
+      "yearly": -1,
+      "name": "大客户拓展",
+      "icon": "🤝"
+    },
+    "patrol": {
+      "free": 3,
+      "freeyear": 0,
+      "trial": 0,
+      "monthly": -1,
+      "yearly": -1,
+      "name": "数字巡店",
+      "icon": "📷"
+    },
+    "feedback": {
+      "free": -1,
+      "freeyear": -1,
+      "trial": -1,
+      "monthly": -1,
+      "yearly": -1,
+      "name": "共创中心",
+      "icon": "🎯"
+    },
+    "aitask": {
+      "free": 3,
+      "freeyear": 5,
+      "trial": -1,
+      "monthly": -1,
+      "yearly": -1,
+      "name": "AI任务拆解",
+      "icon": "🧩"
+    },
+    "community": {
+      "free": -1,
+      "freeyear": -1,
+      "trial": -1,
+      "monthly": -1,
+      "yearly": -1,
+      "name": "交流社区",
+      "icon": "🌸"
+    }
+  }
 }
