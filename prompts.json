@@ -1,6 +1,6 @@
 {
   "appName": "酒店AI实战营",
-  "_updated": "2026-04-18T10:03:52.472Z",
+  "_updated": "2026-05-19T00:49:31.261Z",
   "_app_version": "2.0.0",
   "sync_config": {
     "config_key": "UEtOdDdYYXVSQUJVNlJMRFBqbjJMU2JnU0lSYmt4d2VZVDVzZ0luSzk0N0pZeDlXSTRVZ1ljSExaWjJfSU81bElWcDVNeEdDMFlINVM0WkIxMV90YXBfYnVodGln"
@@ -41,6 +41,18 @@
       "expireDate": "2026-04-12",
       "registeredAt": "2026-04-09T07:39:30.623Z",
       "lastLoginAt": "2026-04-09T07:48:43.532Z"
+    },
+    {
+      "id": "18545832081",
+      "name": "谢爽",
+      "phone": "18545832081",
+      "hotel": "订一晚",
+      "plan": "free",
+      "status": "active",
+      "activateDate": "2026-05-19",
+      "expireDate": "2026-05-22",
+      "registeredAt": "2026-05-19T00:49:31.261Z",
+      "lastLoginAt": "2026-05-19T00:49:31.261Z"
     }
   ],
   "feedback": [
